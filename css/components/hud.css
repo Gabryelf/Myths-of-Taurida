@@ -1,0 +1,29 @@
+.hud-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent);
+    pointer-events: none;
+}
+
+.hud-top>* {
+    pointer-events: auto;
+}
+
+.hud-top .title {
+    font-size: 18px;
+    color: var(--color-gold-bright);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.hud-top .info {
+    font-size: 13px;
+    color: #8a7a58;
+    font-family: monospace;
+}

@@ -1,0 +1,17 @@
+:root {
+    --color-bg: #0a0d12;
+    --color-text: #e8dfc8;
+    --color-gold: #d4a94c;
+    --color-gold-bright: #f5d57a;
+
+    --font-ui: 'Georgia', serif;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+    --transition-fast: 0.2s ease;
+}
