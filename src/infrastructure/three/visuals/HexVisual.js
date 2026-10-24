@@ -2,27 +2,23 @@ import * as THREE from 'three';
 import { BaseVisual } from './BaseVisual.js';
 import { Theme } from '../../config/ThemeConfig.js';
 
-/**
- * Визуал гекса: плита, бордюр, фракционное кольцо.
- * Всё из Theme. Легко заменить на «красивый» визуал в будущем.
- */
 export class HexVisual extends BaseVisual {
   constructor(tile, size) {
     super({ tile, size });
+    this._overlays = new Map();
   }
 
   _build() {
     const { tile, size } = this.data;
     const t = Theme.terrain[tile.terrain] || Theme.terrain.plain;
 
-    const hexGeo = new THREE.CylinderGeometry(size * 0.94, size * 0.94, 0.4, 6);
-    const hexMat = new THREE.MeshStandardMaterial({
+    const geo = new THREE.CylinderGeometry(size * 0.94, size * 0.94, 0.4, 6);
+    const mat = new THREE.MeshStandardMaterial({
       color: t.color,
       roughness: t.roughness,
       metalness: 0.05,
-      flatShading: false,
     });
-    const plate = new THREE.Mesh(hexGeo, hexMat);
+    const plate = new THREE.Mesh(geo, mat);
     plate.rotation.y = Math.PI / 6;
     plate.receiveShadow = true;
     plate.castShadow = true;
@@ -36,6 +32,7 @@ export class HexVisual extends BaseVisual {
         color, emissive: color, emissiveIntensity: 0.4,
         roughness: 0.4, metalness: 0.5,
         side: THREE.DoubleSide, transparent: true, opacity: 0.9,
+        depthWrite: false,
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = -Math.PI / 2;
@@ -43,5 +40,17 @@ export class HexVisual extends BaseVisual {
       ring.position.y = 0.22;
       this.group.add(ring);
     }
+  }
+
+  /** Регистрирует оверлей подсветки для дальнейшего управления. */
+  attachOverlay(kind, overlay) {
+    this._overlays.set(kind, overlay);
+    overlay.addTo(this.group);
+  }
+
+  /** Показывает/скрывает оверлей нужного типа. */
+  setOverlayVisible(kind, visible) {
+    const o = this._overlays.get(kind);
+    if (o) o.setVisible(visible);
   }
 }
