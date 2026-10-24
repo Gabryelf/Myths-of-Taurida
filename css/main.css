@@ -2,6 +2,7 @@
 @import './base/variables.css';
 @import './components/toast.css';
 @import './components/hud.css';
+@import './components/tooltip.css';
 
 #app {
     position: relative;
