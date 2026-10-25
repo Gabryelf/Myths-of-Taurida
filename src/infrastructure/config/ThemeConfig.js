@@ -38,12 +38,12 @@ export const Theme = {
     colorShallow: 0x1a4a6a,
     colorFoam: 0x9ac8dc,
     sunDirection: { x: 20, y: 30, z: 10 },
-    waveScale: 0.18,      // частота волн
-    waveSpeed: 0.7,       // скорость
-    waveHeight: 0.35,      // амплитуда
+    waveScale: 0.18,        // частота волн
+    waveSpeed: 0.7,         // скорость
+    waveHeight: 0.35,       // амплитуда
     specularity: 32,        // резкость блика
-    size: 600,       // сторона плоскости моря
-    y: -0.35,     // высота над сценой
+    size: 600,              // сторона плоскости моря
+    y: -0.35,               // высота над сценой
   },
 
   sky: {
@@ -56,5 +56,22 @@ export const Theme = {
     starsRadiusMin: 120,
     starsRadiusMax: 240,
     starsOpacity: 0.85,
+  },
+
+  general: {
+    pedestalColor: 0x5a4020,
+    pedestalEmissive: 0x2a1a08,
+    discRadius: 0.55,         // от size
+    discHeight: 0.18,         // от size
+    flagHeight: 0.9,          // от size
+    bannerWidth: 0.28,        // от size
+    bannerHeight: 0.16,       // от size
+    selectedGlow: 0xf5d57a,
+  },
+
+  movement: {
+    color: 0x58a6ff,
+    opacity: 0.35,
+    ringWidth: { inner: 0.55, outer: 0.72 },  // от size
   },
 };
