@@ -3,6 +3,8 @@
 @import './components/toast.css';
 @import './components/hud.css';
 @import './components/tooltip.css';
+@import './components/general-panel.css';
+@import './components/end-turn-button.css';
 
 #app {
     position: relative;

@@ -1,0 +1,88 @@
+.general-panel {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    width: 260px;
+    background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-md);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--color-text);
+    display: none;
+}
+
+.general-panel.visible {
+    display: block;
+}
+
+.general-panel .gp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.3);
+}
+
+.general-panel .gp-emblem {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--color-gold);
+    flex-shrink: 0;
+    box-shadow: 0 0 12px currentColor;
+}
+
+.general-panel .gp-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    letter-spacing: 0.04em;
+}
+
+.general-panel .gp-faction {
+    font-size: 11px;
+    color: #8a7a58;
+    font-style: italic;
+}
+
+.general-panel .gp-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.general-panel .gp-row span:first-child {
+    color: #8a7a58;
+}
+
+.general-panel .gp-row b {
+    color: var(--color-text);
+    font-weight: 700;
+}
+
+.general-panel .gp-lives {
+    display: inline-flex;
+    gap: 3px;
+    vertical-align: middle;
+}
+
+.general-panel .gp-life {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
+    border: 1px solid var(--color-gold);
+    box-shadow: 0 0 6px rgba(217, 58, 58, 0.6);
+}
+
+.general-panel .gp-life.lost {
+    background: #1a1a1a;
+    box-shadow: none;
+    border-color: #333;
+}
