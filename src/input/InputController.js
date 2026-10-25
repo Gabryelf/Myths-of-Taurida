@@ -102,31 +102,38 @@ export class InputController {
     }, { passive: true });
   }
 
+  // в _pick():
   _pick(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    if (this._pickables.length === 0) return null;
+    if (this._pickables.length === 0) return { tile: null, general: null };
     const hits = this.raycaster.intersectObjects(this._pickables, true);
+
+    let tile = null;
+    let general = null;
     for (const h of hits) {
       let cur = h.object;
       while (cur) {
-        if (cur.userData?.tile) return cur.userData.tile;
+        if (!general && cur.userData?.general) general = cur.userData.general;
+        if (!tile && cur.userData?.tile) tile = cur.userData.tile;
         cur = cur.parent;
+        if (tile && general) break;
       }
+      if (tile && general) break;
     }
-    return null;
+    return { tile, general };
   }
 
   _handleClick(e) {
-    const tile = this._pick(e.clientX, e.clientY);
-    this.onTileClick?.(tile);
+    const { tile, general } = this._pick(e.clientX, e.clientY);
+    this.onTileClick?.(tile, general);
   }
 
   _handleHover(e) {
-    const tile = this._pick(e.clientX, e.clientY);
+    const { tile } = this._pick(e.clientX, e.clientY);
     const key = tile?.key ?? null;
     if (key === this._lastHoverKey) return;
     this._lastHoverKey = key;
