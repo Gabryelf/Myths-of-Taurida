@@ -1,7 +1,13 @@
 
+---
+
 <div align="center">
 
-# Myths of Taurida
+![Демо игры](./docs/Myths-of-Taurida-logo.gif)
+
+</div>
+
+<div align="center">
 
 **Карточная веб-игра на Node.js с элементами стратегии и тактическими боями — прототип**
 
@@ -9,14 +15,6 @@
 ![Version](https://img.shields.io/badge/version-0.3-blue)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 ![Three.js](https://img.shields.io/badge/three.js-r160-blueviolet)
-
-</div>
-
----
-
-<div align="center">
-
-![Демо игры](./docs/Myths-of-Taurida-logo.gif)
 
 </div>
 
