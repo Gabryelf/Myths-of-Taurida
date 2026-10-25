@@ -40,14 +40,16 @@
 
 ### Версии
 
-[![v0.0.1](https://img.shields.io/badge/v0.1-Фундамент-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/1)
-[![v0.0.2](https://img.shields.io/badge/v0.2-Raycast%20и%20подсветка-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/2)
-[![v0.0.3](https://img.shields.io/badge/v0.3-Море%20и%20атмосфера-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/3)
+[![v0.0.1](https://img.shields.io/badge/v0.0.1-Фундамент-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/1)
+[![v0.0.2](https://img.shields.io/badge/v0.0.2-Raycast%20и%20подсветка-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/2)
+[![v0.0.3](https://img.shields.io/badge/v0.0.3-Море%20и%20атмосфера-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/3)
+[![v0.0.4](https://img.shields.io/badge/v0.0.4-Полководцы%20и%20система%20ходов-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/4)
 
 
 </div>
 
-
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.1-0.0.2.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.3.png)
 
 ---
 
