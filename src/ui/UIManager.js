@@ -15,7 +15,8 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="title">ТАВРИДА · v0.0.2</div>
+      <div class="title">ТАВРИДА · v0.0.3</div>
+  
     `;
     this.root.appendChild(hud);
   }

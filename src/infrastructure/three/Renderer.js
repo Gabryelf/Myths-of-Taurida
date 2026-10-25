@@ -1,15 +1,19 @@
 import * as THREE from 'three';
 import { Theme } from '../config/ThemeConfig.js';
+import { SeaVisual } from './visuals/SeaVisual.js';
+import { StarField } from './visuals/StarField.js';
 
 /**
  * Обёртка над Three.js: сцена, камера, рендер-цикл.
  * Единственное место, где живёт THREE.WebGLRenderer.
+ *
+ * С v0.3 включает море и звёзды — но не знает о домене.
  */
 export class Renderer {
   constructor(canvas) {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(Theme.colors.background);
-    this.scene.fog = new THREE.FogExp2(Theme.colors.fog, 0.012);
+    this.scene.background = new THREE.Color(Theme.sky.color);
+    this.scene.fog = new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity);
 
     this.camera = new THREE.PerspectiveCamera(
       45, window.innerWidth / window.innerHeight, 0.1, 1000,
@@ -22,7 +26,12 @@ export class Renderer {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+    // Время для анимаций
+    this._t0 = performance.now();
+
     this._setupLights();
+    this._setupEnvironment();
+
     window.addEventListener('resize', () => this._onResize());
   }
 
@@ -30,7 +39,11 @@ export class Renderer {
     this.scene.add(new THREE.AmbientLight(Theme.colors.ambient, 0.6));
 
     const sun = new THREE.DirectionalLight(Theme.colors.sun, 1.4);
-    sun.position.set(20, 30, 10);
+    sun.position.set(
+      Theme.sea.sunDirection.x,
+      Theme.sea.sunDirection.y,
+      Theme.sea.sunDirection.z,
+    );
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, {
@@ -44,7 +57,18 @@ export class Renderer {
     this.scene.add(rim);
   }
 
+  _setupEnvironment() {
+    this.sea = new SeaVisual();
+    this.sea.addTo(this.scene);
+
+    this.stars = new StarField();
+    this.stars.addTo(this.scene);
+  }
+
   tick() {
+    const t = (performance.now() - this._t0) / 1000;
+    this.sea.update(t);
+    this.stars.update(t);
     this.renderer.render(this.scene, this.camera);
   }
 

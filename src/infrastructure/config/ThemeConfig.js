@@ -33,4 +33,28 @@ export const Theme = {
     selected: { color: 0xf5d57a, opacity: 0.65 },
     neighbor: { color: 0x6ab0ff, opacity: 0.22 },
   },
+  sea: {
+    colorDeep: 0x081a2e,
+    colorShallow: 0x1a4a6a,
+    colorFoam: 0x9ac8dc,
+    sunDirection: { x: 20, y: 30, z: 10 },
+    waveScale: 0.18,      // частота волн
+    waveSpeed: 0.7,       // скорость
+    waveHeight: 0.35,      // амплитуда
+    specularity: 32,        // резкость блика
+    size: 600,       // сторона плоскости моря
+    y: -0.35,     // высота над сценой
+  },
+
+  sky: {
+    color: 0x0a0d12,
+    fogColor: 0x0a0d12,
+    fogDensity: 0.012,
+    starsCount: 800,
+    starsColor: 0xffe8b0,
+    starsSize: 0.35,
+    starsRadiusMin: 120,
+    starsRadiusMax: 240,
+    starsOpacity: 0.85,
+  },
 };
