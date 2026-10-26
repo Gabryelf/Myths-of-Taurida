@@ -1,0 +1,105 @@
+.deck-panel {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    width: 320px;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    box-shadow: var(--shadow-md);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    color: var(--color-text);
+    display: none;
+}
+
+.deck-panel.visible {
+    display: block;
+}
+
+.deck-panel .dp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.3);
+}
+
+.deck-panel .dp-empty {
+    color: #8a7a58;
+    font-style: italic;
+    text-align: center;
+    padding: 12px 0;
+}
+
+.deck-panel .dp-card {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(212, 169, 76, 0.04);
+    margin-bottom: 6px;
+    border-left: 3px solid var(--color-gold-dark);
+}
+
+.deck-panel .dp-card.type-warrior {
+    border-left-color: #e74c3c;
+}
+
+.deck-panel .dp-card.type-archer {
+    border-left-color: #7aa0c8;
+}
+
+.deck-panel .dp-card.type-support {
+    border-left-color: #5ec37a;
+}
+
+.deck-panel .dp-card.type-special {
+    border-left-color: #c07ad8;
+}
+
+.deck-panel .dp-img {
+    width: 40px;
+    height: 52px;
+    border-radius: 3px;
+    background-size: cover;
+    background-position: center top;
+    background-color: #2a1d0f;
+    flex-shrink: 0;
+    border: 1px solid var(--color-gold-dark);
+}
+
+.deck-panel .dp-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.deck-panel .dp-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deck-panel .dp-type {
+    font-size: 10px;
+    color: #a08a68;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+}
+
+.deck-panel .dp-str {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--color-gold-bright);
+    min-width: 24px;
+    text-align: center;
+}

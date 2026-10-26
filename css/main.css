@@ -5,6 +5,9 @@
 @import './components/tooltip.css';
 @import './components/general-panel.css';
 @import './components/end-turn-button.css';
+@import './components/resource-bar.css';
+@import './components/deck-panel.css';
+@import './components/recruit-modal.css';
 
 #app {
     position: relative;
