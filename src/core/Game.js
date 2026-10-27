@@ -7,6 +7,7 @@ import { InputController } from '../input/InputController.js';
 import { UIManager } from '../ui/UIManager.js';
 import { Logger } from './Logger.js';
 import { Theme } from '../infrastructure/config/ThemeConfig.js';
+import { RecruitController } from '../application/RecruitController.js';
 
 /**
  * Оркестратор. Собирает слои. Не содержит бизнес-логики —
@@ -28,7 +29,9 @@ export class Game {
       root: uiRoot,
       toastRoot,
       bus: this.bus,
+      world: this.world,
       onEndTurn: () => this.endTurn(),
+      onRecruit: (key) => this.recruitController.tryRecruit(key),
     });
 
     // Ввод
@@ -40,6 +43,11 @@ export class Game {
     });
     this.input.attachCameraController(this.cameraController);
 
+    this.recruitController = new RecruitController({
+      world: this.world,
+      bus: this.bus,
+    });
+
     // Состояние выбора
     this.selectedGeneralId = null;
     this.selectedTileKey = null;
@@ -49,6 +57,8 @@ export class Game {
 
   start(factionId = 'scythians') {
     this.world.selectPlayerFaction(factionId);
+    const pool = this.world.resourcePools.get(this.world.playerFactionId);
+    this.ui.bindResources(pool);
     this.sceneBuilder.rebuild(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
 
@@ -161,6 +171,7 @@ export class Game {
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.bus.emit('turn:ended', { turn: this.world.turn });
+    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.bus.emit('toast:show', { text: `Ход ${this.world.turn}` });
   }
 

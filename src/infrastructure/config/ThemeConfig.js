@@ -74,4 +74,15 @@ export const Theme = {
     opacity: 0.35,
     ringWidth: { inner: 0.55, outer: 0.72 },  // от size
   },
+
+  card: {
+    width: 1.4,
+    height: 2.0,
+    typeColor: {
+      warrior: 0xe74c3c,
+      archer:  0x7aa0c8,
+      support: 0x5ec37a,
+      special: 0xc07ad8,
+    },
+  },
 };

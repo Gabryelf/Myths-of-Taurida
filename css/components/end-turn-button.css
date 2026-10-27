@@ -1,7 +1,7 @@
 .end-turn-button {
     position: absolute;
     right: 16px;
-    bottom: 16px;
+    top: 606px;
     background: linear-gradient(180deg, #8a6a30, #4a3418);
     border: 1px solid var(--color-gold);
     color: var(--color-gold-bright);
