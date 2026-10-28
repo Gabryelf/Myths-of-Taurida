@@ -1,10 +1,8 @@
 .deck-panel {
     position: absolute;
-    left: 16px;
+    right: 16px;
     bottom: 16px;
-    width: 320px;
-    max-height: 40vh;
-    overflow-y: auto;
+    width: 340px;
     background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-md);
@@ -14,6 +12,7 @@
     font-size: 13px;
     color: var(--color-text);
     display: none;
+    z-index: 20;
 }
 
 .deck-panel.visible {
@@ -33,73 +32,86 @@
     color: #8a7a58;
     font-style: italic;
     text-align: center;
-    padding: 12px 0;
+    padding: 8px 0;
 }
 
+.deck-panel .dp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+}
 .deck-panel .dp-card {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    padding: 6px 8px;
+    position: relative;
+    height: 90px;              /* ← было aspect-ratio: 3/4 */
     border-radius: var(--radius-sm);
-    background: rgba(212, 169, 76, 0.04);
-    margin-bottom: 6px;
-    border-left: 3px solid var(--color-gold-dark);
+    overflow: hidden;
+    border: 1px solid var(--color-gold-dark);
+    background: #1a1208;
 }
-
-.deck-panel .dp-card.type-warrior {
-    border-left-color: #e74c3c;
-}
-
-.deck-panel .dp-card.type-archer {
-    border-left-color: #7aa0c8;
-}
-
-.deck-panel .dp-card.type-support {
-    border-left-color: #5ec37a;
-}
-
-.deck-panel .dp-card.type-special {
-    border-left-color: #c07ad8;
-}
-
-.deck-panel .dp-img {
-    width: 40px;
-    height: 52px;
-    border-radius: 3px;
+.deck-panel .dp-art {
+    position: absolute;
+    inset: 0;
     background-size: cover;
     background-position: center top;
+    background-repeat: no-repeat;
     background-color: #2a1d0f;
-    flex-shrink: 0;
-    border: 1px solid var(--color-gold-dark);
 }
 
-.deck-panel .dp-body {
-    flex: 1;
-    min-width: 0;
-}
-
-.deck-panel .dp-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-text);
+.deck-panel .dp-name-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 6, 3, 0.85);
+    font-size: 9px;
+    padding: 2px 4px;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--color-text);
+    z-index: 2;
 }
 
-.deck-panel .dp-type {
+.deck-panel .dp-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
     font-size: 10px;
-    color: #a08a68;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 2px;
+    font-weight: 900;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-gold-bright);
+    z-index: 3;
 }
 
-.deck-panel .dp-str {
-    font-size: 14px;
-    font-weight: 900;
-    color: var(--color-gold-bright);
-    min-width: 24px;
-    text-align: center;
+.deck-panel .dp-type-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    z-index: 2;
+}
+
+.deck-panel .dp-card.type-warrior .dp-type-stripe {
+    background: #e74c3c;
+}
+
+.deck-panel .dp-card.type-archer .dp-type-stripe {
+    background: #7aa0c8;
+}
+
+.deck-panel .dp-card.type-support .dp-type-stripe {
+    background: #5ec37a;
+}
+
+.deck-panel .dp-card.type-special .dp-type-stripe {
+    background: #c07ad8;
 }

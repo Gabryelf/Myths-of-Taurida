@@ -1,0 +1,260 @@
+.battle-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.95), rgba(0, 0, 0, 0.98));
+    z-index: 120;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.battle-modal-overlay.visible {
+    display: flex;
+}
+
+.battle-modal {
+    width: 100%;
+    max-width: 1200px;
+    height: 95vh;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    box-shadow: 0 0 100px rgba(212, 169, 76, 0.3), 0 24px 80px rgba(0, 0, 0, 0.95);
+}
+
+/* Шапка */
+.battle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: linear-gradient(180deg, rgba(38, 26, 14, 0.96), rgba(18, 12, 6, 0.94));
+    border: 1px solid var(--color-gold-dark);
+    border-radius: var(--radius-md);
+    gap: 12px;
+}
+
+.bh-side {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.bh-side.blue span {
+    color: #a0c8f0;
+}
+
+.bh-side.red span {
+    color: #f0a0a0;
+}
+
+.bh-lives {
+    display: flex;
+    gap: 4px;
+}
+
+.life-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
+    border: 1px solid var(--color-gold);
+    box-shadow: 0 0 8px rgba(217, 58, 58, 0.6);
+}
+
+.life-dot.lost {
+    background: #1a1a1a;
+    box-shadow: none;
+    border-color: #333;
+}
+
+.bh-log {
+    flex: 1;
+    max-height: 50px;
+    overflow: hidden;
+    font-size: 12px;
+    color: #b8a380;
+    font-style: italic;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-sm);
+    line-height: 1.4;
+}
+
+.bh-log .log-entry.dmg {
+    color: #f0a0a0;
+}
+
+.bh-log .log-entry.heal {
+    color: #90d8a0;
+}
+
+.bh-log .log-entry.info {
+    color: #a0c8f0;
+}
+
+/* Арена */
+.battle-arena {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.battle-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+}
+
+.battle-row {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 90px repeat(3, 1fr);
+    gap: 6px;
+    min-height: 0;
+}
+
+.lane-label {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    padding-right: 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-gold);
+    font-weight: 700;
+}
+
+.lane-label small {
+    font-size: 9px;
+    color: #8a7050;
+    text-transform: none;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.cell {
+    position: relative;
+    border: 1px solid rgba(212, 169, 76, 0.15);
+    border-radius: var(--radius-sm);
+    background: rgba(15, 10, 5, 0.6);
+    overflow: hidden;
+    min-height: 0;
+    transition: box-shadow 0.2s;
+}
+
+.cell.valid-place {
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 0 20px rgba(245, 213, 122, 0.6);
+    cursor: pointer;
+    animation: placePulse 1.4s ease-in-out infinite;
+}
+
+.cell.valid-target {
+    border-color: #f85149;
+    box-shadow: 0 0 20px rgba(248, 81, 73, 0.7);
+    cursor: pointer;
+    animation: targetPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes placePulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 14px rgba(245, 213, 122, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 28px rgba(245, 213, 122, 0.9);
+    }
+}
+
+@keyframes targetPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 14px rgba(248, 81, 73, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 28px rgba(248, 81, 73, 0.9);
+    }
+}
+
+.battle-divider {
+    text-align: center;
+    color: var(--color-gold-dark);
+    letter-spacing: 0.5em;
+    font-size: 12px;
+}
+
+/* Управление */
+.battle-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 6px 0;
+    align-items: center;
+}
+
+.tactic-points {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, rgba(212, 169, 76, 0.2), rgba(212, 169, 76, 0.06));
+    border: 1.5px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    color: var(--color-gold-bright);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.tactic-points .pt-val {
+    font-size: 20px;
+    color: #fff;
+}
+
+.btn-end-turn,
+.btn-retreat {
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.btn-end-turn {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-bright);
+}
+
+.btn-end-turn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn-retreat {
+    background: transparent;
+    border: 1px solid #a32c2c;
+    color: #f0b0b0;
+}

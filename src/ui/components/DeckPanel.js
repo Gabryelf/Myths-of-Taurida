@@ -30,24 +30,34 @@ export class DeckPanel {
     if (!g) return;
     const cards = g.deck.cards;
     const empty = cards.length === 0 ? `<div class="dp-empty">Колода пуста</div>` : '';
-    const items = cards.map((c) => {
-      const url = this._imgLoader.getUrl(c.imageKey);
-      const bg = url ? `background-image:url("${url}");` : '';
-      return `
-        <div class="dp-card type-${c.type}" title="${c.name}">
-          <div class="dp-art" style="${bg}">
-            <div class="dp-count">${c.str}</div>
-            <div class="dp-type-stripe"></div>
-          </div>
-          <div class="dp-name-bottom">${c.name}</div>
-        </div>
-      `;
-    }).join('');
 
     this.el.innerHTML = `
       <div class="dp-title">Колода · ${g.name} · ${g.deck.totalStrength}/${g.deck.capacity}</div>
       ${empty}
-      <div class="dp-grid">${items}</div>
+      <div class="dp-grid"></div>
     `;
+
+    const grid = this.el.querySelector('.dp-grid');
+    if (!grid) return;
+
+    for (const c of cards) {
+      const url = this._imgLoader.getUrl(c.imageKey);
+
+      const cardEl = document.createElement('div');
+      cardEl.className = `dp-card type-${c.type}`;
+      cardEl.title = c.name;
+      cardEl.innerHTML = `
+        <div class="dp-art">
+          <div class="dp-count">${c.str}</div>
+          <div class="dp-type-stripe"></div>
+        </div>
+        <div class="dp-name-bottom">${c.name}</div>
+      `;
+
+      const art = cardEl.querySelector('.dp-art');
+      if (url && art) art.style.backgroundImage = `url("${url}")`;
+
+      grid.appendChild(cardEl);
+    }
   }
 }

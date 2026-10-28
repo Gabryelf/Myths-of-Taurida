@@ -46,15 +46,17 @@ export class BattleHand {
         if (disabled) el.classList.add('disabled');
         if (selected) el.classList.add('selected');
 
-        const url = this._imgLoader.getUrl(card.imageKey);
-        const bg = url ? `background-image:url("${url}");` : '';
-
         el.innerHTML = `
       <div class="bhc-name-top">${card.name}</div>
-      <div class="bhc-art" style="${bg}"></div>
+      <div class="bhc-art"></div>
       <div class="bhc-count">${card.str}</div>
       <div class="bhc-type-stripe"></div>
     `;
+
+        const art = el.querySelector('.bhc-art');
+        const url = this._imgLoader.getUrl(card.imageKey);
+        if (url && art) art.style.backgroundImage = `url("${url}")`;
+
         return el;
     }
 }

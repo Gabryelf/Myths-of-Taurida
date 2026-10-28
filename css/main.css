@@ -8,6 +8,9 @@
 @import './components/resource-bar.css';
 @import './components/deck-panel.css';
 @import './components/recruit-modal.css';
+@import './components/battle-modal.css';
+@import './components/battle-board.css';
+@import './components/battle-hand.css';
 
 #app {
     position: relative;

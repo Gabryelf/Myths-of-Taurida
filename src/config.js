@@ -1,6 +1,6 @@
 // Пути к картинкам. Все файлы — в assets/images/.
 
-export const IMAGE_BASE = '../assets/images/';
+export const IMAGE_BASE = '/images/';
 
 export const CARD_IMAGES = {
   // Скифы

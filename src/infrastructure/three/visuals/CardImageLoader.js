@@ -23,6 +23,9 @@ export class CardImageLoader {
     }
 
     getUrl(imageKey) {
-        return imgUrl(CARD_IMAGES[imageKey]);
-    }
+        const file = CARD_IMAGES[imageKey];
+        const url = imgUrl(file);
+        console.log('[CardImageLoader]', imageKey, '→ file:', file, '→ url:', url);
+        return url;
+      }
 }
