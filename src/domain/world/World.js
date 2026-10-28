@@ -10,6 +10,7 @@ import { ResourcePool } from '../economy/ResourcePool.js';
 import { EconomyService } from '../economy/EconomyService.js';
 import { RecruitService } from '../economy/RecruitService.js';
 import { CardFactory } from '../card/CardFactory.js';
+import { BattleFactory } from '../battle/BattleFactory.js';
 
 export class World {
   constructor({ seed = 1337, radius = 4 } = {}) {
@@ -120,5 +121,14 @@ export class World {
       const income = this.economy.turnIncome(f.id);
       pool.add(income);
     }
+  }
+
+  startBattle({ attackerGen, targetTile, defenderFactionId }) {
+    return BattleFactory.create({
+      attackerGen,
+      targetTile,
+      defenderFactionId,
+      world: this,
+    });
   }
 }

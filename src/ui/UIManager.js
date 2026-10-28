@@ -5,9 +5,10 @@ import { EndTurnButton } from './components/EndTurnButton.js';
 import { ResourceBar } from './components/ResourceBar.js';
 import { DeckPanel } from './components/DeckPanel.js';
 import { RecruitModal } from './components/RecruitModal.js';
+import { BattleModal } from './components/BattleModal.js';
 
 export class UIManager {
-  constructor({ root, toastRoot, bus, world, onEndTurn, onRecruit }) {
+  constructor({ root, toastRoot, bus, world, onEndTurn, onRecruit, battleController }) {
     this.root = root;
     this.bus = bus;
     this.world = world;
@@ -19,11 +20,16 @@ export class UIManager {
     this.resourceBar = new ResourceBar(root);
 
     this._buildHud();
-    this.endTurnButton = new EndTurnButton(this._hudEl, onEndTurn);
 
+    this.endTurnButton = new EndTurnButton(this._hudEl, onEndTurn);
     this.recruitModal = new RecruitModal(root, {
       onRecruit: (key) => onRecruit?.(key),
-      onClose: () => { },
+      onClose: () => {},
+    });
+
+    this.battleModal = new BattleModal(root, {
+      controller: battleController,
+      bus,
     });
 
     this._subscribe();
@@ -33,12 +39,8 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="title">ТАВРИДА · v0.0.5</div>
-      <div style="display:flex;gap:100px;align-items:center;">
-        <button class="hud-btn" style="position: absolute;
-        right: 16px;
-        top: 100px;" id="btn-recruit">Найм</button>
-      </div>
+      <div class="title">ТАВРИДА · v0.0.6</div>
+      <button class="hud-btn hud-btn-recruit" id="btn-recruit">Найм</button>
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
@@ -49,50 +51,34 @@ export class UIManager {
     const factionId = this.world.playerFactionId;
     const pool = this.world.resourcePools.get(factionId);
     if (!pool) return;
-    this.recruitModal.open({
-      factionId,
-      pool,
-      economy: this.world.economy,
-    });
+    this.recruitModal.open({ factionId, pool, economy: this.world.economy });
   }
 
-  bindResources(pool) {
-    this.resourceBar.bind(pool);
-  }
+  bindResources(pool) { this.resourceBar.bind(pool); }
 
   _subscribe() {
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
       if (tile) this.tooltip.show(tile, screenPos);
       else this.tooltip.hide();
     });
-
     this.bus.on('general:selected', ({ general }) => {
-      if (general) {
-        this.generalPanel.show(general);
-        this.deckPanel.show(general);
-      } else {
-        this.generalPanel.hide();
-        this.deckPanel.hide();
-      }
+      if (general) { this.generalPanel.show(general); this.deckPanel.show(general); }
+      else { this.generalPanel.hide(); this.deckPanel.hide(); }
     });
-
     this.bus.on('general:moved', ({ general, cost }) => {
       this.generalPanel.refresh();
       this.bus.emit('toast:show', {
         text: `${general.name} → (${general.hex.q}, ${general.hex.r}) · -${cost}`,
       });
     });
-
     this.bus.on('resources:changed', () => {
       const factionId = this.world.playerFactionId;
       const pool = this.world.resourcePools.get(factionId);
       if (pool) this.bindResources(pool);
     });
-
     this.bus.on('deck:changed', ({ general }) => {
       if (general) this.deckPanel.refresh();
     });
-
     this.bus.on('turn:ended', () => {
       this.generalPanel.refresh();
       this.deckPanel.refresh();

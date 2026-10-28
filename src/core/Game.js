@@ -8,6 +8,7 @@ import { UIManager } from '../ui/UIManager.js';
 import { Logger } from './Logger.js';
 import { Theme } from '../infrastructure/config/ThemeConfig.js';
 import { RecruitController } from '../application/RecruitController.js';
+import { BattleController } from '../application/BattleController.js';
 
 /**
  * Оркестратор. Собирает слои. Не содержит бизнес-логики —
@@ -47,6 +48,13 @@ export class Game {
       world: this.world,
       bus: this.bus,
     });
+
+    this.battleController = new BattleController({
+      world: this.world,
+      bus: this.bus,
+    });
+    
+    this.bus.on('battle:finished', (result) => this._onBattleFinished(result));
 
     // Состояние выбора
     this.selectedGeneralId = null;
@@ -142,27 +150,55 @@ export class Game {
   // ─── Ход ───
   _executeMove(general, tile, distance) {
     const fromKey = general.hex.key;
+  
+    // Если на гексе вражеский полководец — бой
+    const enemyGen = this.world.getGeneralAt(tile.hex);
+    if (enemyGen && enemyGen.factionId !== general.factionId) {
+      this._selectGeneral(null);
+      this.battleController.open({
+        attackerGen: general,
+        targetTile: tile,
+        defenderFactionId: enemyGen.factionId,
+      });
+      return;
+    }
+  
     general.spendMove(distance);
     general.moveTo(tile.hex);
-
-    // Если гекс нейтральный — захват
-    if (!tile.factionId) {
-      tile.setFaction(general.factionId);
-    }
-
+  
+    if (!tile.factionId) tile.setFaction(general.factionId);
+  
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.sceneBuilder.setMovementOverlays(null, false);
     this.sceneBuilder.setGeneralSelected(general.id, false);
     this.selectedGeneralId = null;
-
-    this.bus.emit('general:moved', {
-      general, fromKey, toKey: tile.key, cost: distance,
-    });
-
-    // Если ещё есть очки — можно снова выбрать
-    if (general.movePoints > 0) {
-      this._selectGeneral(general);
+  
+    this.bus.emit('general:moved', { general, fromKey, toKey: tile.key, cost: distance });
+  
+    if (general.movePoints > 0) this._selectGeneral(general);
+  }
+  
+  _onBattleFinished(result) {
+    const { winner, targetTile, attackerGen } = result;
+    if (winner === 'attacker') {
+      if (targetTile) {
+        targetTile.setFaction(attackerGen.factionId);
+        // Убираем защитника
+        const def = this.world.generals.find((g) => g.hex.key === targetTile.key);
+        if (def && def !== attackerGen) def.lives = 0;
+      }
+      attackerGen.moveTo(targetTile.hex);
+      attackerGen.spendMove(1);
+      this.bus.emit('toast:show', { text: 'Победа! Территория захвачена' });
+    } else if (winner === 'defender') {
+      attackerGen.lives = Math.max(0, attackerGen.lives - 1);
+      this.bus.emit('toast:show', { text: 'Поражение. -1 жизнь полководца' });
     }
+  
+    this.sceneBuilder.updateGeneralPositions(this.world);
+    this.sceneBuilder.rebuild(this.world);
+    this.input.setPickables(this.sceneBuilder.getPickables());
+    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
   }
 
   // ─── Ход (end turn) ───
