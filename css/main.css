@@ -11,6 +11,8 @@
 @import './components/battle-modal.css';
 @import './components/battle-board.css';
 @import './components/battle-hand.css';
+@import './components/tutorial-modal.css';
+@import './components/turn-indicator.css';
 
 #app {
     position: relative;

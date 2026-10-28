@@ -56,3 +56,14 @@
 .hud-btn:active {
     transform: translateY(1px);
 }
+
+.hud-btn-mute {
+    background: transparent;
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-bright);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .hud-btn-mute.muted { opacity: 0.5; }

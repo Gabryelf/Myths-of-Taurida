@@ -9,6 +9,8 @@ import { Logger } from './Logger.js';
 import { Theme } from '../infrastructure/config/ThemeConfig.js';
 import { RecruitController } from '../application/RecruitController.js';
 import { BattleController } from '../application/BattleController.js';
+import { TurnManager } from '../domain/ai/TurnManager.js';
+import { SoundManager } from '../infrastructure/audio/SoundManager.js';
 
 /**
  * Оркестратор. Собирает слои. Не содержит бизнес-логики —
@@ -19,43 +21,39 @@ export class Game {
     this.logger = new Logger('Game');
     this.bus = new EventBus();
     this.world = new World({ seed: Date.now() & 0xffff, radius: 4 });
-
-    // Рендер
+  
     this.renderer = new Renderer(canvas);
     this.cameraController = new CameraController(this.renderer.camera, this.renderer.renderer);
     this.sceneBuilder = new SceneBuilder(this.renderer.scene);
-
-    // Контроллеры (до UI — UI получает battleController)
+  
+    this.sound = new SoundManager();
+    this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
+  
     this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
     this.battleController = new BattleController({ world: this.world, bus: this.bus });
-
-    // UI
+  
     this.ui = new UIManager({
-      root: uiRoot,
-      toastRoot,
-      bus: this.bus,
-      world: this.world,
+      root: uiRoot, toastRoot, bus: this.bus, world: this.world,
       onEndTurn: () => this.endTurn(),
       onRecruit: (key) => this.recruitController.tryRecruit(key),
       battleController: this.battleController,
     });
-
-    // Ввод
+  
     this.input = new InputController({
-      canvas,
-      camera: this.renderer.camera,
+      canvas, camera: this.renderer.camera,
       onTileClick: (tile, hitGeneral) => this._onTileClick(tile, hitGeneral),
       onTileHover: (tile, screenPos) => this._onTileHover(tile, screenPos),
     });
     this.input.attachCameraController(this.cameraController);
-
-    this.bus.on('battle:finished', (result) => this._onBattleFinished(result));
-
-    // Состояние выбора
+  
+    this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
+    this.bus.on('battle:started', () => this.sound.play('play'));
+  
     this.selectedGeneralId = null;
     this.selectedTileKey = null;
     this._pendingBattleCost = 0;
     this._running = false;
+    this._aiBusy = false;
   }
 
   start(factionId = 'scythians') {
@@ -64,15 +62,21 @@ export class Game {
     this.ui.bindResources(pool);
     this.sceneBuilder.rebuild(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
+  
     const player = this.world.playerFaction;
     if (player?.startHex) {
       this.cameraController.centerOn(player.startHex, Theme.hexSize);
     }
+  
+    // Туториал
+    if (!localStorage.getItem('tavrida_tutorial')) {
+      this.ui.showTutorial(() => {});
+    }
+  
     this._loop();
     this.bus.emit('game:started', { faction: factionId });
     this.logger.info('Game started:', factionId);
   }
-
   // ─── Ввод ───
   _onTileClick(tile, hitGeneral) {
     // 1) Клик по полководцу
@@ -194,6 +198,8 @@ export class Game {
     const { winner, targetTile, attackerGen } = result;
     const cost = this._pendingBattleCost || 0;
     this._pendingBattleCost = 0;
+    if (result.winner === 'attacker') this.sound.play('victory');
+    else if (result.winner === 'defender') this.sound.play('defeat');
 
     if (winner === 'attacker') {
       if (targetTile) {
@@ -219,16 +225,50 @@ export class Game {
     this.sceneBuilder.rebuild(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
+
+    if (this._aiBusy) this._runAITurnsRest();
   }
 
   // ─── Конец хода ───
   endTurn() {
+    if (this._aiBusy) return;
     this.world.endTurn();
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.bus.emit('turn:ended', { turn: this.world.turn });
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.bus.emit('toast:show', { text: `Ход ${this.world.turn}` });
+  
+    this._runAITurns();
+  }
+
+  async _runAITurns() {
+    this._aiBusy = true;
+    this.ui.turnIndicator.show('Ход противника…');
+    this.sound.play('turn');
+  
+    const battleAction = await this.turnManager.runAITurns(this.world.playerFactionId, {
+      onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
+    });
+  
+    if (battleAction) {
+      this.ui.turnIndicator.hide();
+      this.battleController.open({
+        attackerGen: battleAction.attackerGen,
+        targetTile: battleAction.targetTile,
+        defenderFactionId: battleAction.defenderFactionId,
+      });
+    } else {
+      this.ui.turnIndicator.hide();
+      this._afterAITurns();
+    }
+    this._aiBusy = false;
+  }
+
+  _afterAITurns() {
+    this.sceneBuilder.updateGeneralPositions(this.world);
+    this.sceneBuilder.rebuild(this.world);
+    this.input.setPickables(this.sceneBuilder.getPickables());
+    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
   }
 
   // ─── Цикл ───

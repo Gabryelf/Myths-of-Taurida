@@ -1,0 +1,61 @@
+.tutorial-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.92), rgba(0, 0, 0, 0.98));
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.tutorial-modal-overlay.visible {
+    display: flex;
+}
+
+.tutorial-modal {
+    width: 100%;
+    max-width: 480px;
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: 0 0 100px rgba(212, 169, 76, 0.3), 0 24px 80px rgba(0, 0, 0, 0.95);
+    text-align: center;
+}
+
+.tutorial-modal h2 {
+    color: var(--color-gold-bright);
+    font-size: 22px;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+}
+
+.tutorial-modal .tut-step {
+    font-size: 11px;
+    color: #8a7a58;
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tutorial-modal p {
+    font-size: 15px;
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.tutorial-modal .btn-next {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-bright);
+    padding: 10px 24px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

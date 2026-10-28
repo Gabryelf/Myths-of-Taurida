@@ -81,39 +81,75 @@ export class BattleModal {
   _render() {
     const b = this._battle;
     if (!b) return;
-
+  
     this.el.innerHTML = `
       <div class="battle-header">
         <div class="bh-side blue">
           <span>${b.attackerGen.name}</span>
           <div class="bh-lives">${this._livesHtml(b.attacker.lives, b.attacker.maxLives)}</div>
         </div>
-        <div class="bh-log" id="bh-log">${this._logHtml(b.log)}</div>
         <div class="bh-side red">
           <div class="bh-lives">${this._livesHtml(b.defender.lives, b.defender.maxLives)}</div>
           <span>${b.defenderGen.name}</span>
         </div>
       </div>
+  
       <div class="battle-arena">
-        ${this._boardHtml('defender', b.defender)}
-        <div class="battle-divider">⚔</div>
-        ${this._boardHtml('attacker', b.attacker)}
+        <div class="battle-field battle-field-defender">
+          ${this._boardHtml('defender', b.defender)}
+        </div>
+        <div class="battle-mid-strip">
+          <div class="battle-log-side" id="bh-log">${this._logHtml(b.log)}</div>
+          <div class="battle-divider">⚔</div>
+          <div class="battle-controls-side">
+            <div class="tactic-points">⚡ <span class="pt-val">${b.attacker.tacticPoints}</span></div>
+            <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Конец хода</button>
+            <button class="btn-retreat" data-action="retreat">Отступить</button>
+          </div>
+        </div>
+        <div class="battle-field battle-field-attacker">
+          ${this._boardHtml('attacker', b.attacker)}
+        </div>
       </div>
-      <div class="battle-controls">
-        <div class="tactic-points">⚡ Тактика <span class="pt-val">${b.attacker.tacticPoints}</span></div>
-        <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Завершить ход</button>
-        <button class="btn-retreat" data-action="retreat">Отступить</button>
-      </div>
+  
+      <div class="battle-hand-root"></div>
     `;
-
-    // Рука — переиспользуем существующий BattleHand
-    this.el.appendChild(this._handRoot);
+  
+    this._handRoot = this.el.querySelector('.battle-hand-root');
+    this.hand = new BattleHand(this._handRoot);
     this.hand.setData(
       b.attacker.hand,
       b.attacker.tacticPoints,
       b.selectedCard,
       (card) => this.controller.selectCard(card),
     );
+  }
+  
+  _boardHtml(side, data) {
+    const b = this._battle;
+    const isAttacker = side === 'attacker';
+    const lanes = [
+      { key: 'defense', label: 'Оборона' },
+      { key: 'attack',  label: 'Атака' },
+      { key: 'support', label: 'Поддержка' },
+    ];
+  
+    const rows = lanes.map((lane) => {
+      const cells = [0, 1, 2].map((i) => {
+        const card = data.board.get(lane.key, i);
+        let cls = 'cell';
+        let inner = '';
+        if (card) inner = this._cardEl.create(card).outerHTML;
+        if (b.isPlayerTurn && b.selectedCard) {
+          if (isAttacker && !card) cls += ' valid-place';
+          if (!isAttacker && card && canTarget(b.selectedCard, lane.key)) cls += ' valid-target';
+        }
+        return `<div class="${cls}" data-side="${side}" data-lane="${lane.key}" data-idx="${i}">${inner}</div>`;
+      }).join('');
+      return `<div class="battle-row">${cells}<div class="lane-label">${lane.label}</div></div>`;
+    }).join('');
+  
+    return `<div class="battle-side ${isAttacker ? 'side-attacker' : 'side-defender'}">${rows}</div>`;
   }
 
   _livesHtml(lives, max) {
@@ -127,30 +163,7 @@ export class BattleModal {
     return last.map((l) => `<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
   }
 
-  _boardHtml(side, data) {
-    const b = this._battle;
-    const isAttacker = side === 'attacker';
-    const rows = LANES.map((lane) => {
-      const label = `<div class="lane-label">${lane.label}<small>${lane.sub}</small></div>`;
-      const cells = [0, 1, 2].map((i) => {
-        const card = data.board.get(lane.key, i);
-        let cls = 'cell';
-        let inner = '';
-        if (card) {
-          inner = this._cardEl.create(card).outerHTML;
-        }
-        if (b.isPlayerTurn && b.selectedCard) {
-          if (isAttacker && !card) cls += ' valid-place';
-          if (!isAttacker && card && canTarget(b.selectedCard, lane.key)) {
-            cls += ' valid-target';
-          }
-        }
-        return `<div class="${cls}" data-side="${side}" data-lane="${lane.key}" data-idx="${i}">${inner}</div>`;
-      }).join('');
-      return `<div class="battle-row">${label}${cells}</div>`;
-    }).join('');
-    return `<div class="battle-side ${isAttacker ? 'side-attacker' : 'side-defender'}">${rows}</div>`;
-  }
+  
 }
 
 function canTarget(card, lane) {

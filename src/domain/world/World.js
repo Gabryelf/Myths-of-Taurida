@@ -11,6 +11,7 @@ import { EconomyService } from '../economy/EconomyService.js';
 import { RecruitService } from '../economy/RecruitService.js';
 import { CardFactory } from '../card/CardFactory.js';
 import { BattleFactory } from '../battle/BattleFactory.js';
+import { AIController } from '../ai/AIController.js';
 
 export class World {
   constructor({ seed = 1337, radius = 4 } = {}) {
@@ -96,10 +97,17 @@ export class World {
     const general = this.generals.find((g) => g.factionId === factionId);
     if (!general) return;
     const keys = CardFactory.keysForFaction(factionId);
-    for (let i = 0; i < 3; i++) {
-      const key = keys[i % keys.length];
-      general.deck.add(CardFactory.create(key));
+    const nonSpecial = keys.filter((k) => CardFactory.defForKey(k).type !== 'special');
+    const special = keys.filter((k) => CardFactory.defForKey(k).type === 'special');
+
+    for (let i = 0; i < 4; i++) {
+      general.deck.add(CardFactory.create(nonSpecial[i % nonSpecial.length]));
     }
+    if (special.length > 0) general.deck.add(CardFactory.create(special[0]));
+  }
+
+  runAITurn(factionId) {
+    return new AIController({ world: this }).takeTurn(factionId);
   }
 
   get playerFaction() {
