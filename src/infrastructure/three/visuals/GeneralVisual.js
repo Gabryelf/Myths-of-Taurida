@@ -102,6 +102,11 @@ export class GeneralVisual {
         this._light = new THREE.PointLight(0xf5d57a, 0, size * 5);
         this._light.position.y = size * 0.3;
         this.group.add(this._light);
+
+        // Проставить userData.general всем мешам группы
+        this.group.traverse((c) => {
+            if (c.isMesh) c.userData = { general: this.general };
+        });
     }
 
     setPosition(x, z) {
