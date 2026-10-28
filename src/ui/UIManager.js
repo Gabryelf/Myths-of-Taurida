@@ -44,19 +44,25 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="title">ТАВРИДА · v0.7</div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div class="hud-title">ТАВРИДА · v0.7</div>
+      <div class="hud-right">
+        <div class="resource-bar" id="resource-bar"></div>
+        <button class="hud-btn" id="btn-recruit">Найм</button>
         <button class="hud-btn-mute" id="btn-mute">🔊</button>
-        <button class="hud-btn hud-btn-recruit" id="btn-recruit">Найм</button>
       </div>
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
-
+  
+    // Resource bar теперь внутри HUD
+    this.resourceBar.el = hud.querySelector('#resource-bar');
+    this.resourceBar.refresh();
+  
     hud.querySelector('#btn-recruit').addEventListener('click', () => {
       this.sound?.play('click');
       this.openRecruit();
     });
+  
     const muteBtn = hud.querySelector('#btn-mute');
     if (this.sound?.isMuted()) {
       muteBtn.textContent = '🔇';
@@ -78,7 +84,13 @@ export class UIManager {
 
   bindResources(pool) { this.resourceBar.bind(pool); }
 
-  showTutorial(onDone) { this.tutorial.onDone = onDone; this.tutorial.open(); }
+  showTutorial(onDone) {
+    this.tutorial.onDone = () => {
+      localStorage.setItem('tavrida_tutorial', '1');
+      onDone?.();
+    };
+    this.tutorial.open();
+  }
 
   _subscribe() {
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {

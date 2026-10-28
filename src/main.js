@@ -9,6 +9,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const game = new Game({ canvas, uiRoot, toastRoot });
     game.input.attachCameraController(game.cameraController);
     game.start('scythians');
+    window.__game = game; // для отладки
   } catch (err) {
     console.error(err);
     document.body.innerHTML = `<pre style="color:#f88;padding:20px">Ошибка: ${err.message}</pre>`;

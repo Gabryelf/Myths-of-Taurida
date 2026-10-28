@@ -96,14 +96,20 @@ export class World {
   _seedStartingDeck(factionId) {
     const general = this.generals.find((g) => g.factionId === factionId);
     if (!general) return;
-    const keys = CardFactory.keysForFaction(factionId);
-    const nonSpecial = keys.filter((k) => CardFactory.defForKey(k).type !== 'special');
-    const special = keys.filter((k) => CardFactory.defForKey(k).type === 'special');
 
-    for (let i = 0; i < 4; i++) {
-      general.deck.add(CardFactory.create(nonSpecial[i % nonSpecial.length]));
+    const keys = CardFactory.keysForFaction(factionId);
+    // Только самые дешёвые карты (str = 1)
+    const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
+
+    // Если дешёвых нет — берём самые дешёвые из доступных
+    const pool = cheap.length > 0
+      ? cheap
+      : keys.slice().sort((a, b) => CardFactory.defForKey(a).str - CardFactory.defForKey(b).str);
+
+    // 3 карты в стартовую колоду
+    for (let i = 0; i < 3; i++) {
+      general.deck.add(CardFactory.create(pool[i % pool.length]));
     }
-    if (special.length > 0) general.deck.add(CardFactory.create(special[0]));
   }
 
   runAITurn(factionId) {
@@ -131,12 +137,13 @@ export class World {
     }
   }
 
-  startBattle({ attackerGen, targetTile, defenderFactionId }) {
+  startBattle({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     return BattleFactory.create({
       attackerGen,
       targetTile,
       defenderFactionId,
       world: this,
+      playerSide,
     });
   }
 }

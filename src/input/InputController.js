@@ -1,10 +1,5 @@
 import * as THREE from 'three';
-import { HexMath } from '../domain/hex/HexMath.js';
 
-/**
- * Ввод: клик, hover, орбита, зум.
- * Raycast — по зарегистрированным мешам (передаются через setPickables).
- */
 export class InputController {
   constructor({ canvas, camera, onTileClick, onTileHover }) {
     this.canvas = canvas;
@@ -24,13 +19,8 @@ export class InputController {
     this._bind();
   }
 
-  setPickables(objs) {
-    this._pickables = objs;
-  }
-
-  attachCameraController(controller) {
-    this._cameraController = controller;
-  }
+  setPickables(objs) { this._pickables = objs; }
+  attachCameraController(controller) { this._cameraController = controller; }
 
   _bind() {
     const c = this.canvas;
@@ -55,6 +45,7 @@ export class InputController {
       this._handleHover(e);
     });
 
+    // click срабатывает только если pointer не ушёл далеко; на всякий случай проверяем ещё раз
     c.addEventListener('click', (e) => {
       if (this._dragMoved) { this._dragMoved = false; return; }
       this._handleClick(e);
@@ -102,7 +93,6 @@ export class InputController {
     }, { passive: true });
   }
 
-  // в _pick():
   _pick(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -110,20 +100,31 @@ export class InputController {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     if (this._pickables.length === 0) return { tile: null, general: null };
+
     const hits = this.raycaster.intersectObjects(this._pickables, true);
 
     let tile = null;
     let general = null;
+
     for (const h of hits) {
       let cur = h.object;
       while (cur) {
-        if (!general && cur.userData?.general) general = cur.userData.general;
-        if (!tile && cur.userData?.tile) tile = cur.userData.tile;
+        const ud = cur.userData;
+        if (!general && ud?.general) general = ud.general;
+        if (!tile && ud?.tile) tile = ud.tile;
+        if (general && tile) break;
         cur = cur.parent;
-        if (tile && general) break;
       }
-      if (tile && general) break;
+      if (general && tile) break;
     }
+
+    // ─── Если нашли general, но не tile — берём tile по позиции генерала ───
+    // (часто бывает: клик попал в верхушку маркера, а плита ниже)
+    if (general && !tile) {
+      // tile можно найти по ключу hex, если у нас есть карта (не в InputController),
+      // поэтому отдаём null — Game обработает fallback по general.hex.
+    }
+
     return { tile, general };
   }
 

@@ -1,10 +1,9 @@
+/* Resource bar встроена в HUD — стили перенесены в hud.css */
+/* Оставляем только на случай, если понадобится отдельно */
 .resource-bar {
-    position: absolute;
-    top: 12px;
-    right: 160px;
     display: flex;
-    gap: 8px;
-    pointer-events: auto;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .resource-bar .res {
@@ -12,20 +11,21 @@
     align-items: center;
     gap: 6px;
     background: linear-gradient(180deg, rgba(45, 34, 20, 0.95), rgba(22, 15, 8, 0.95));
-    padding: 6px 12px;
+    padding: 6px 10px;
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-sm);
     font-family: var(--font-ui);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--color-gold-bright);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
 }
 
 .resource-bar .res-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
+    flex-shrink: 0;
 }
 
 .resource-bar .res-icon.gold {

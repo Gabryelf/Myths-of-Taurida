@@ -12,6 +12,8 @@
     font-size: 13px;
     color: var(--color-text);
     display: none;
+    z-index: 22;
+    max-width: calc(100vw - 32px);
 }
 
 .general-panel.visible {
@@ -85,4 +87,12 @@
     background: #1a1a1a;
     box-shadow: none;
     border-color: #333;
+}
+
+@media (max-width: 700px) {
+    .general-panel {
+        width: 200px;
+        padding: 10px;
+        font-size: 11px;
+    }
 }

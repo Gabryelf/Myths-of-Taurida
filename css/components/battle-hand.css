@@ -1,139 +1,120 @@
 .battle-hand-root {
-    padding: 8px 0 0;
-    flex-shrink: 0;
-}
-
-.battle-hand {
     display: flex;
-    gap: 8px;
-    justify-content: center;
-    flex-wrap: nowrap;
-    overflow: visible;
-}
-
-.bh-empty {
-    text-align: center;
-    width: 100%;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .battle-hand {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    overflow-x: auto;
+    padding: 2px 0;
+    max-width: 100%;
+  }
+  .battle-hand::-webkit-scrollbar { height: 4px; }
+  .battle-hand::-webkit-scrollbar-thumb { background: var(--color-gold-dark); border-radius: 2px; }
+  
+  .bh-empty {
     color: #8a7a58;
     font-style: italic;
-    padding: 12px 0;
-}
-
-.battle-hand-card {
+    padding: 8px 12px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  
+  .battle-hand-card {
     position: relative;
     aspect-ratio: 3 / 4;
-    height: 130px;
+    height: 84px;
     width: auto;
     border-radius: 5px;
     overflow: hidden;
     background: #1a1208;
     border: 1.5px solid var(--color-gold-dark);
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     flex-shrink: 0;
-    animation: cardDeal 0.3s ease;
-}
-
-@keyframes cardDeal {
-    from {
-        transform: translateY(16px) scale(0.9);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-.battle-hand-card:hover {
-    transform: translateY(-6px);
+  }
+  .battle-hand-card:hover { transform: translateY(-4px); border-color: var(--color-gold-bright); }
+  .battle-hand-card.selected {
     border-color: var(--color-gold-bright);
-}
-
-.battle-hand-card.selected {
-    border-color: var(--color-gold-bright);
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 0 24px rgba(245, 213, 122, 0.8);
-}
-
-.battle-hand-card.disabled {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 0 18px rgba(245, 213, 122, 0.8);
+  }
+  .battle-hand-card.disabled {
     opacity: 0.4;
     cursor: not-allowed;
     filter: grayscale(0.6);
-}
-
-.battle-hand-card.disabled:hover {
-    transform: none;
-}
-
-.bhc-name-top {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+  }
+  .battle-hand-card.disabled:hover { transform: none; }
+  
+  .bhc-name-top {
+    position: absolute; top: 0; left: 0; right: 0;
     background: rgba(10, 6, 3, 0.9);
-    padding: 2px 3px;
-    font-size: 8px;
-    font-weight: 700;
+    padding: 1px 3px;
+    font-size: 8px; font-weight: 700;
     color: var(--color-text);
     text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     z-index: 3;
-}
-
-.bhc-art {
+  }
+  .bhc-art {
     flex: 1;
     background-size: cover;
     background-position: center top;
     background-repeat: no-repeat;
     background-color: #2a1d0f;
     min-height: 0;
-}
-
-.bhc-count {
-    position: absolute;
-    bottom: 2px;
-    right: 3px;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 50%;
+  }
+  .bhc-count {
+    position: absolute; bottom: 1px; right: 2px;
+    min-width: 16px; height: 16px; border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 900;
-    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 900; color: #fff;
     border: 1.5px solid var(--color-gold-bright);
     z-index: 3;
-}
-
-.bhc-type-stripe {
+  }
+  .bhc-type-stripe {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px; z-index: 2;
+  }
+  .battle-hand-card.type-warrior .bhc-type-stripe { background: linear-gradient(180deg, #e74c3c, #8b1a1a); }
+  .battle-hand-card.type-archer  .bhc-type-stripe { background: linear-gradient(180deg, #7aa0c8, #2c4a6a); }
+  .battle-hand-card.type-support .bhc-type-stripe { background: linear-gradient(180deg, #5ec37a, #1e5a2c); }
+  .battle-hand-card.type-special .bhc-type-stripe { background: linear-gradient(180deg, #c07ad8, #5a2a6a); }
+  
+  /* ─── Тултип карты в руке ─── */
+  .bhc-tooltip {
     position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    z-index: 2;
-}
-
-.battle-hand-card.type-warrior .bhc-type-stripe {
-    background: linear-gradient(180deg, #e74c3c, #8b1a1a);
-}
-
-.battle-hand-card.type-archer .bhc-type-stripe {
-    background: linear-gradient(180deg, #7aa0c8, #2c4a6a);
-}
-
-.battle-hand-card.type-support .bhc-type-stripe {
-    background: linear-gradient(180deg, #5ec37a, #1e5a2c);
-}
-
-.battle-hand-card.type-special .bhc-type-stripe {
-    background: linear-gradient(180deg, #c07ad8, #5a2a6a);
-}
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: rgba(10, 6, 3, 0.98);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--color-text);
+    line-height: 1.4;
+    width: 200px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 20;
+    text-align: left;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+  }
+  .battle-hand-card:hover .bhc-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  
+  @media (max-width: 900px) {
+    .battle-hand-card { height: 70px; }
+  }

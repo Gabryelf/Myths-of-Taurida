@@ -1,8 +1,10 @@
 .deck-panel {
     position: absolute;
     right: 16px;
-    bottom: 16px;
+    bottom: 80px;                /* было 16px — теперь выше кнопки хода */
     width: 340px;
+    max-height: 45vh;
+    overflow-y: auto;
     background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-md);
@@ -12,9 +14,9 @@
     font-size: 13px;
     color: var(--color-text);
     display: none;
-    z-index: 20;
-}
-
+    z-index: 22;
+  }
+  
 .deck-panel.visible {
     display: block;
 }
@@ -115,3 +117,15 @@
 .deck-panel .dp-card.type-special .dp-type-stripe {
     background: #c07ad8;
 }
+
+.deck-panel.visible {
+    display: block;
+  }
+  @media (max-width: 700px) {
+    .deck-panel {
+      right: 8px;
+      bottom: 60px;
+      width: 240px;
+      padding: 8px;
+    }
+  }

@@ -18,20 +18,29 @@ export class TutorialModal {
             if (e.target.getAttribute?.('data-next')) this._next();
         });
     }
+
     open() {
         this.step = 0;
+        this.overlay.style.display = 'flex';
+        this.overlay.style.pointerEvents = 'auto';
         this.overlay.classList.add('visible');
         this._render();
     }
+
     _next() {
         this.step++;
         if (this.step >= STEPS.length) this._finish();
         else this._render();
     }
+
     _finish() {
         this.overlay.classList.remove('visible');
+        this.overlay.style.display = 'none';
+        this.overlay.style.pointerEvents = 'none';
+        this.overlay.innerHTML = '';
         this.onDone?.();
     }
+
     _render() {
         const s = STEPS[this.step];
         this.overlay.innerHTML = `

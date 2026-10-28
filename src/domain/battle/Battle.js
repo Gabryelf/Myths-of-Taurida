@@ -2,20 +2,13 @@ import { BattleBoard } from './BattleBoard.js';
 import { BattleRuleEngine, LANES } from './BattleRuleEngine.js';
 import { CardInstance } from './CardInstance.js';
 
-/**
- * Состояние одного боя.
- * Домен-объект: знает только правила, ничего о рендере.
- */
 export class Battle {
     constructor({
-        attackerGen,
-        defenderGen,
-        attackerFaction,
-        defenderFaction,
-        targetTile,
-        attackerDeck,
-        defenderDeck,
+        attackerGen, defenderGen,
+        attackerFaction, defenderFaction,
+        targetTile, attackerDeck, defenderDeck,
         maxTurns = 20,
+        playerSide = 'attacker',           // ← кто игрок
     }) {
         this.attackerGen = attackerGen;
         this.defenderGen = defenderGen;
@@ -23,6 +16,7 @@ export class Battle {
         this.defenderFaction = defenderFaction;
         this.targetTile = targetTile;
         this.maxTurns = maxTurns;
+        this.playerSide = playerSide;
 
         this.attacker = {
             gen: attackerGen,
@@ -31,7 +25,7 @@ export class Battle {
             board: new BattleBoard(),
             hand: [],
             deck: attackerDeck.map((c) => new CardInstance(c)),
-            tacticPoints: 1,
+            tacticPoints: 2,
         };
         this.defender = {
             gen: defenderGen,
@@ -40,7 +34,7 @@ export class Battle {
             board: new BattleBoard(),
             hand: [],
             deck: defenderDeck.map((c) => new CardInstance(c)),
-            tacticPoints: 1,
+            tacticPoints: 2,
         };
 
         this.rules = new BattleRuleEngine();
@@ -51,14 +45,32 @@ export class Battle {
         this.winner = null;
         this.selectedCard = null;
 
-        // Стартовые карты в руке
-        for (let i = 0; i < 3; i++) {
-            this._drawToHand('attacker');
-            this._drawToHand('defender');
-        }
+        // Раздаём по 3 карты, приоритет — дешёвые (str ≤ 1, потом str ≤ 2, потом всё)
+        this._drawOpeningHand('attacker', 3);
+        this._drawOpeningHand('defender', 3);
     }
 
-    get isPlayerTurn() { return this.turn === 'attacker' && !this.finished; }
+    get isPlayerTurn() {
+        return this.turn === this.playerSide && !this.finished;
+    }
+
+    get playerData() { return this[this.playerSide]; }
+    get enemyData() { return this[this.playerSide === 'attacker' ? 'defender' : 'attacker']; }
+    get enemySide() { return this.playerSide === 'attacker' ? 'defender' : 'attacker'; }
+
+    _drawOpeningHand(side, count) {
+        const data = this[side];
+        const cheap = data.deck.filter((c) => c.str <= 1);
+        const mid = data.deck.filter((c) => c.str === 2);
+        const rest = data.deck.filter((c) => c.str > 2);
+        const order = [...cheap, ...mid, ...rest];
+        const hand = [];
+        for (let i = 0; i < count && order.length > 0; i++) {
+            hand.push(order.shift());
+        }
+        data.deck = order;
+        data.hand = hand;
+    }
 
     _drawToHand(side) {
         const data = this[side];
@@ -68,25 +80,23 @@ export class Battle {
         return card;
     }
 
-    // ─── Игровые действия ───
     selectCard(card) {
         if (!this.isPlayerTurn) return false;
-        if (card.str > this.attacker.tacticPoints) return false;
+        if (card.str > this.playerData.tacticPoints) return false;
         this.selectedCard = this.selectedCard === card ? null : card;
         return true;
     }
 
     playCard(card, lane, index) {
         if (!this.isPlayerTurn) return false;
-        if (card.str > this.attacker.tacticPoints) return false;
-        const placed = this.attacker.board.place(lane, index, card);
+        if (card.str > this.playerData.tacticPoints) return false;
+        const placed = this.playerData.board.place(lane, index, card);
         if (!placed) return false;
-
-        this.attacker.tacticPoints -= card.str;
-        this.attacker.hand = this.attacker.hand.filter((c) => c.id !== card.id);
+        this.playerData.tacticPoints -= card.str;
+        this.playerData.hand = this.playerData.hand.filter((c) => c.id !== card.id);
         this.selectedCard = null;
-        this._onPlay(card, 'attacker', lane, index);
-        this._applyLineBonus('attacker', lane);
+        this._onPlay(card, this.playerSide, lane, index);
+        this._applyLineBonus(this.playerSide, lane);
         this.log.push({ msg: `${card.name} → ${laneLabel(lane)}`, type: 'info' });
         return true;
     }
@@ -94,18 +104,13 @@ export class Battle {
     attack(card, lane, index) {
         if (!this.isPlayerTurn) return false;
         if (!this.rules.canTarget(card, lane)) return false;
-        const target = this.defender.board.get(lane, index);
+        const target = this.enemyData.board.get(lane, index);
         if (!target) return false;
-
-        const res = this.rules.applyAttack(card, target, lane, this.defender.board);
-        this.log.push({
-            msg: `${card.name} → ${target.name}: ${res.dmg}`,
-            type: 'dmg',
-        });
+        const res = this.rules.applyAttack(card, target, lane, this.enemyData.board);
+        this.log.push({ msg: `${card.name} → ${target.name}: ${res.dmg}`, type: 'dmg' });
         if (res.targetDead) this.log.push({ msg: `${target.name} пал`, type: 'dmg' });
         if (res.counter) this.log.push({ msg: `контратака ${res.counter}`, type: 'dmg' });
         if (res.attackerDead) this.log.push({ msg: `${card.name} пал`, type: 'dmg' });
-
         this.selectedCard = null;
         this._checkVictory();
         return true;
@@ -114,42 +119,45 @@ export class Battle {
     endPlayerTurn() {
         if (!this.isPlayerTurn) return false;
         this.selectedCard = null;
-        this.turn = 'defender';
+        this.turn = this.enemySide;
         return true;
     }
 
-    // ─── ИИ ───
     aiTurn() {
-        if (this.turn !== 'defender' || this.finished) return;
-        this._drawToHand('defender');
-        this.defender.tacticPoints = 1 + this.defender.board.count('support');
+        if (this.turn !== this.enemySide || this.finished) return;
+        const aiSide = this.enemySide;
+        const aiData = this[aiSide];
+        const playerData = this.playerData;
 
-        // 1) Support — чтобы потом было больше тактики
-        this._aiPlayType('support', 'support');
-        // 2) Defense — закрыть линию
-        this._aiPlayType('warrior', 'defense');
-        // 3) Attack — archer/special
-        this._aiPlayType(['archer', 'special'], 'attack');
+        this._drawToHand(aiSide);
+        aiData.tacticPoints = 2 + aiData.board.count('support');
 
-        // 4) Атака по целям (добиваем слабых)
-        for (const card of this.defender.board.allCards()) {
+        // 1) Support
+        this._aiPlayType(aiSide, 'support', 'support');
+        // 2) Defense
+        this._aiPlayType(aiSide, 'warrior', 'defense');
+        // 3) Attack
+        this._aiPlayType(aiSide, ['archer', 'special'], 'attack');
+
+        // 4) Атака по целям
+        for (const card of aiData.board.allCards()) {
             if (card.lane !== 'attack') continue;
-            const targets = this._enemyTargets();
+            const targets = this._enemyTargets(aiSide);
             if (targets.length === 0) continue;
             targets.sort((a, b) => a.card.str - b.card.str);
             const t = targets[0];
-            const res = this.rules.applyAttack(card, t.card, t.lane, this.attacker.board);
+            const res = this.rules.applyAttack(card, t.card, t.lane, playerData.board);
             this.log.push({ msg: `Враг: ${card.name} → ${t.card.name} (${res.dmg})`, type: 'dmg' });
         }
 
-        // 5) Удар по полководцу
-        if (this.defender.board.allCards().some((c) => c.lane === 'attack')) {
+        // 5) Атака по полководцу
+        if (aiData.board.allCards().some((c) => c.lane === 'attack')) {
             for (let i = 0; i < 3; i++) {
-                const empty = !this.attacker.board.has('defense', i)
-                    && !this.attacker.board.has('attack', i)
-                    && !this.attacker.board.has('support', i);
+                const empty = !playerData.board.has('defense', i)
+                    && !playerData.board.has('attack', i)
+                    && !playerData.board.has('support', i);
                 if (empty) {
-                    this.attacker.lives--;
+                    playerData.lives--;
                     this.log.push({ msg: 'Враг бьёт полководца! -1 жизнь', type: 'dmg' });
                     break;
                 }
@@ -159,10 +167,10 @@ export class Battle {
         this._checkVictory();
         if (this.finished) return;
 
-        this.turn = 'attacker';
+        this.turn = this.playerSide;
         this.turnCount++;
-        this._drawToHand('attacker');
-        this.attacker.tacticPoints = 1 + this.attacker.board.count('support');
+        this._drawToHand(this.playerSide);
+        this.playerData.tacticPoints = 2 + this.playerData.board.count('support');
 
         if (this.turnCount > this.maxTurns) {
             this.finished = true;
@@ -171,8 +179,8 @@ export class Battle {
         }
     }
 
-    _aiPlayType(types, lane) {
-        const d = this.defender;
+    _aiPlayType(aiSide, types, lane) {
+        const d = this[aiSide];
         const typeArr = Array.isArray(types) ? types : [types];
         const card = d.hand.find((c) => typeArr.includes(c.type) && c.str <= d.tacticPoints);
         if (!card) return;
@@ -181,30 +189,25 @@ export class Battle {
                 d.tacticPoints -= card.str;
                 d.board.place(lane, i, card);
                 d.hand = d.hand.filter((c) => c.id !== card.id);
-                this._onPlay(card, 'defender', lane, i);
-                this._applyLineBonus('defender', lane);
+                this._onPlay(card, aiSide, lane, i);
+                this._applyLineBonus(aiSide, lane);
                 this.log.push({ msg: `Враг: ${card.name}`, type: 'info' });
                 return;
             }
         }
     }
 
-    _bestLane(card) {
-        if (card.type === 'archer' || card.type === 'special') return 'attack';
-        if (card.type === 'support') return 'support';
-        return 'defense';
-    }
-
-    _enemyTargets() {
+    _enemyTargets(aiSide) {
+        const playerData = this[aiSide === 'attacker' ? 'defender' : 'attacker'];
         const targets = [];
         for (let i = 0; i < 3; i++) {
-            const c = this.attacker.board.get('defense', i);
+            const c = playerData.board.get('defense', i);
             if (c) targets.push({ lane: 'defense', idx: i, card: c });
         }
         if (targets.length === 0) {
             for (const lane of ['attack', 'support']) {
                 for (let i = 0; i < 3; i++) {
-                    const c = this.attacker.board.get(lane, i);
+                    const c = playerData.board.get(lane, i);
                     if (c) targets.push({ lane, idx: i, card: c });
                 }
             }
@@ -212,11 +215,9 @@ export class Battle {
         return targets;
     }
 
-    // ─── События карт ───
     _onPlay(card, side, lane, index) {
         const data = this[side];
         const opp = side === 'attacker' ? this.defender : this.attacker;
-
         if (card.ability.includes('+1 очко тактики')) {
             data.tacticPoints += 1;
             this.log.push({ msg: `${card.name}: +1 тактика`, type: 'heal' });
@@ -253,6 +254,17 @@ export class Battle {
             data.tacticPoints += 2;
             this.log.push({ msg: 'Поддержка: +2 тактики', type: 'heal' });
         }
+    }
+
+    /**
+   * Информация о бонусах линий — для тултипов UI.
+   */
+    getLineBonusInfo() {
+        return {
+            defense: '3 карты в линии обороны → +1 жизнь полководца',
+            attack: '3 карты в линии атаки → +1 очко тактики',
+            support: '3 карты в линии поддержки → +2 очка тактики',
+        };
     }
 
     _checkVictory() {

@@ -4,17 +4,13 @@ import { MovementOverlay } from './visuals/MovementOverlay.js';
 import { HighlightService } from './HighlightService.js';
 import { Theme } from '../config/ThemeConfig.js';
 
-/**
- * Строит сцену из домена. Кэширует визуалы по ключу.
- * С v0.0.4 добавлены полководцы и оверлеи движения.
- */
 export class SceneBuilder {
   constructor(scene) {
     this.scene = scene;
-    this._tileVisuals = new Map();       // key -> HexVisual
-    this._generalVisuals = new Map();    // generalId -> GeneralVisual
-    this._movementOverlays = new Map();  // key -> MovementOverlay (move)
-    this._attackOverlays = new Map();    // key -> MovementOverlay (attack)
+    this._tileVisuals = new Map();
+    this._generalVisuals = new Map();
+    this._movementOverlays = new Map();
+    this._attackOverlays = new Map();
     this.highlight = new HighlightService(Theme.hexSize);
   }
 
@@ -29,6 +25,7 @@ export class SceneBuilder {
       this._tileVisuals.set(tile.key, v);
     }
     this.highlight.bindVisuals(this._tileVisuals);
+
     this._clearGenerals();
     this._renderGenerals(world);
   }
@@ -44,7 +41,6 @@ export class SceneBuilder {
     }
   }
 
-  /** Обновить позиции полководцев без пересборки всей сцены. */
   updateGeneralPositions(world) {
     for (const gen of world.generals) {
       const v = this._generalVisuals.get(gen.id);
@@ -54,11 +50,8 @@ export class SceneBuilder {
     }
   }
 
-  /** Показать/скрыть оверлеи движения на гексах. */
   setMovementOverlays(reachableMap, isVisible) {
-    for (const ov of this._movementOverlays.values()) {
-      ov.setVisible(false);
-    }
+    for (const ov of this._movementOverlays.values()) ov.setVisible(false);
     if (!isVisible || !reachableMap) return;
     for (const key of reachableMap.keys()) {
       let ov = this._movementOverlays.get(key);
@@ -73,7 +66,6 @@ export class SceneBuilder {
     }
   }
 
-  /** Показать/скрыть оверлеи атаки (красные). */
   setAttackOverlays(attacksMap, isVisible) {
     for (const ov of this._attackOverlays.values()) ov.setVisible(false);
     if (!isVisible || !attacksMap) return;
@@ -98,10 +90,10 @@ export class SceneBuilder {
   getPickables() {
     const arr = [];
     for (const v of this._generalVisuals.values()) {
-      v.group.traverse((c) => { if (c.isMesh) arr.push(c); });
+      v.group.traverse((c) => { if (c.isMesh || c.isSprite) arr.push(c); });
     }
     for (const v of this._tileVisuals.values()) {
-      v.group.traverse((c) => { if (c.isMesh) arr.push(c); });
+      v.group.traverse((c) => { if (c.isMesh || c.isSprite) arr.push(c); });
     }
     return arr;
   }
@@ -109,14 +101,12 @@ export class SceneBuilder {
   _clearTiles() {
     for (const v of this._tileVisuals.values()) v.removeFrom(this.scene);
     this._tileVisuals.clear();
-
     for (const ov of this._movementOverlays.values()) {
-      ov.mesh.parent?.remove(ov.mesh);
+      if (ov.mesh?.parent) ov.mesh.parent.remove(ov.mesh);
     }
     this._movementOverlays.clear();
-
     for (const ov of this._attackOverlays.values()) {
-      ov.mesh.parent?.remove(ov.mesh);
+      if (ov.mesh?.parent) ov.mesh.parent.remove(ov.mesh);
     }
     this._attackOverlays.clear();
   }
@@ -126,6 +116,5 @@ export class SceneBuilder {
     this._generalVisuals.clear();
   }
 
-  /** Для совместимости с v0.0.2/v0.0.3 */
   get _visuals() { return this._tileVisuals; }
 }
