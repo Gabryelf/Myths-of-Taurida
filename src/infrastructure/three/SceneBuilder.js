@@ -11,9 +11,10 @@ import { Theme } from '../config/ThemeConfig.js';
 export class SceneBuilder {
   constructor(scene) {
     this.scene = scene;
-    this._tileVisuals = new Map();     // key -> HexVisual
-    this._generalVisuals = new Map();  // generalId -> GeneralVisual
-    this._movementOverlays = new Map(); // key -> MovementOverlay
+    this._tileVisuals = new Map();       // key -> HexVisual
+    this._generalVisuals = new Map();    // generalId -> GeneralVisual
+    this._movementOverlays = new Map();  // key -> MovementOverlay (move)
+    this._attackOverlays = new Map();    // key -> MovementOverlay (attack)
     this.highlight = new HighlightService(Theme.hexSize);
   }
 
@@ -28,7 +29,6 @@ export class SceneBuilder {
       this._tileVisuals.set(tile.key, v);
     }
     this.highlight.bindVisuals(this._tileVisuals);
-
     this._clearGenerals();
     this._renderGenerals(world);
   }
@@ -56,20 +56,35 @@ export class SceneBuilder {
 
   /** Показать/скрыть оверлеи движения на гексах. */
   setMovementOverlays(reachableMap, isVisible) {
-    // Скрыть старые
     for (const ov of this._movementOverlays.values()) {
       ov.setVisible(false);
     }
     if (!isVisible || !reachableMap) return;
-
     for (const key of reachableMap.keys()) {
       let ov = this._movementOverlays.get(key);
       if (!ov) {
         const visual = this._tileVisuals.get(key);
         if (!visual) continue;
-        ov = new MovementOverlay(Theme.hexSize);
+        ov = new MovementOverlay(Theme.hexSize, 'move');
         ov.addTo(visual.group);
         this._movementOverlays.set(key, ov);
+      }
+      ov.setVisible(true);
+    }
+  }
+
+  /** Показать/скрыть оверлеи атаки (красные). */
+  setAttackOverlays(attacksMap, isVisible) {
+    for (const ov of this._attackOverlays.values()) ov.setVisible(false);
+    if (!isVisible || !attacksMap) return;
+    for (const key of attacksMap.keys()) {
+      let ov = this._attackOverlays.get(key);
+      if (!ov) {
+        const visual = this._tileVisuals.get(key);
+        if (!visual) continue;
+        ov = new MovementOverlay(Theme.hexSize, 'attack');
+        ov.addTo(visual.group);
+        this._attackOverlays.set(key, ov);
       }
       ov.setVisible(true);
     }
@@ -94,7 +109,16 @@ export class SceneBuilder {
   _clearTiles() {
     for (const v of this._tileVisuals.values()) v.removeFrom(this.scene);
     this._tileVisuals.clear();
+
+    for (const ov of this._movementOverlays.values()) {
+      ov.mesh.parent?.remove(ov.mesh);
+    }
     this._movementOverlays.clear();
+
+    for (const ov of this._attackOverlays.values()) {
+      ov.mesh.parent?.remove(ov.mesh);
+    }
+    this._attackOverlays.clear();
   }
 
   _clearGenerals() {

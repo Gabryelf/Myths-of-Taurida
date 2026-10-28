@@ -15,6 +15,7 @@ export class BattleFactory {
             factionId: defenderFactionId,
             lives: 3,
             maxLives: 3,
+            deck: { cards: [] },
         };
 
         const attackerDeck = attackerGen.deck.cards.length > 0
