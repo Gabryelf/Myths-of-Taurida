@@ -33,7 +33,7 @@ export class BattleModal {
         setTimeout(() => {
           this._finishScheduled = false;
           this.controller.finish();
-        }, 800);
+        }, 900);
       }
     });
 
@@ -52,8 +52,9 @@ export class BattleModal {
 
   _onClick(e) {
     const action = e.target.getAttribute?.('data-action');
-    if (action === 'end-turn') { this.controller.endTurn(); return; }
-    if (action === 'retreat')  { this.controller.retreat();  return; }
+    if (action === 'end-turn')  { this.controller.endTurn();  return; }
+    if (action === 'skip-turn') { this.controller.skipTurn(); return; }
+    if (action === 'retreat')   { this.controller.retreat();  return; }
 
     const lane = e.target.getAttribute?.('data-lane');
     const idx  = e.target.getAttribute?.('data-idx');
@@ -66,13 +67,8 @@ export class BattleModal {
   _onCellClick(side, lane, index) {
     const b = this._battle;
     if (!b || b.finished) return;
-    const playerSide = b.playerSide;
-    const enemySide = playerSide === 'attacker' ? 'defender' : 'attacker';
-
-    if (side === playerSide && b.selectedCard) {
+    if (side === b.playerSide && b.selectedCard) {
       this.controller.playCard(b.selectedCard, lane, index);
-    } else if (side === enemySide && b.selectedCard) {
-      this.controller.attack(lane, index);
     }
   }
 
@@ -85,38 +81,51 @@ export class BattleModal {
     const playerData = b[playerSide];
     const enemyData  = b[enemySide];
 
-    const bonusInfo = b.getLineBonusInfo();
+    const laneInfo = b.getLineBonusInfo();
+    const colInfo  = b.getColumnBonusInfo();
 
     this.el.innerHTML = `
-      <div class="battle-header">
-        <div class="bh-side blue">
-          <span class="bh-name">${playerData.gen.name}</span>
+      <div class="battle-top">
+        <div class="battle-hero enemy-hero">
+          <div class="hero-portrait enemy">${enemyData.gen.name.slice(0, 2)}</div>
+          <div class="hero-name">${enemyData.gen.name}</div>
+          <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
+        </div>
+        <div class="battle-title">⚔ Бой · ход ${b.turnCount}</div>
+        <div class="battle-hero player-hero">
+          <div class="hero-portrait player">${playerData.gen.name.slice(0, 2)}</div>
+          <div class="hero-name">${playerData.gen.name}</div>
           <div class="bh-lives">${this._livesHtml(playerData.lives, playerData.maxLives)}</div>
         </div>
-        <div class="battle-title">⚔ Бой</div>
-        <div class="bh-side red">
-          <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
-          <span class="bh-name">${enemyData.gen.name}</span>
-        </div>
       </div>
 
-      <div class="battle-arena">
-        <div class="battle-field battle-field-enemy">
-          ${this._boardHtml(enemySide, enemyData, bonusInfo)}
+      <div class="battle-main">
+        <div class="pseudo-hand enemy">
+          ${this._pseudoHandHtml(enemyData, 'enemy')}
         </div>
-        <div class="battle-field battle-field-player">
-          ${this._boardHtml(playerSide, playerData, bonusInfo)}
-        </div>
-      </div>
 
-      <div class="battle-bottom">
-        <div class="battle-log-side" id="bh-log">${this._logHtml(b.log)}</div>
-        <div class="battle-side-controls">
+        <div class="battle-arena">
+          <div class="battle-field battle-field-enemy">
+            ${this._boardHtml(enemySide, enemyData, laneInfo, colInfo)}
+          </div>
+          <div class="battle-field battle-field-player">
+            ${this._boardHtml(playerSide, playerData, laneInfo, colInfo)}
+          </div>
+        </div>
+
+        <div class="battle-side-right">
           <div class="tactic-points">⚡ <span class="pt-val">${playerData.tacticPoints}</span></div>
-          <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Конец хода</button>
-          <button class="btn-retreat" data-action="retreat">Отступить</button>
+          <div class="battle-hand-root" id="battle-hand-root"></div>
+          <div class="battle-controls">
+            <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Конец хода</button>
+            <button class="btn-skip"     data-action="skip-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Пропустить</button>
+            <button class="btn-retreat"  data-action="retreat">Отступить</button>
+          </div>
         </div>
-        <div class="battle-hand-root" id="battle-hand-root"></div>
+      </div>
+
+      <div class="battle-log-bar">
+        ${this._logHtml(b.log)}
       </div>
     `;
 
@@ -130,16 +139,30 @@ export class BattleModal {
     );
   }
 
-  _boardHtml(side, data, bonusInfo) {
+  _pseudoHandHtml(enemyData, side) {
+    const count = Math.max(0, enemyData.hand.length);
+    let html = '<div class="pseudo-hand-label">Рука врага</div><div class="pseudo-hand-cards">';
+    for (let i = 0; i < count; i++) {
+      html += `<div class="pseudo-card"></div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  _boardHtml(side, data, laneInfo, colInfo) {
     const b = this._battle;
     const isPlayer = side === b.playerSide;
 
-    // Иконки линий слева, сетка 3×3 справа
     const rows = LANES.map((lane) => {
+      const lineInfo = laneInfo[lane.key];
+      const lineActive = lineInfo.active;
       const lineIcon = `
-        <div class="lane-icon" title="${bonusInfo[lane.key]}" data-lane-icon="1">
+        <div class="lane-icon ${lineActive ? 'active' : ''}" data-lane-icon="1">
           <span>${lane.icon}</span>
-          <div class="lane-icon-tip">${bonusInfo[lane.key]}</div>
+          <div class="lane-icon-tip">
+            <b>${lane.label}${lineActive ? ' ✔' : ''}</b><br>
+            ${lineInfo.desc}
+          </div>
         </div>
       `;
       const cells = [0, 1, 2].map((i) => {
@@ -149,9 +172,10 @@ export class BattleModal {
         if (card) inner = this._cardEl.create(card, { side }).outerHTML;
         if (b.isPlayerTurn && b.selectedCard) {
           if (isPlayer && !card) cls += ' valid-place';
-          if (!isPlayer && card && canTarget(b.selectedCard, lane.key)) cls += ' valid-target';
         }
-        return `<div class="${cls}" data-side="${side}" data-lane="${lane.key}" data-idx="${i}">${inner}</div>`;
+        const colActive = colInfo[i].active;
+        const colHint = colActive ? 'col-active' : '';
+        return `<div class="${cls} ${colHint}" data-side="${side}" data-lane="${lane.key}" data-idx="${i}">${inner}</div>`;
       }).join('');
       return `<div class="battle-row">${lineIcon}${cells}</div>`;
     }).join('');
@@ -166,12 +190,7 @@ export class BattleModal {
   }
 
   _logHtml(log) {
-    const last = log.slice(-4).reverse();
+    const last = log.slice(-3).reverse();
     return last.map((l) => `<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
   }
-}
-
-function canTarget(card, lane) {
-  if (card.type === 'archer' || card.type === 'special') return true;
-  return lane === 'defense';
 }

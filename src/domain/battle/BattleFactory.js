@@ -3,24 +3,15 @@ import { CardFactory } from '../card/CardFactory.js';
 import { GeneralFactory } from '../general/GeneralFactory.js';
 
 export class BattleFactory {
-  static create({
-    attackerGen,
-    targetTile,
-    defenderFactionId,
-    world,
-    playerSide = 'attacker',   // ← кто игрок: 'attacker' | 'defender'
-  }) {
+  static create({ attackerGen, targetTile, defenderFactionId, world, playerSide = 'attacker' }) {
     const defenderGen = world.generals.find((g) => g.factionId === defenderFactionId)
       || {
-        id: 'def_' + Date.now(),
-        name: defenderFactionId === 'neutral'
-          ? 'Вождь'
-          : GeneralFactory.nameForFaction(defenderFactionId),
-        factionId: defenderFactionId,
-        lives: 3,
-        maxLives: 3,
-        deck: { cards: [] },
-      };
+      id: 'def_' + Date.now(),
+      name: defenderFactionId === 'neutral' ? 'Вождь' : GeneralFactory.nameForFaction(defenderFactionId),
+      factionId: defenderFactionId,
+      lives: 3, maxLives: 3,
+      deck: { cards: [] },
+    };
 
     const attackerDeck = attackerGen.deck.cards.length > 0
       ? attackerGen.deck.cards
@@ -31,13 +22,10 @@ export class BattleFactory {
       : BattleFactory._aiDeck(defenderFactionId);
 
     return new Battle({
-      attackerGen,
-      defenderGen,
+      attackerGen, defenderGen,
       attackerFaction: attackerGen.factionId,
       defenderFaction: defenderFactionId,
-      targetTile,
-      attackerDeck,
-      defenderDeck,
+      targetTile, attackerDeck, defenderDeck,
       playerSide,
     });
   }
@@ -48,9 +36,7 @@ export class BattleFactory {
     const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
     const pool = cheap.length > 0 ? cheap : keys;
     const deck = [];
-    for (let i = 0; i < 4; i++) {
-      deck.push(CardFactory.create(pool[i % pool.length]));
-    }
+    for (let i = 0; i < 4; i++) deck.push(CardFactory.create(pool[i % pool.length]));
     return deck;
   }
 }

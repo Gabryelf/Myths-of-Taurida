@@ -139,9 +139,7 @@ export class World {
 
   startBattle({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     return BattleFactory.create({
-      attackerGen,
-      targetTile,
-      defenderFactionId,
+      attackerGen, targetTile, defenderFactionId,
       world: this,
       playerSide,
     });

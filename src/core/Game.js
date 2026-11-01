@@ -206,6 +206,9 @@ export class Game {
   
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
+    else if (winner === 'draw') {
+      this.bus.emit('toast:show', { text: 'Бой завершился ничьей' });
+    }
   
     if (playerWon) {
       if (playerSide === 'attacker') {

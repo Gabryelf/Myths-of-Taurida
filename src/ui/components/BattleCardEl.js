@@ -1,17 +1,17 @@
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
 
-/**
- * Карта в бою. Компактная, 3:4, с тултипом способности.
- */
 export class BattleCardEl {
-  constructor() {
-    this._imgLoader = new CardImageLoader();
-  }
+  constructor() { this._imgLoader = new CardImageLoader(); }
 
   create(card, { selected = false, side = 'attacker' } = {}) {
     const el = document.createElement('div');
     el.className = `battle-card ${side === 'attacker' ? 'ally' : 'enemy'} type-${card.type}`;
     if (selected) el.classList.add('selected');
+
+    const abilitiesHtml = (card.abilities || []).map((a) =>
+      `<div class="bc-tt-ability"><b>${a.name}:</b> ${a.desc}</div>`
+    ).join('');
+
     el.innerHTML = `
       <div class="bc-name-top">${card.name}</div>
       <div class="bc-art"></div>
@@ -20,7 +20,7 @@ export class BattleCardEl {
       <div class="bc-tooltip">
         <div class="bc-tt-name">${card.name}</div>
         <div class="bc-tt-type">${typeLabel(card.type)} · сила ${card.str} · ${card.prov}🌾</div>
-        <div class="bc-tt-ability">${card.ability}</div>
+        ${abilitiesHtml || '<div class="bc-tt-ability">Нет способностей</div>'}
       </div>
     `;
     const art = el.querySelector('.bc-art');
@@ -31,10 +31,5 @@ export class BattleCardEl {
 }
 
 function typeLabel(type) {
-  return {
-    warrior: 'Воин',
-    archer:  'Стрелок',
-    support: 'Поддержка',
-    special: 'Особый',
-  }[type] || type;
+  return { warrior: 'Воин', archer: 'Стрелок', support: 'Поддержка', special: 'Особый' }[type] || type;
 }

@@ -1,8 +1,5 @@
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
 
-/**
- * Рука игрока. Компактная, вбок, с тултипом.
- */
 export class BattleHand {
   constructor(root) {
     this.root = root;
@@ -48,6 +45,9 @@ export class BattleHand {
     el.className = `battle-hand-card type-${card.type}`;
     if (disabled) el.classList.add('disabled');
     if (selected) el.classList.add('selected');
+    const abilitiesHtml = (card.abilities || []).map((a) =>
+      `<div class="bc-tt-ability"><b>${a.name}:</b> ${a.desc}</div>`
+    ).join('');
     el.innerHTML = `
       <div class="bhc-name-top">${card.name}</div>
       <div class="bhc-art"></div>
@@ -56,7 +56,7 @@ export class BattleHand {
       <div class="bhc-tooltip">
         <div class="bc-tt-name">${card.name}</div>
         <div class="bc-tt-type">${typeLabel(card.type)} · сила ${card.str} · ${card.prov}🌾</div>
-        <div class="bc-tt-ability">${card.ability}</div>
+        ${abilitiesHtml || '<div class="bc-tt-ability">Нет способностей</div>'}
       </div>
     `;
     const art = el.querySelector('.bhc-art');
@@ -67,10 +67,5 @@ export class BattleHand {
 }
 
 function typeLabel(type) {
-  return {
-    warrior: 'Воин',
-    archer:  'Стрелок',
-    support: 'Поддержка',
-    special: 'Особый',
-  }[type] || type;
+  return { warrior: 'Воин', archer: 'Стрелок', support: 'Поддержка', special: 'Особый' }[type] || type;
 }

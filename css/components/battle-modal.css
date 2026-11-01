@@ -1,258 +1,314 @@
 .battle-modal-overlay {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.95), rgba(0, 0, 0, 0.98));
-    z-index: 120;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-  }
-  .battle-modal-overlay.visible { display: flex; }
-  
-  .battle-modal {
-    width: 100%;
-    max-width: 1200px;
-    height: 98vh;
-    display: flex;
-    flex-direction: column;
-    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
-                linear-gradient(160deg, #221610, #0a0603);
-    border: 1px solid var(--color-gold);
-    border-radius: var(--radius-md);
-    padding: 8px;
-    box-shadow: 0 0 100px rgba(212, 169, 76, 0.3), 0 24px 80px rgba(0, 0, 0, 0.95);
-    gap: 6px;
-  }
-  
-  /* ─── Шапка ─── */
-  .battle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 14px;
-    background: linear-gradient(180deg, rgba(38, 26, 14, 0.96), rgba(18, 12, 6, 0.94));
-    border: 1px solid var(--color-gold-dark);
-    border-radius: var(--radius-md);
-    gap: 12px;
-    flex-shrink: 0;
-  }
-  .bh-side {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .bh-side.blue .bh-name { color: #a0c8f0; }
-  .bh-side.red  .bh-name { color: #f0a0a0; }
-  .battle-title {
-    color: var(--color-gold-bright);
-    font-size: 14px;
-    letter-spacing: 0.2em;
-  }
-  .bh-lives { display: flex; gap: 4px; }
-  .life-dot {
-    width: 12px; height: 12px; border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
-    border: 1px solid var(--color-gold);
-    box-shadow: 0 0 8px rgba(217, 58, 58, 0.6);
-  }
-  .life-dot.lost { background: #1a1a1a; box-shadow: none; border-color: #333; }
-  
-  /* ─── Арена: верх (враг) + низ (игрок), ровно поровну ─── */
-  .battle-arena {
-    flex: 1;
-    display: grid;
-    grid-template-rows: 1fr 1fr;
-    gap: 8px;
-    min-height: 0;
-    overflow: hidden;
-  }
-  
-  .battle-field {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 0;
-    padding: 0 4px;
-  }
-  .battle-field-enemy  { align-items: flex-start; }
-  .battle-field-player { align-items: flex-end; }
-  
-  /* Сторона: 3 строки × (иконка + 3 ячейки) */
-  .battle-side {
-    display: grid;
-    grid-template-rows: repeat(3, 1fr);
-    gap: 6px;
-    width: 100%;
-    max-width: 560px;
-    height: 100%;
-    margin: 0 auto;
-  }
-  
-  .battle-row {
-    display: grid;
-    grid-template-columns: 40px repeat(3, 1fr);
-    gap: 6px;
-    align-items: stretch;
-    min-height: 0;
-  }
-  
-  /* ─── Иконка линии + тултип ─── */
-  .lane-icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(180deg, rgba(45, 34, 20, 0.85), rgba(22, 15, 8, 0.85));
-    border: 1px solid var(--color-gold-dark);
-    border-radius: var(--radius-sm);
-    font-size: 20px;
-    cursor: help;
-    user-select: none;
-  }
-  .lane-icon:hover {
-    border-color: var(--color-gold-bright);
-    box-shadow: 0 0 12px rgba(212, 169, 76, 0.4);
-  }
-  .lane-icon-tip {
-    position: absolute;
-    left: calc(100% + 8px);
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(10, 6, 3, 0.98);
-    border: 1px solid var(--color-gold);
-    border-radius: var(--radius-sm);
-    padding: 6px 10px;
-    font-size: 11px;
-    color: var(--color-text);
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-    z-index: 10;
-    max-width: 260px;
-    white-space: normal;
-    font-weight: 400;
-  }
-  .lane-icon:hover .lane-icon-tip { opacity: 1; }
-  .battle-side.side-enemy .lane-icon-tip {
-    left: auto;
-    right: calc(100% + 8px);
-  }
-  
-  /* ─── Ячейка ─── */
-  .cell {
-    position: relative;
-    aspect-ratio: 3 / 4;
-    border: 1px solid rgba(212, 169, 76, 0.15);
-    border-radius: var(--radius-sm);
-    background: rgba(15, 10, 5, 0.6);
-    overflow: hidden;
-    transition: box-shadow 0.2s;
-    min-height: 0;
-    max-height: 100%;
-  }
-  .cell.valid-place {
-    border-color: var(--color-gold-bright);
-    box-shadow: 0 0 20px rgba(245, 213, 122, 0.6);
-    cursor: pointer;
-    animation: placePulse 1.4s ease-in-out infinite;
-  }
-  .cell.valid-target {
-    border-color: #f85149;
-    box-shadow: 0 0 20px rgba(248, 81, 73, 0.7);
-    cursor: pointer;
-    animation: targetPulse 1.4s ease-in-out infinite;
-  }
-  @keyframes placePulse {
-    0%,100% { box-shadow: 0 0 14px rgba(245,213,122,0.5); }
-    50%     { box-shadow: 0 0 28px rgba(245,213,122,0.9); }
-  }
-  @keyframes targetPulse {
-    0%,100% { box-shadow: 0 0 14px rgba(248,81,73,0.5); }
-    50%     { box-shadow: 0 0 28px rgba(248,81,73,0.9); }
-  }
-  
-  /* ─── Нижняя полоса: лог + кнопки + рука ─── */
-  .battle-bottom {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 10px;
-    align-items: center;
-    flex-shrink: 0;
-    padding: 6px 8px;
-    background: rgba(10, 6, 3, 0.6);
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(212, 169, 76, 0.2);
-    min-height: 90px;
-  }
-  
-  .battle-log-side {
-    font-size: 11px;
-    color: #b8a380;
-    font-style: italic;
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: var(--radius-sm);
-    line-height: 1.3;
-    overflow: hidden;
-    height: 100%;
-    max-height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .battle-log-side .log-entry.dmg  { color: #f0a0a0; }
-  .battle-log-side .log-entry.heal { color: #90d8a0; }
-  .battle-log-side .log-entry.info { color: #a0c8f0; }
-  
-  .battle-side-controls {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .tactic-points {
-    display: flex; align-items: center; gap: 6px;
-    background: linear-gradient(180deg, rgba(212,169,76,0.2), rgba(212,169,76,0.06));
-    border: 1.5px solid var(--color-gold);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    color: var(--color-gold-bright);
-    font-size: 12px; font-weight: 700;
-  }
-  .tactic-points .pt-val { font-size: 16px; color: #fff; }
-  .btn-end-turn, .btn-retreat {
-    padding: 8px 14px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .btn-end-turn {
-    background: linear-gradient(180deg, #8a6a30, #4a3418);
-    border: 1px solid var(--color-gold);
-    color: var(--color-gold-bright);
-  }
-  .btn-end-turn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-retreat { background: transparent; border: 1px solid #a32c2c; color: #f0b0b0; }
-  
-  /* ─── Адаптив ─── */
-  @media (max-width: 900px) {
-    .battle-side { max-width: 400px; }
-    .battle-bottom { grid-template-columns: 1fr auto; }
-    .battle-hand-root { grid-column: 1 / -1; }
-  }
-  @media (max-width: 700px) {
-    .battle-side { max-width: 320px; }
-    .battle-row  { grid-template-columns: 32px repeat(3, 1fr); gap: 4px; }
-    .lane-icon   { font-size: 16px; }
-    .bh-side     { font-size: 11px; }
-    .tactic-points { font-size: 11px; padding: 4px 8px; }
-    .btn-end-turn, .btn-retreat { font-size: 10px; padding: 6px 10px; }
-    .battle-title { display: none; }
-  }
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.95), rgba(0, 0, 0, 0.98));
+  z-index: 120; display: none;
+  align-items: center; justify-content: center;
+  padding: 8px;
+}
+.battle-modal-overlay.visible { display: flex; }
+
+.battle-modal {
+  width: 100%; max-width: 1400px; height: 98vh;
+  display: flex; flex-direction: column;
+  background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+              linear-gradient(160deg, #221610, #0a0603);
+  border: 1px solid var(--color-gold); border-radius: var(--radius-md);
+  padding: 8px; box-shadow: 0 0 100px rgba(212,169,76,0.3), 0 24px 80px rgba(0,0,0,0.95);
+  gap: 6px;
+}
+
+/* ─── Шапка с героями ─── */
+.battle-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 14px;
+  background: linear-gradient(180deg, rgba(38,26,14,0.96), rgba(18,12,6,0.94));
+  border: 1px solid var(--color-gold-dark);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+.battle-hero { display: flex; align-items: center; gap: 8px; }
+.hero-portrait {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+  border: 2px solid var(--color-gold);
+  background: #2a1d0f; color: var(--color-gold-bright);
+}
+.hero-portrait.enemy  { border-color: #f85149; color: #f0a0a0; }
+.hero-portrait.player { border-color: #58a6ff; color: #a0c8f0; }
+.hero-name { font-size: 13px; font-weight: 700; color: var(--color-text); }
+.battle-title { color: var(--color-gold-bright); font-size: 14px; letter-spacing: 0.2em; }
+.bh-lives { display: flex; gap: 4px; }
+.life-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
+  border: 1px solid var(--color-gold);
+}
+.life-dot.lost { background: #1a1a1a; border-color: #333; }
+
+/* ─── Основная область: псевдо-рука | арена | рука + кнопки ─── */
+.battle-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 100px 1fr 260px;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── Псевдо-рука врага (слева) ─── */
+.pseudo-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  background: rgba(10, 6, 3, 0.5);
+  border: 1px solid rgba(212, 169, 76, 0.15);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.pseudo-hand-label {
+  font-size: 10px;
+  color: #8a7a58;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+.pseudo-hand-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.pseudo-card {
+  width: 44px;
+  aspect-ratio: 3 / 4;
+  border-radius: 4px;
+  background:
+    linear-gradient(135deg, #4a2a10, #1a0a06),
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(212,169,76,0.1) 6px 7px);
+  border: 1.5px solid var(--color-gold-dark);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  position: relative;
+}
+.pseudo-card::after {
+  content: '❖';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(212,169,76,0.4);
+  font-size: 16px;
+}
+
+/* ─── Арена: верх (враг) + низ (игрок) ─── */
+.battle-arena {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+.battle-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 4px;
+}
+.battle-field-enemy  { align-items: flex-start; }
+.battle-field-player { align-items: flex-end; }
+
+.battle-side {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 6px;
+  width: 100%;
+  max-width: 500px;
+  height: 100%;
+  margin: 0 auto;
+}
+.battle-row {
+  display: grid;
+  grid-template-columns: 40px repeat(3, 1fr);
+  gap: 6px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* ─── Иконка линии + тултип ─── */
+.lane-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(45,34,20,0.85), rgba(22,15,8,0.85));
+  border: 1px solid var(--color-gold-dark);
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  cursor: help;
+  user-select: none;
+}
+.lane-icon.active {
+  border-color: var(--color-gold-bright);
+  background: linear-gradient(180deg, rgba(80,60,20,0.9), rgba(40,28,10,0.9));
+  box-shadow: 0 0 12px rgba(245, 213, 122, 0.5);
+}
+.lane-icon-tip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(10, 6, 3, 0.98);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--color-text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 30;
+  width: 220px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.lane-icon:hover .lane-icon-tip { opacity: 1; }
+.battle-side.side-enemy .lane-icon-tip {
+  left: auto;
+  right: calc(100% + 8px);
+}
+
+/* ─── Ячейка ─── */
+.cell {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(212, 169, 76, 0.15);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 10, 5, 0.6);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  min-height: 0;
+  max-height: 100%;
+}
+.cell.col-active {
+  border-color: rgba(245, 213, 122, 0.5);
+}
+.cell.valid-place {
+  border-color: var(--color-gold-bright);
+  box-shadow: 0 0 20px rgba(245, 213, 122, 0.6);
+  cursor: pointer;
+  animation: placePulse 1.4s ease-in-out infinite;
+}
+@keyframes placePulse {
+  0%,100% { box-shadow: 0 0 14px rgba(245,213,122,0.5); }
+  50%     { box-shadow: 0 0 28px rgba(245,213,122,0.9); }
+}
+
+/* ─── Правая колонка: рука + кнопки ─── */
+.battle-side-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(10, 6, 3, 0.6);
+  border: 1px solid rgba(212, 169, 76, 0.2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.tactic-points {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(180deg, rgba(212,169,76,0.2), rgba(212,169,76,0.06));
+  border: 1.5px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--color-gold-bright);
+  font-size: 12px;
+  font-weight: 700;
+}
+.tactic-points .pt-val { font-size: 18px; color: #fff; }
+
+.battle-hand-root {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+}
+.battle-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.btn-end-turn, .btn-skip, .btn-retreat {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.btn-end-turn {
+  background: linear-gradient(180deg, #8a6a30, #4a3418);
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold-bright);
+}
+.btn-skip {
+  background: rgba(80, 60, 20, 0.4);
+  border: 1px solid var(--color-gold-dark);
+  color: #d0b880;
+}
+.btn-retreat { background: transparent; border: 1px solid #a32c2c; color: #f0b0b0; }
+.btn-end-turn:disabled, .btn-skip:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Нижняя полоса с логом ─── */
+.battle-log-bar {
+  padding: 4px 12px;
+  background: rgba(10, 6, 3, 0.6);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(212, 169, 76, 0.15);
+  min-height: 36px;
+  max-height: 40px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 11px;
+  color: #b8a380;
+  font-style: italic;
+}
+.battle-log-bar .log-entry {
+  line-height: 1.3;
+}
+.battle-log-bar .log-entry.dmg  { color: #f0a0a0; }
+.battle-log-bar .log-entry.heal { color: #90d8a0; }
+.battle-log-bar .log-entry.info { color: #a0c8f0; }
+
+/* ─── Адаптив ─── */
+@media (max-width: 900px) {
+  .battle-main { grid-template-columns: 70px 1fr 200px; gap: 4px; }
+  .battle-side { max-width: 380px; }
+  .hero-portrait { width: 30px; height: 30px; font-size: 11px; }
+  .pseudo-card { width: 32px; }
+}
+@media (max-width: 700px) {
+  .battle-main { grid-template-columns: 1fr 200px; }
+  .pseudo-hand { display: none; }
+  .battle-side { max-width: 300px; }
+  .battle-row  { grid-template-columns: 30px repeat(3, 1fr); gap: 4px; }
+  .lane-icon   { font-size: 16px; }
+  .battle-title { display: none; }
+  .bh-side     { font-size: 11px; }
+  .btn-end-turn, .btn-skip, .btn-retreat { font-size: 10px; padding: 6px 8px; }
+}
