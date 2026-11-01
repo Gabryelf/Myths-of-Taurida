@@ -7,11 +7,9 @@ export class BattleCardEl {
     const el = document.createElement('div');
     el.className = `battle-card ${side === 'attacker' ? 'ally' : 'enemy'} type-${card.type}`;
     if (selected) el.classList.add('selected');
-
     const abilitiesHtml = (card.abilities || []).map((a) =>
       `<div class="bc-tt-ability"><b>${a.name}:</b> ${a.desc}</div>`
     ).join('');
-
     el.innerHTML = `
       <div class="bc-name-top">${card.name}</div>
       <div class="bc-art"></div>

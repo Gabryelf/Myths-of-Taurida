@@ -6,20 +6,29 @@ export class BattleFactory {
   static create({ attackerGen, targetTile, defenderFactionId, world, playerSide = 'attacker' }) {
     const defenderGen = world.generals.find((g) => g.factionId === defenderFactionId)
       || {
-      id: 'def_' + Date.now(),
-      name: defenderFactionId === 'neutral' ? 'Вождь' : GeneralFactory.nameForFaction(defenderFactionId),
-      factionId: defenderFactionId,
-      lives: 3, maxLives: 3,
-      deck: { cards: [] },
-    };
+        id: 'def_' + Date.now(),
+        name: defenderFactionId === 'neutral' ? 'Вождь' : GeneralFactory.nameForFaction(defenderFactionId),
+        factionId: defenderFactionId,
+        lives: 3, maxLives: 3,
+        deck: { cards: [] },
+      };
 
-    const attackerDeck = attackerGen.deck.cards.length > 0
-      ? attackerGen.deck.cards
-      : [CardFactory.create(CardFactory.keysForFaction(attackerGen.factionId)[0])];
+    // Гарантированная колода атакующего
+    const attackerCards = attackerGen.deck?.cards || [];
+    const attackerDeck = attackerCards.length > 0
+      ? attackerCards.slice()
+      : BattleFactory._fallbackDeck(attackerGen.factionId);
 
-    const defenderDeck = defenderGen.deck?.cards?.length > 0
-      ? defenderGen.deck.cards
+    // Гарантированная колода защитника
+    const defenderCards = defenderGen.deck?.cards || [];
+    const defenderDeck = defenderCards.length > 0
+      ? defenderCards.slice()
       : BattleFactory._aiDeck(defenderFactionId);
+
+    console.log('[BattleFactory]',
+      'attackerDeck=', attackerDeck.length,
+      'defenderDeck=', defenderDeck.length,
+      'playerSide=', playerSide);
 
     return new Battle({
       attackerGen, defenderGen,
@@ -28,6 +37,18 @@ export class BattleFactory {
       targetTile, attackerDeck, defenderDeck,
       playerSide,
     });
+  }
+
+  static _fallbackDeck(factionId) {
+    const keys = CardFactory.keysForFaction(factionId);
+    if (keys.length === 0) return [CardFactory.create('goth_warrior')];
+    const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
+    const pool = cheap.length > 0 ? cheap : keys;
+    return [
+      CardFactory.create(pool[0]),
+      CardFactory.create(pool[0]),
+      CardFactory.create(pool[0]),
+    ];
   }
 
   static _aiDeck(factionId) {

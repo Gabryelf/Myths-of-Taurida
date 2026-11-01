@@ -44,7 +44,7 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.7</div>
+      <div class="hud-title">ТАВРИДА · v0.0.7</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
         <button class="hud-btn" id="btn-recruit">Найм</button>

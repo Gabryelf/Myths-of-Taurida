@@ -14,6 +14,7 @@ export class BattleModal {
     this._cardEl = new BattleCardEl();
     this._battle = null;
     this._finishScheduled = false;
+    this._hand = null;
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-modal-overlay';
@@ -22,7 +23,6 @@ export class BattleModal {
     this.el = document.createElement('div');
     this.el.className = 'battle-modal';
     this.overlay.appendChild(this.el);
-
     this.el.addEventListener('click', (e) => this._onClick(e));
 
     this.bus.on('battle:updated', ({ battle }) => {
@@ -47,6 +47,7 @@ export class BattleModal {
     this.bus.on('battle:finished', () => {
       this.overlay.classList.remove('visible');
       this._battle = null;
+      this._hand = null;
     });
   }
 
@@ -55,7 +56,6 @@ export class BattleModal {
     if (action === 'end-turn')  { this.controller.endTurn();  return; }
     if (action === 'skip-turn') { this.controller.skipTurn(); return; }
     if (action === 'retreat')   { this.controller.retreat();  return; }
-
     const lane = e.target.getAttribute?.('data-lane');
     const idx  = e.target.getAttribute?.('data-idx');
     const side = e.target.getAttribute?.('data-side');
@@ -67,9 +67,16 @@ export class BattleModal {
   _onCellClick(side, lane, index) {
     const b = this._battle;
     if (!b || b.finished) return;
-    if (side === b.playerSide && b.selectedCard) {
-      this.controller.playCard(b.selectedCard, lane, index);
+    if (side !== b.playerSide) return;
+    if (!b.selectedCard) {
+      this.bus.emit('toast:show', { text: 'Сначала выберите карту в руке' });
+      return;
     }
+    if (b.selectedCard.str > b.playerData.tacticPoints) {
+      this.bus.emit('toast:show', { text: 'Недостаточно тактики' });
+      return;
+    }
+    this.controller.playCard(b.selectedCard, lane, index);
   }
 
   _render() {
@@ -80,10 +87,10 @@ export class BattleModal {
     const enemySide = playerSide === 'attacker' ? 'defender' : 'attacker';
     const playerData = b[playerSide];
     const enemyData  = b[enemySide];
-
     const laneInfo = b.getLineBonusInfo();
     const colInfo  = b.getColumnBonusInfo();
 
+    // Сохраняем handRoot до перезаписи innerHTML
     this.el.innerHTML = `
       <div class="battle-top">
         <div class="battle-hero enemy-hero">
@@ -98,12 +105,10 @@ export class BattleModal {
           <div class="bh-lives">${this._livesHtml(playerData.lives, playerData.maxLives)}</div>
         </div>
       </div>
-
       <div class="battle-main">
         <div class="pseudo-hand enemy">
           ${this._pseudoHandHtml(enemyData, 'enemy')}
         </div>
-
         <div class="battle-arena">
           <div class="battle-field battle-field-enemy">
             ${this._boardHtml(enemySide, enemyData, laneInfo, colInfo)}
@@ -112,9 +117,9 @@ export class BattleModal {
             ${this._boardHtml(playerSide, playerData, laneInfo, colInfo)}
           </div>
         </div>
-
         <div class="battle-side-right">
           <div class="tactic-points">⚡ <span class="pt-val">${playerData.tacticPoints}</span></div>
+          <div class="deck-counter">Колода: ${playerData.deck.length}</div>
           <div class="battle-hand-root" id="battle-hand-root"></div>
           <div class="battle-controls">
             <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Конец хода</button>
@@ -123,28 +128,28 @@ export class BattleModal {
           </div>
         </div>
       </div>
-
       <div class="battle-log-bar">
         ${this._logHtml(b.log)}
       </div>
     `;
 
+    // Пересоздаём руку — но всегда в новый контейнер
     const handRoot = this.el.querySelector('#battle-hand-root');
-    const hand = new BattleHand(handRoot);
-    hand.setData(
+    this._hand = new BattleHand(handRoot);
+    this._hand.setData(
       playerData.hand,
       playerData.tacticPoints,
       b.selectedCard,
-      (card) => this.controller.selectCard(card),
+      (card) => {
+        this.controller.selectCard(card);
+      },
     );
   }
 
   _pseudoHandHtml(enemyData, side) {
     const count = Math.max(0, enemyData.hand.length);
     let html = '<div class="pseudo-hand-label">Рука врага</div><div class="pseudo-hand-cards">';
-    for (let i = 0; i < count; i++) {
-      html += `<div class="pseudo-card"></div>`;
-    }
+    for (let i = 0; i < count; i++) html += `<div class="pseudo-card"></div>`;
     html += '</div>';
     return html;
   }
@@ -170,8 +175,8 @@ export class BattleModal {
         let cls = 'cell';
         let inner = '';
         if (card) inner = this._cardEl.create(card, { side }).outerHTML;
-        if (b.isPlayerTurn && b.selectedCard) {
-          if (isPlayer && !card) cls += ' valid-place';
+        if (b.isPlayerTurn && b.selectedCard && isPlayer && !card) {
+          cls += ' valid-place';
         }
         const colActive = colInfo[i].active;
         const colHint = colActive ? 'col-active' : '';

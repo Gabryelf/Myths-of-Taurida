@@ -13,7 +13,7 @@ export class BattleHand {
   }
 
   setData(cards, tacticPoints, selectedCard, onClick) {
-    this._cards = cards;
+    this._cards = cards || [];
     this._tacticPoints = tacticPoints;
     this._selected = selectedCard;
     this._onClick = onClick;

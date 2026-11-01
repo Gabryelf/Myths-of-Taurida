@@ -3,6 +3,7 @@ export class BattleController {
     this.world = world;
     this.bus = bus;
     this.battle = null;
+    this._aiScheduled = false;
   }
 
   open({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
@@ -10,7 +11,17 @@ export class BattleController {
       attackerGen, targetTile, defenderFactionId, playerSide,
     });
     this.battle = battle;
+    console.log('[BattleController.open] battle ready',
+      'playerSide=', battle.playerSide,
+      'turn=', battle.turn,
+      'playerHand=', battle.playerData.hand.length,
+      'enemyHand=', battle.enemyData.hand.length);
     this.bus.emit('battle:started', { battle });
+    // Если игрок — defender, а нападающий ИИ (первый ход у attacker) —
+    // запускаем ИИ сразу
+    if (battle.turn !== battle.playerSide) {
+      this._scheduleAI();
+    }
     return battle;
   }
 
@@ -23,7 +34,10 @@ export class BattleController {
   playCard(card, lane, index) {
     if (!this.battle) return false;
     const ok = this.battle.playCard(card, lane, index);
-    if (ok) this.bus.emit('battle:updated', { battle: this.battle });
+    if (ok) {
+      this.bus.emit('battle:updated', { battle: this.battle });
+      if (this.battle.finished) return true;
+    }
     return ok;
   }
 
@@ -42,11 +56,25 @@ export class BattleController {
   }
 
   _scheduleAI() {
+    if (!this.battle) return;
+    if (this.battle.finished) return;
+    if (this.battle.turn === this.battle.playerSide) return;
+    if (this._aiScheduled) return;
+    this._aiScheduled = true;
     setTimeout(() => {
+      this._aiScheduled = false;
       if (!this.battle || this.battle.finished) return;
-      this.battle.aiTurn();
+      if (this.battle.turn === this.battle.playerSide) return;
+      try {
+        this.battle.aiTurn();
+      } catch (e) {
+        console.error('[AI]', e);
+      }
       this.bus.emit('battle:updated', { battle: this.battle });
-    }, 600);
+      if (!this.battle.finished && this.battle.turn !== this.battle.playerSide) {
+        this._scheduleAI();
+      }
+    }, 700);
   }
 
   finish() {
