@@ -4,43 +4,43 @@ export const IMAGE_BASE = '/images/';
 
 export const CARD_IMAGES = {
   // Скифы
-  scyth_archer:   'card_front.png',
-  scyth_warrior:  'card_front.png',
-  scyth_rider:    'card_front.png',
-  scyth_shaman:   'card_front.png',
-  scyth_noble:    'card_front.png',
+  scyth_archer:   'skithian_001.png',
+  scyth_warrior:  'skithian_002.png',
+  scyth_rider:    'skithian_004.png',
+  scyth_shaman:   'skithian_005.png',
+  scyth_noble:    'skithian_006.png',
   // Боспор
-  bosp_hoplite:   'card_front.png',
-  bosp_archer:    'card_front.png',
-  bosp_cavalry:   'card_front.png',
-  bosp_merchant:  'card_front.png',
-  bosp_king:      'card_front.png',
+  bosp_hoplite:   'bosporian_001.png',
+  bosp_archer:    'bosporian_004.png',
+  bosp_cavalry:   'bosporian_005.png',
+  bosp_merchant:  'bosporian_006.png',
+  bosp_king:      'bosporian_003.png',
   // Херсонес
-  cher_hoplite:   'card_front.png',
-  cher_archer:    'card_front.png',
-  cher_priest:    'card_front.png',
-  cher_mercenary: 'card_front.png',
-  cher_archon:    'card_front.png',
+  cher_hoplite:   'hersones_001.png',
+  cher_archer:    'hersones_004.png',
+  cher_priest:    'hersones_003.png',
+  cher_mercenary: 'hersones_002.png',
+  cher_archon:    'hersones_005.png',
   // Рим
-  rome_legion:    'card_front.png',
-  rome_archer:    'card_front.png',
-  rome_centurion: 'card_front.png',
-  rome_siege:     'card_front.png',
-  rome_consul:    'card_front.png',
+  rome_legion:    'romes_001.png',
+  rome_archer:    'romes_002.png',
+  rome_centurion: 'romes_004.png',
+  rome_siege:     'romes_005.png',
+  rome_consul:    'romes_006.png',
   // Готы
-  goth_warrior:   'card_front.png',
-  goth_berserk:   'card_front.png',
-  goth_archer:    'card_front.png',
-  goth_chieftain: 'card_front.png',
-  goth_shaman:    'card_front.png',
+  goth_warrior:   'tauri_001.png',
+  goth_berserk:   'tauri_002.png',
+  goth_archer:    'tauri_004.png',
+  goth_chieftain: 'tauri_005.png',
+  goth_shaman:    'tauri_006.png',
 };
 
 export const GENERAL_PORTRAITS = {
-  scythians:    'card_front.png',
-  bosporus:     'card_front.png',
-  chersonesos:  'card_front.png',
-  rome:         'card_front.png',
-  goths:        'card_front.png',
+  scythians:    'avatars/archer.png',
+  bosporus:     'avatars/knight.png',
+  chersonesos:  'avatars/water_mage.png',
+  rome:         'avatars/warrior.png',
+  goths:        'avatars/barbarian.png',
 };
 
 export function imgUrl(file) {
