@@ -11,6 +11,7 @@ import { RecruitController } from '../application/RecruitController.js';
 import { BattleController } from '../application/BattleController.js';
 import { TurnManager } from '../domain/ai/TurnManager.js';
 import { SoundManager } from '../infrastructure/audio/SoundManager.js';
+import { ConfirmDialog } from '../ui/components/ConfirmDialog.js';
 
 export class Game {
   constructor({ canvas, uiRoot, toastRoot }) {
@@ -59,6 +60,8 @@ export class Game {
     this.ui.bindResources(pool);
 
     this.sceneBuilder.rebuild(this.world);
+    this.world.recomputeVisibility();
+    this.sceneBuilder.updateFog(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
 
     const player = this.world.playerFaction;
@@ -82,7 +85,16 @@ export class Game {
   _onTileClick(tile, hitGeneral) {
     const playerFactionId = this.world.playerFactionId;
   
-    // ─── Fallback: клик по гексу, если на нём генерал ───
+    // ─── 1) Клик по городу/деревне ───
+    if (tile && tile.cityId && !hitGeneral) {
+      const city = this.world.getCity(tile.cityId);
+      if (city) {
+        this.ui.openCityPanel({ tile, city, world: this.world });
+        return;
+      }
+    }
+  
+    // ─── 2) Клик по полководцу ───
     if (!hitGeneral && tile) {
       const gen = this.world.getGeneralAt(tile.hex);
       if (gen) hitGeneral = gen;
@@ -91,7 +103,6 @@ export class Game {
       tile = this.world.map.get(hitGeneral.hex.q, hitGeneral.hex.r);
     }
   
-    // ─── Чужой генерал: не выбираем, а пытаемся атаковать ───
     if (hitGeneral && hitGeneral.factionId !== playerFactionId) {
       if (this.selectedGeneralId) {
         const mine = this.world.generals.find((g) => g.id === this.selectedGeneralId);
@@ -99,7 +110,7 @@ export class Game {
           const enemyTile = this.world.map.get(hitGeneral.hex.q, hitGeneral.hex.r);
           if (enemyTile && this.world.movement.canAttack(mine, enemyTile)) {
             const dist = this.world.movement.attackCostTo(mine, enemyTile);
-            this._executeBattle(mine, enemyTile, dist);
+            this._confirmAttack(mine, enemyTile, dist);
             return;
           }
           this.bus.emit('toast:show', { text: 'Слишком далеко — не дойти до врага' });
@@ -110,29 +121,25 @@ export class Game {
       return;
     }
   
-    // ─── Свой генерал: выбрать ───
     if (hitGeneral) {
       const isSame = this.selectedGeneralId === hitGeneral.id;
       this._selectGeneral(isSame ? null : hitGeneral);
       return;
     }
   
-    // ─── Есть выбранный: ход/атака ───
     if (this.selectedGeneralId) {
       const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
       if (!general || !tile) return;
-  
       const enemyGen = this.world.getGeneralAt(tile.hex);
       if (enemyGen && enemyGen.factionId !== general.factionId) {
         if (this.world.movement.canAttack(general, tile)) {
           const dist = this.world.movement.attackCostTo(general, tile);
-          this._executeBattle(general, tile, dist);
+          this._confirmAttack(general, tile, dist);
           return;
         }
         this.bus.emit('toast:show', { text: 'Слишком далеко — не дойти до врага' });
         return;
       }
-  
       if (this.world.movement.canMove(general, tile)) {
         const distance = this.world.movement.costTo(general, tile);
         this._executeMove(general, tile, distance);
@@ -140,7 +147,6 @@ export class Game {
       }
     }
   
-    // ─── Клик мимо ───
     if (!tile) {
       this._selectTile(null);
       this._selectGeneral(null);
@@ -148,6 +154,20 @@ export class Game {
     }
     this._selectGeneral(null);
     this._selectTile(tile);
+  }
+
+  _confirmAttack(general, tile, cost) {
+    const enemy = this.world.getGeneralAt(tile.hex);
+    const enemyName = enemy?.name || 'Вражеский полководец';
+    const dialog = new ConfirmDialog(document.getElementById('ui-root'), {
+      title: 'Начать бой?',
+      text: `${general.name} атакует ${enemyName}. Потрачено ${cost} очка движения.`,
+      confirmText: 'Атаковать',
+      cancelText: 'Отмена',
+      onConfirm: () => this._executeBattle(general, tile, cost),
+      onCancel: () => {},
+    });
+    dialog.open();
   }
   
   _selectGeneral(general) {
@@ -237,6 +257,9 @@ export class Game {
     } else {
       this.bus.emit('toast:show', { text: 'Ничья' });
     }
+    this.world.recomputeVisibility(); 
+    this.sceneBuilder.updateFog(this.world); 
+    this.sceneBuilder.updateCityFaction(this.world);
   
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.sceneBuilder.rebuild(this.world);
@@ -318,13 +341,13 @@ export class Game {
     general.spendMove(distance);
     general.moveTo(tile.hex);
     if (!tile.factionId) tile.setFaction(general.factionId);
-
+    this.world.recomputeVisibility();
+    this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.sceneBuilder.setMovementOverlays(null, false);
     this.sceneBuilder.setAttackOverlays(null, false);
     this.sceneBuilder.setGeneralSelected(general.id, false);
     this.selectedGeneralId = null;
-
     this.bus.emit('general:moved', { general, fromKey, toKey: tile.key, cost: distance });
     if (general.movePoints > 0) this._selectGeneral(general);
   }

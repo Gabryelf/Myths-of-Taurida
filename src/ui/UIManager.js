@@ -8,6 +8,7 @@ import { RecruitModal } from './components/RecruitModal.js';
 import { BattleModal } from './components/BattleModal.js';
 import { TutorialModal } from './components/TutorialModal.js';
 import { TurnIndicator } from './components/TurnIndicator.js';
+import { CityPanel } from './components/CityPanel.js';
 
 export class UIManager {
   constructor({ root, toastRoot, bus, world, onEndTurn, onRecruit, battleController, sound }) {
@@ -22,6 +23,7 @@ export class UIManager {
     this.deckPanel = new DeckPanel(root);
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
+    this.cityPanel = new CityPanel(root, { bus });
 
     this._buildHud();
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
@@ -90,6 +92,11 @@ export class UIManager {
       onDone?.();
     };
     this.tutorial.open();
+  }
+
+  openCityPanel({ tile, city, world }) {
+    const general = world.getGeneralAt(tile.hex);
+    this.cityPanel.open({ tile, city, world, general });
   }
 
   _subscribe() {

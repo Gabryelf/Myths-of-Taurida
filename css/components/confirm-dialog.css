@@ -1,0 +1,42 @@
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    backdrop-filter: blur(4px);
+}
+
+.confirm-dialog {
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    max-width: 420px;
+    text-align: center;
+}
+
+.confirm-dialog h2 {
+    color: var(--color-gold-bright);
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
+.confirm-dialog p {
+    color: var(--color-text);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.confirm-actions .btn {
+    min-width: 100px;
+}

@@ -1,0 +1,142 @@
+.city-panel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 250;
+    backdrop-filter: blur(4px);
+}
+
+.city-panel-overlay.visible {
+    display: flex;
+}
+
+.city-panel {
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    width: min(900px, 96vw);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.city-panel h2 {
+    color: var(--color-gold-bright);
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.city-panel .cp-subtitle {
+    text-align: center;
+    color: #8a7a58;
+    font-size: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.city-panel .cp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.city-panel .cp-card {
+    position: relative;
+    border: 1px solid var(--color-gold-dark);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #1a1208;
+    padding-bottom: 6px;
+}
+
+.city-panel .cp-card-art {
+    height: 130px;
+    background-size: cover;
+    background-position: center top;
+    background-color: #2a1d0f;
+    position: relative;
+}
+
+.city-panel .cp-rarity {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 2px 6px;
+    font-size: 9px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+}
+
+.city-panel .cp-rarity-common {
+    color: #8a7a58;
+}
+
+.city-panel .cp-rarity-rare {
+    color: #58a6ff;
+}
+
+.city-panel .cp-rarity-epic {
+    color: #a371f7;
+}
+
+.city-panel .cp-rarity-legendary {
+    color: #f5d57a;
+}
+
+.city-panel .cp-str {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    color: #fff;
+    border: 1px solid var(--color-gold-bright);
+}
+
+.city-panel .cp-card-name {
+    padding: 6px 8px 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.city-panel .cp-card-cost {
+    padding: 0 8px 4px;
+    font-size: 10px;
+    color: var(--color-gold);
+}
+
+.city-panel .cp-card .btn {
+    display: block;
+    width: calc(100% - 12px);
+    margin: 0 6px;
+    padding: 6px;
+    font-size: 11px;
+}
+
+.city-panel .cp-general {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.city-panel .cp-close {
+    display: block;
+    margin: 0 auto;
+    padding: 10px 24px;
+}
