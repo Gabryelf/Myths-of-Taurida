@@ -1,6 +1,10 @@
 import { HexVisual } from './visuals/HexVisual.js';
 import { GeneralVisual } from './visuals/GeneralVisual.js';
 import { MovementOverlay } from './visuals/MovementOverlay.js';
+import { FogVisual } from './visuals/FogVisual.js';
+import { CityVisual } from './visuals/CityVisual.js';
+import { VillageVisual } from './visuals/VillageVisual.js';
+import { RoadVisual } from './visuals/RoadVisual.js';
 import { HighlightService } from './HighlightService.js';
 import { Theme } from '../config/ThemeConfig.js';
 
@@ -9,13 +13,17 @@ export class SceneBuilder {
     this.scene = scene;
     this._tileVisuals = new Map();
     this._generalVisuals = new Map();
+    this._cityVisuals = new Map();
+    this._roadVisuals = [];
     this._movementOverlays = new Map();
     this._attackOverlays = new Map();
+    this._fogVisuals = new Map();
     this.highlight = new HighlightService(Theme.hexSize);
   }
 
   rebuild(world) {
-    this._clearTiles();
+    this._clearAll();
+    // 1) Гексы
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const v = new HexVisual(tile, Theme.hexSize);
@@ -25,9 +33,74 @@ export class SceneBuilder {
       this._tileVisuals.set(tile.key, v);
     }
     this.highlight.bindVisuals(this._tileVisuals);
-
-    this._clearGenerals();
+    // 2) Дороги (на смежных парах с hasRoad)
+    const drawn = new Set();
+    for (const tile of world.map.all()) {
+      if (!tile.hasRoad) continue;
+      for (const n of tile.hex.neighbors()) {
+        const nt = world.map.get(n.q, n.r);
+        if (!nt || !nt.hasRoad) continue;
+        const key = [tile.key, nt.key].sort().join('|');
+        if (drawn.has(key)) continue;
+        drawn.add(key);
+        const road = new RoadVisual(tile, nt, Theme.hexSize);
+        road.addTo(this.scene);
+        this._roadVisuals.push(road);
+      }
+    }
+    // 3) Города и деревни
+    for (const city of world.cities) {
+      if (!city.tileKey) continue;
+      const tile = world.map.getByKey(city.tileKey);
+      if (!tile) continue;
+      const v = city.isCity
+        ? new CityVisual(city, Theme.hexSize)
+        : new VillageVisual(city, Theme.hexSize);
+      const { x, z } = tile.hex.toWorld(Theme.hexSize);
+      v.group.position.set(x, 0, z);
+      v.addTo(this.scene);
+      this._cityVisuals.set(city.id, v);
+    }
+    // 4) Полководцы
     this._renderGenerals(world);
+    // 5) Туман
+    for (const tile of world.map.all()) {
+      if (!tile.isLand) continue;
+      const visual = this._tileVisuals.get(tile.key);
+      if (!visual) continue;
+      const fog = new FogVisual(Theme.hexSize);
+      fog.addTo(visual.group);
+      this._fogVisuals.set(tile.key, fog);
+    }
+    this.updateFog(world);
+  }
+
+  updateFog(world) {
+    for (const tile of world.map.all()) {
+      const fog = this._fogVisuals.get(tile.key);
+      if (!fog) continue;
+      fog.setVisible(!tile.isVisible);
+    }
+  }
+
+  updateCityFaction(world) {
+    for (const city of world.cities) {
+      const v = this._cityVisuals.get(city.id);
+      if (v) v.removeFrom(this.scene);
+    }
+    this._cityVisuals.clear();
+    for (const city of world.cities) {
+      if (!city.tileKey) continue;
+      const tile = world.map.getByKey(city.tileKey);
+      if (!tile) continue;
+      const v = city.isCity
+        ? new CityVisual(city, Theme.hexSize)
+        : new VillageVisual(city, Theme.hexSize);
+      const { x, z } = tile.hex.toWorld(Theme.hexSize);
+      v.group.position.set(x, 0, z);
+      v.addTo(this.scene);
+      this._cityVisuals.set(city.id, v);
+    }
   }
 
   _renderGenerals(world) {
@@ -50,10 +123,10 @@ export class SceneBuilder {
     }
   }
 
-  setMovementOverlays(reachableMap, isVisible) {
+  setMovementOverlays(map, visible) {
     for (const ov of this._movementOverlays.values()) ov.setVisible(false);
-    if (!isVisible || !reachableMap) return;
-    for (const key of reachableMap.keys()) {
+    if (!visible || !map) return;
+    for (const key of map.keys()) {
       let ov = this._movementOverlays.get(key);
       if (!ov) {
         const visual = this._tileVisuals.get(key);
@@ -66,10 +139,10 @@ export class SceneBuilder {
     }
   }
 
-  setAttackOverlays(attacksMap, isVisible) {
+  setAttackOverlays(map, visible) {
     for (const ov of this._attackOverlays.values()) ov.setVisible(false);
-    if (!isVisible || !attacksMap) return;
-    for (const key of attacksMap.keys()) {
+    if (!visible || !map) return;
+    for (const key of map.keys()) {
       let ov = this._attackOverlays.get(key);
       if (!ov) {
         const visual = this._tileVisuals.get(key);
@@ -83,8 +156,7 @@ export class SceneBuilder {
   }
 
   setGeneralSelected(generalId, isSelected) {
-    const v = this._generalVisuals.get(generalId);
-    v?.setSelected(isSelected);
+    this._generalVisuals.get(generalId)?.setSelected(isSelected);
   }
 
   getPickables() {
@@ -95,12 +167,21 @@ export class SceneBuilder {
     for (const v of this._tileVisuals.values()) {
       v.group.traverse((c) => { if (c.isMesh || c.isSprite) arr.push(c); });
     }
+    for (const v of this._cityVisuals.values()) {
+      v.group.traverse((c) => { if (c.isMesh || c.isSprite) arr.push(c); });
+    }
     return arr;
   }
 
-  _clearTiles() {
+  _clearAll() {
     for (const v of this._tileVisuals.values()) v.removeFrom(this.scene);
     this._tileVisuals.clear();
+    for (const v of this._generalVisuals.values()) v.removeFrom(this.scene);
+    this._generalVisuals.clear();
+    for (const v of this._cityVisuals.values()) v.removeFrom(this.scene);
+    this._cityVisuals.clear();
+    for (const v of this._roadVisuals) v.removeFrom(this.scene);
+    this._roadVisuals = [];
     for (const ov of this._movementOverlays.values()) {
       if (ov.mesh?.parent) ov.mesh.parent.remove(ov.mesh);
     }
@@ -109,12 +190,6 @@ export class SceneBuilder {
       if (ov.mesh?.parent) ov.mesh.parent.remove(ov.mesh);
     }
     this._attackOverlays.clear();
+    this._fogVisuals.clear();
   }
-
-  _clearGenerals() {
-    for (const v of this._generalVisuals.values()) v.removeFrom(this.scene);
-    this._generalVisuals.clear();
-  }
-
-  get _visuals() { return this._tileVisuals; }
 }

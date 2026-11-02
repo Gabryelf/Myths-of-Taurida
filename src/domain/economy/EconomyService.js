@@ -1,32 +1,51 @@
-/**
- * Экономика: доход, стоимость найма, содержание.
- * Чистые правила — без UI.
- */
+import { Theme } from '../../infrastructure/config/ThemeConfig.js';
+
 export class EconomyService {
-  constructor({ income = { gold: 5, prov: 3, weapons: 1 } } = {}) {
-    this.income = income;
+  constructor() {
+    this.income = { gold: 0, prov: 0, weapons: 0 };
   }
 
+  /** Доход фракции = сумма по её гексам + бонусы городов/деревень. */
+  computeIncome(world, factionId) {
+    let gold = 0, prov = 0, weapons = 0;
+    for (const tile of world.map.all()) {
+      if (tile.factionId !== factionId || !tile.isLand) continue;
+      const t = Theme.terrain[tile.terrain] || Theme.terrain.plain;
+      gold += t.yield.gold;
+      prov += t.yield.prov;
+      weapons += t.yield.weapons;
+    }
+    // Города и деревни
+    for (const city of world.cities) {
+      if (city.factionId !== factionId) continue;
+      gold += city.isCity ? 2 : 1;
+    }
+    return { gold, prov, weapons };
+  }
+
+  /** Стоимость найма карты: оружие + редкость, + провизия после найма. */
   recruitCost(card) {
-    const base = {
-      warrior: { gold: card.str * 2 + 4, prov: card.prov, weapons: 1 },
-      archer: { gold: card.str * 2 + 3, prov: card.prov, weapons: 0 },
-      support: { gold: card.str * 2 + 2, prov: card.prov, weapons: 0 },
-      special: { gold: card.str * 3 + 6, prov: card.prov, weapons: 2 },
-    }[card.type] || { gold: card.str * 2, prov: card.prov, weapons: 0 };
-    return base;
+    const rarityBonus = { common: 0, rare: 1, epic: 2, legendary: 3 }[card.rarity] || 0;
+    return {
+      gold: rarityBonus,
+      prov: card.str,
+      weapons: card.str,
+    };
   }
 
-  turnIncome(factionId) {
-    const bonus = {
-      bosporus: { gold: 1 },
-      scythians: { prov: 1 },
-      rome: { weapons: 1 },
-    }[factionId] || {};
-    return {
-      gold: this.income.gold + (bonus.gold || 0),
-      prov: this.income.prov + (bonus.prov || 0),
-      weapons: this.income.weapons + (bonus.weapons || 0),
-    };
+  /** Очки найма за карту: количество + качество (str + rarity). */
+  recruitPointsFor(card) {
+    const rarityBonus = { common: 0, rare: 1, epic: 2, legendary: 3 }[card.rarity] || 0;
+    return card.str + rarityBonus;
+  }
+
+  /** Очки найма фракции = 2 за город + 1 за деревню. */
+  recruitPointsForFaction(world, factionId) {
+    let pts = 0;
+    for (const city of world.cities) {
+      if (city.factionId !== factionId) continue;
+      pts += city.recruitPoints;
+    }
+    return pts;
   }
 }

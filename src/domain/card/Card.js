@@ -2,8 +2,8 @@
  * Карта. Чистая сущность.
  * imageKey — ключ для загрузки картинки (см. config.js).
  */
-export class Card {
-  constructor({ id, key, name, str, prov, type, ability, imageKey, abilityKeys = [] }) {
+ export class Card {
+  constructor({ id, key, name, str, prov, type, ability, imageKey, abilityKeys = [], rarity = 'common' }) {
     this.id = id;
     this.key = key;
     this.name = name;
@@ -13,6 +13,7 @@ export class Card {
     this.ability = ability;
     this.abilityKeys = abilityKeys;
     this.imageKey = imageKey || key;
+    this.rarity = rarity;
   }
   clone() { return new Card({ ...this }); }
 }
