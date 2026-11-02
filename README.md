@@ -46,8 +46,8 @@
 [![v0.0.4](https://img.shields.io/badge/v0.0.4-Полководцы%20и%20система%20ходов-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/4)
 [![v0.0.5](https://img.shields.io/badge/v0.0.5-Карточная%20система%20-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/5)
 [![v0.0.6](https://img.shields.io/badge/v0.0.6-Боевая%20система%20-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/6)
-[![v0.0.7](https://img.shields.io/badge/v0.0.7-ИИ,%20баланс,%20звук,%20туториал-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/7)
-[![v0.0.8](https://img.shields.io/badge/v0.0.8-Тактический%20бой%20-%20баланс-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/8)
+[![v0.0.7](https://img.shields.io/badge/v0.0.7-ИИ,%20баланс,%20звук,%20туториал-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/7)
+[![v0.0.8](https://img.shields.io/badge/v0.0.8-Тактический%20бой%20и%20баланс-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/8)
 
 
 </div>
@@ -76,7 +76,7 @@
 
 ## 📚 Документация по версиям - полный перечень изменений
 
-[![docs](https://github.com/Gabryelf/Myths-of-Taurida/wiki/Strategy-&-Tactical-0.0.8-version)
+![ссылка на wiki](https://github.com/Gabryelf/Myths-of-Taurida/wiki/Strategy-&-Tactical-0.0.8-version)
 
 
 ---
