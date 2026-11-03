@@ -30,12 +30,17 @@
 }
 
 .general-panel .gp-emblem {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: 2px solid var(--color-gold);
     flex-shrink: 0;
-    box-shadow: 0 0 12px currentColor;
+    box-shadow: 0 0 12px rgba(212, 169, 76, 0.5);
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    position: relative;
 }
 
 .general-panel .gp-name {

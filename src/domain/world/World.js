@@ -20,6 +20,7 @@ export class World {
     const data = new WorldGenerator({ seed, radius }).generate();
     this.map = data.tiles;
     this.cities = data.cities || [];
+    this.recruitPool = new Map();
 
     this.factions = FactionFactory.createAll();
     this.generals = [];
@@ -45,6 +46,7 @@ export class World {
     this._placeFactionStarts();
     this._spawnGenerals();
     this._seedStartingDecks();
+    this._refillRecruitPool(id);
     this.visibility.recompute();
     return f;
   }
@@ -140,6 +142,9 @@ export class World {
   }
 
   endTurn() {
+    for (const f of this.factions) {
+      this._refillRecruitPool(f.id);
+    }
     this.turn += 1;
     for (const g of this.generals) g.resetTurn();
     this.recruitPointsUsedMap.clear();
@@ -153,4 +158,31 @@ export class World {
   startBattle({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     return BattleFactory.create({ attackerGen, targetTile, defenderFactionId, world: this, playerSide });
   }
+
+  _refillRecruitPool(factionId) {
+    const total = this.economy.recruitPointsForFaction(this, factionId);
+    if (total <= 0) { this.recruitPool.set(factionId, []); return; }
+    const keys = CardFactory.keysForFaction(factionId);
+    const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
+    const mid = keys.filter((k) => CardFactory.defForKey(k).str === 2);
+    const rest = keys.filter((k) => CardFactory.defForKey(k).str >= 3);
+    const pool = [];
+    let sumStr = 0;
+    const tryPush = (key) => {
+      const def = CardFactory.defForKey(key);
+      if (!def) return false;
+      if (sumStr + def.str > total) return false;
+      pool.push({ key, str: def.str });
+      sumStr += def.str;
+      return true;
+    };
+    // Сначала дешёвые
+    for (const k of [...cheap, ...mid, ...rest]) {
+      if (sumStr >= total) break;
+      tryPush(k);
+    }
+    this.recruitPool.set(factionId, pool);
+  }
+
+  getRecruitPool(factionId) { return this.recruitPool.get(factionId) || []; }
 }

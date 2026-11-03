@@ -1,5 +1,8 @@
 import { BattleCardEl } from './BattleCardEl.js';
 import { BattleHand } from './BattleHand.js';
+import { BattleVisualLayer } from '../../infrastructure/battle-visuals/BattleVisualLayer.js';
+import { BattleResultScreen } from './BattleResultScreen.js';
+import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
 
 const LANES = [
   { key: 'defense', icon: '🛡', label: 'Оборона' },
@@ -15,6 +18,9 @@ export class BattleModal {
     this._battle = null;
     this._finishScheduled = false;
     this._hand = null;
+    this._visualLayer = null;
+    this._autoPlayActive = false;
+    this._resultScreen = null;
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-modal-overlay';
@@ -23,45 +29,106 @@ export class BattleModal {
     this.el = document.createElement('div');
     this.el.className = 'battle-modal';
     this.overlay.appendChild(this.el);
+
     this.el.addEventListener('click', (e) => this._onClick(e));
 
     this.bus.on('battle:updated', ({ battle }) => {
       this._battle = battle;
       this._render();
-      if (battle.finished && !this._finishScheduled) {
-        this._finishScheduled = true;
-        setTimeout(() => {
-          this._finishScheduled = false;
-          this.controller.finish();
-        }, 900);
+      // Показываем экран результата, если бой завершён — но не закрываем сразу
+      if (battle.finished && !this._resultScreen) {
+        this._showResult(battle);
       }
     });
 
     this.bus.on('battle:started', ({ battle }) => {
       this._battle = battle;
       this._finishScheduled = false;
+      this._autoPlayActive = false;
+      this._resultScreen = null;
       this.overlay.classList.add('visible');
       this._render();
+      const arena = this.el.querySelector('.battle-arena');
+      if (arena) {
+        this._visualLayer?.dispose();
+        this._visualLayer = new BattleVisualLayer(battle, arena, {
+          sideToPlayer: battle.playerSide,
+        });
+      }
     });
 
     this.bus.on('battle:finished', () => {
+      this._closeResult();
       this.overlay.classList.remove('visible');
+      this._visualLayer?.dispose();
+      this._visualLayer = null;
       this._battle = null;
       this._hand = null;
+      this._autoPlayActive = false;
+      this._resultScreen = null;
+      this._finishScheduled = false;
     });
   }
 
   _onClick(e) {
-    const action = e.target.getAttribute?.('data-action');
+    // Клики по экрану результата обрабатывает сам BattleResultScreen — пропускаем
+    if (e.target.closest?.('.battle-result-overlay')) return;
+
+    const action = e.target.closest?.('[data-action]')?.getAttribute('data-action');
     if (action === 'end-turn')  { this.controller.endTurn();  return; }
     if (action === 'skip-turn') { this.controller.skipTurn(); return; }
     if (action === 'retreat')   { this.controller.retreat();  return; }
-    const lane = e.target.getAttribute?.('data-lane');
-    const idx  = e.target.getAttribute?.('data-idx');
-    const side = e.target.getAttribute?.('data-side');
-    if (lane && idx !== null && side) {
-      this._onCellClick(side, lane, parseInt(idx, 10));
+    if (action === 'auto-play') { this._startAutoPlay();       return; }
+
+    const cell = e.target.closest?.('.cell');
+    if (cell) {
+      const side = cell.getAttribute('data-side');
+      const lane = cell.getAttribute('data-lane');
+      const idx  = cell.getAttribute('data-idx');
+      if (lane && idx !== null && side) {
+        this._onCellClick(side, lane, parseInt(idx, 10));
+      }
     }
+  }
+
+  _startAutoPlay() {
+    const b = this._battle;
+    if (!b || b.finished || this._autoPlayActive) return;
+    this._autoPlayActive = true;
+    this.bus.emit('toast:show', { text: 'Авто-бой запущен' });
+    b.autoPlay(() => {
+      this.bus.emit('battle:updated', { battle: b });
+    }).then(() => {
+      this._autoPlayActive = false;
+      if (b.finished && !this._resultScreen) this._showResult(b);
+    });
+  }
+
+  _showResult(b) {
+    const playerWon =
+      (b.playerSide === 'attacker' && b.winner === 'attacker') ||
+      (b.playerSide === 'defender' && b.winner === 'defender');
+    const title = b.winner === 'draw'
+      ? 'Ничья'
+      : playerWon ? 'Победа!' : 'Поражение';
+    const cls = b.winner === 'draw' ? 'draw' : playerWon ? 'win' : 'lose';
+    this._resultScreen = new BattleResultScreen(this.el, {
+      title,
+      kind: cls,
+      playerSide: b.playerSide,
+      attacker: b.attacker,
+      defender: b.defender,
+      winner: b.winner,
+      onContinue: () => {
+        this._resultScreen = null;
+        this.controller.finish();
+      },
+    });
+  }
+
+  _closeResult() {
+    this._resultScreen?.destroy();
+    this._resultScreen = null;
   }
 
   _onCellClick(side, lane, index) {
@@ -82,7 +149,6 @@ export class BattleModal {
   _render() {
     const b = this._battle;
     if (!b) return;
-
     const playerSide = b.playerSide;
     const enemySide = playerSide === 'attacker' ? 'defender' : 'attacker';
     const playerData = b[playerSide];
@@ -90,17 +156,21 @@ export class BattleModal {
     const laneInfo = b.getLineBonusInfo();
     const colInfo  = b.getColumnBonusInfo();
 
-    // Сохраняем handRoot до перезаписи innerHTML
+    // Сохраняем результат-экран перед пересозданием innerHTML — он живёт в overlay
+    // и его не надо трогать при перерисовке арены. Но он был в this.el — пересоздастся.
+    // Поэтому BattleResultScreen монтируется в overlay, а не в el.
+    const resultNode = this._resultScreen?._el || null;
+
     this.el.innerHTML = `
       <div class="battle-top">
         <div class="battle-hero enemy-hero">
-          <div class="hero-portrait enemy">${enemyData.gen.name.slice(0, 2)}</div>
+          ${this._portraitHtml(enemyData.gen, 'enemy')}
           <div class="hero-name">${enemyData.gen.name}</div>
           <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
         </div>
         <div class="battle-title">⚔ Бой · ход ${b.turnCount}</div>
         <div class="battle-hero player-hero">
-          <div class="hero-portrait player">${playerData.gen.name.slice(0, 2)}</div>
+          ${this._portraitHtml(playerData.gen, 'player')}
           <div class="hero-name">${playerData.gen.name}</div>
           <div class="bh-lives">${this._livesHtml(playerData.lives, playerData.maxLives)}</div>
         </div>
@@ -124,6 +194,7 @@ export class BattleModal {
           <div class="battle-controls">
             <button class="btn-end-turn" data-action="end-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Конец хода</button>
             <button class="btn-skip"     data-action="skip-turn" ${b.isPlayerTurn ? '' : 'disabled'}>Пропустить</button>
+            <button class="btn-auto"     data-action="auto-play" ${this._autoPlayActive ? 'disabled' : ''}>⚡ Авто-бой</button>
             <button class="btn-retreat"  data-action="retreat">Отступить</button>
           </div>
         </div>
@@ -133,17 +204,37 @@ export class BattleModal {
       </div>
     `;
 
-    // Пересоздаём руку — но всегда в новый контейнер
     const handRoot = this.el.querySelector('#battle-hand-root');
     this._hand = new BattleHand(handRoot);
     this._hand.setData(
       playerData.hand,
       playerData.tacticPoints,
       b.selectedCard,
-      (card) => {
-        this.controller.selectCard(card);
-      },
+      (card) => { this.controller.selectCard(card); },
     );
+
+    // Перемонтируем визуальный слой на новую арену и проигрываем накопленные эффекты
+    const arena = this.el.querySelector('.battle-arena');
+    if (arena) {
+      if (this._visualLayer) {
+        this._visualLayer.setContainer(arena);
+      } else if (b) {
+        this._visualLayer = new BattleVisualLayer(b, arena, {
+          sideToPlayer: b.playerSide,
+        });
+      }
+      // ← ГЛАВНОЕ: flush — проиграть накопленные события поверх нового DOM
+      requestAnimationFrame(() => {
+        this._visualLayer?.flush();
+      });
+    }
+  }
+
+  _portraitHtml(gen, cls) {
+    const file = GENERAL_PORTRAITS[gen.factionId];
+    const url = imgUrl(file);
+    const style = url ? `style="background-image:url('${url}')"` : '';
+    return `<div class="hero-portrait ${cls}" ${style}></div>`;
   }
 
   _pseudoHandHtml(enemyData, side) {
@@ -157,7 +248,6 @@ export class BattleModal {
   _boardHtml(side, data, laneInfo, colInfo) {
     const b = this._battle;
     const isPlayer = side === b.playerSide;
-
     const rows = LANES.map((lane) => {
       const lineInfo = laneInfo[lane.key];
       const lineActive = lineInfo.active;
@@ -184,7 +274,6 @@ export class BattleModal {
       }).join('');
       return `<div class="battle-row">${lineIcon}${cells}</div>`;
     }).join('');
-
     return `<div class="battle-side ${isPlayer ? 'side-player' : 'side-enemy'}">${rows}</div>`;
   }
 

@@ -28,15 +28,35 @@
 }
 .battle-hero { display: flex; align-items: center; gap: 8px; }
 .hero-portrait {
-  width: 40px; height: 40px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 900;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
   border: 2px solid var(--color-gold);
-  background: #2a1d0f; color: var(--color-gold-bright);
+  background-color: #2a1d0f;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
 }
-.hero-portrait.enemy  { border-color: #f85149; color: #f0a0a0; }
-.hero-portrait.player { border-color: #58a6ff; color: #a0c8f0; }
-.hero-name { font-size: 13px; font-weight: 700; color: var(--color-text); }
+.hero-portrait[data-faction]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+.hero-portrait.enemy  { border-color: #f85149; box-shadow: 0 0 12px rgba(248, 81, 73, 0.5); }
+.hero-portrait.player { border-color: #58a6ff; box-shadow: 0 0 12px rgba(88, 166, 255, 0.5); }
+.hero-portrait.enemy::after  { background: radial-gradient(circle at 30% 30%, rgba(248,81,73,0.15), transparent 70%); }
+.hero-portrait.player::after { background: radial-gradient(circle at 30% 30%, rgba(88,166,255,0.15), transparent 70%); }
 .battle-title { color: var(--color-gold-bright); font-size: 14px; letter-spacing: 0.2em; }
 .bh-lives { display: flex; gap: 4px; }
 .life-dot {

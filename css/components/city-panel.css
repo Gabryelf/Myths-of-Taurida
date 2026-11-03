@@ -1,105 +1,151 @@
 .city-panel-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    display: none;
-    align-items: center; justify-content: center;
-    z-index: 250;
-    backdrop-filter: blur(4px);
-    padding: 20px;
-  }
-  .city-panel-overlay.visible { display: flex; }
-  .city-panel {
-    background: radial-gradient(ellipse at top, rgba(70,48,24,0.5), transparent 60%),
-                linear-gradient(160deg, #221610, #0a0603);
-    border: 1px solid var(--color-gold);
-    border-radius: var(--radius-md);
-    padding: 20px 24px;
-    width: min(560px, 96vw);
-    max-height: 90vh;
-    overflow-y: auto;
-    color: var(--color-text);
-  }
-  .city-panel h2 {
-    color: var(--color-gold-bright);
-    text-align: center;
-    font-size: 22px;
-    margin-bottom: 6px;
-    letter-spacing: 0.08em;
-  }
-  .city-panel .cp-subtitle {
-    text-align: center;
-    color: #8a7a58;
-    font-size: 12px;
-    padding-bottom: 12px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid rgba(212,169,76,0.25);
-  }
-  .city-panel .cp-section {
-    margin-bottom: 16px;
-    padding: 12px;
-    border: 1px solid rgba(212,169,76,0.2);
-    border-radius: var(--radius-sm);
-    background: rgba(10,6,3,0.5);
-  }
-  .city-panel .cp-section-title {
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--color-gold);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(212,169,76,0.2);
-  }
-  .city-panel .cp-stat-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    padding: 3px 0;
-  }
-  .city-panel .cp-stat-row span { color: #8a7a58; }
-  .city-panel .cp-stat-row b { color: var(--color-gold-bright); }
-  
-  .city-panel .cp-general-row {
-    padding: 6px 8px;
-    border-radius: var(--radius-sm);
-    background: rgba(212,169,76,0.04);
-    margin-bottom: 4px;
-  }
-  .city-panel .cp-general-name {
-    color: var(--color-gold-bright);
-    font-weight: 700;
-    font-size: 13px;
-  }
-  .city-panel .cp-general-stats {
-    font-size: 11px;
-    color: #8a7a58;
-    margin-top: 2px;
-  }
-  .city-panel .cp-empty {
-    color: #6e7681;
-    font-style: italic;
-    font-size: 12px;
-    text-align: center;
-    padding: 8px 0;
-  }
-  .city-panel .cp-hire-btn {
-    display: block;
-    width: 100%;
-    margin-top: 8px;
-    padding: 8px;
-    font-size: 12px;
-  }
-  .city-panel .cp-hint {
-    font-size: 11px;
-    color: #8a7a58;
-    text-align: center;
-    margin-top: 6px;
-    font-style: italic;
-  }
-  .city-panel .cp-close {
-    display: block;
-    margin: 0 auto;
-    padding: 10px 24px;
-  }
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.city-panel-overlay.visible {
+  display: flex;
+}
+
+.city-panel {
+  background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+    linear-gradient(160deg, #221610, #0a0603);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  width: min(560px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  color: var(--color-text);
+}
+
+.city-panel h2 {
+  color: var(--color-gold-bright);
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+
+.city-panel .cp-subtitle {
+  text-align: center;
+  color: #8a7a58;
+  font-size: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.city-panel .cp-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid rgba(212, 169, 76, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 6, 3, 0.5);
+}
+
+.city-panel .cp-section-title {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(212, 169, 76, 0.2);
+}
+
+.city-panel .cp-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.city-panel .cp-stat-row span {
+  color: #8a7a58;
+}
+
+.city-panel .cp-stat-row b {
+  color: var(--color-gold-bright);
+}
+
+.city-panel .cp-general-row {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(212, 169, 76, 0.04);
+  margin-bottom: 4px;
+}
+
+.city-panel .cp-general-name {
+  color: var(--color-gold-bright);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.city-panel .cp-general-stats {
+  font-size: 11px;
+  color: #8a7a58;
+  margin-top: 2px;
+}
+
+.city-panel .cp-empty {
+  color: #6e7681;
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.city-panel .cp-hire-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.city-panel .cp-hint {
+  font-size: 11px;
+  color: #8a7a58;
+  text-align: center;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.city-panel .cp-close {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 24px;
+}
+
+.city-panel .cp-general-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.city-panel .cp-general-portrait {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold);
+  background-color: #2a1d0f;
+  background-size: cover;
+  background-position: center top;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(212, 169, 76, 0.4);
+}
+
+.city-panel .cp-general-info {
+  flex: 1;
+  min-width: 0;
+}

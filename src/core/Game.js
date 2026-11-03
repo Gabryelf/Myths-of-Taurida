@@ -180,7 +180,7 @@ export class Game {
       confirmText: 'Атаковать',
       cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost),
-      onCancel: () => {},
+      onCancel: () => { },
     });
   }
 
@@ -265,15 +265,12 @@ export class Game {
     const { winner, targetTile, attackerGen, defenderGen, playerSide } = result;
     const cost = this._pendingBattleCost || 0;
     this._pendingBattleCost = 0;
-
     const playerWon =
       (playerSide === 'attacker' && winner === 'attacker') ||
       (playerSide === 'defender' && winner === 'defender');
-
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
     else this.bus.emit('toast:show', { text: 'Бой завершился ничьей' });
-
     if (playerWon) {
       if (playerSide === 'attacker') {
         if (targetTile) {
@@ -296,14 +293,12 @@ export class Game {
     } else {
       this.bus.emit('toast:show', { text: 'Ничья' });
     }
-
     this.world.recomputeVisibility();
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this._updateHireButton();
-
     if (this._aiBusy) this._afterAITurns();
   }
 

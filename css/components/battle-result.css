@@ -1,0 +1,188 @@
+.battle-result-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.85), rgba(0, 0, 0, 0.95));
+    backdrop-filter: blur(4px);
+    animation: resultFadeIn 0.35s ease-out;
+}
+
+@keyframes resultFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.battle-result-panel {
+    width: min(560px, 94vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.55), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 2px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 0 100px rgba(212, 169, 76, 0.4), 0 24px 80px rgba(0, 0, 0, 0.95);
+}
+
+.result-win .battle-result-panel {
+    border-color: #f5d57a;
+    box-shadow: 0 0 120px rgba(245, 213, 122, 0.6), 0 24px 80px rgba(0, 0, 0, 0.95);
+}
+
+.result-lose .battle-result-panel {
+    border-color: #a32c2c;
+    box-shadow: 0 0 120px rgba(163, 44, 44, 0.6), 0 24px 80px rgba(0, 0, 0, 0.95);
+}
+
+.result-draw .battle-result-panel {
+    border-color: #8a7a58;
+}
+
+.br-title {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.result-win .br-title {
+    color: #f5d57a;
+    text-shadow: 0 0 20px rgba(245, 213, 122, 0.7);
+}
+
+.result-lose .br-title {
+    color: #ff6b6b;
+    text-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
+}
+
+.result-draw .br-title {
+    color: #b8a380;
+}
+
+.br-subtitle {
+    font-size: 13px;
+    color: #8a7a58;
+    font-style: italic;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.br-section {
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.br-section-title {
+    font-size: 11px;
+    color: var(--color-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.br-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+}
+
+.br-empty {
+    color: #6e7681;
+    font-style: italic;
+    font-size: 12px;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.br-card {
+    position: relative;
+    height: 86px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--color-gold-dark);
+    background: #1a1208;
+}
+
+.br-card.dead {
+    opacity: 0.35;
+    filter: grayscale(0.9);
+}
+
+.br-card.alive {
+    box-shadow: 0 0 10px rgba(94, 195, 122, 0.45);
+    border-color: #5ec37a;
+}
+
+.br-card-art {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #2a1d0f;
+}
+
+.br-card-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #fff;
+    border: 1px solid var(--color-gold-bright);
+    z-index: 2;
+}
+
+.br-card-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 6, 3, 0.85);
+    font-size: 9px;
+    padding: 2px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.br-continue {
+    margin-top: 8px;
+    padding: 12px 32px;
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border: 1px solid var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.br-continue:hover {
+    background: linear-gradient(180deg, #a07c3a, #5a4020);
+    box-shadow: 0 0 24px rgba(245, 213, 122, 0.5);
+}

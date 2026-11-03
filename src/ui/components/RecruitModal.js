@@ -1,10 +1,6 @@
 import { CardFactory } from '../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
 
-/**
- * Модалка найма карт. Открывается из HUD по кнопке «Найм», если выбранный
- * полководец стоит в своём городе/деревне.
- */
 export class RecruitModal {
   constructor(root, { bus }) {
     this.bus = bus;
@@ -66,26 +62,26 @@ export class RecruitModal {
     const factionId = this._factionId;
     if (!world || !gen) return;
 
+    // ← Только карты из пула найма
+    const pool = world.getRecruitPool(factionId);
     const used = world.recruitPointsUsed(factionId);
     const total = world.economy.recruitPointsForFaction(world, factionId);
-    const pool = world.resourcePools.get(factionId);
-    const keys = CardFactory.keysForFaction(factionId);
+    const poolRes = world.resourcePools.get(factionId);
 
-    const cards = keys.map((key) => {
+    const cards = pool.map(({ key }) => {
       const def = CardFactory.defForKey(key);
       const card = CardFactory.create(key);
       const cost = world.economy.recruitCost(card);
       const pts = world.economy.recruitPointsFor(card);
-      const url = this._imgLoader.getUrl(key);
-      const bg = url ? `background-image:url("${url}");` : '';
-      const canAfford = pool.canAfford(cost);
+      const bg = this._imgLoader.getCssBackground(key, card.type);
+      const canAfford = poolRes.canAfford(cost);
       const canPoints = used + pts <= total;
       const disabled = !canAfford || !canPoints;
       return `
         <div class="rm-card type-${card.type} ${disabled ? 'disabled' : ''}"
              ${disabled ? '' : `data-recruit="${key}"`}>
           <div class="rm-art" style="${bg}">
-            <div class="rm-rarity rm-rarity-${card.rarity}">${card.rarity}</div>
+            <div class="rm-rarity rm-rarity-${card.rarity}" title="${rarityName(card.rarity)}"></div>
             <div class="rm-type-stripe"></div>
             <div class="rm-count">${card.str}</div>
           </div>
@@ -95,13 +91,23 @@ export class RecruitModal {
       `;
     }).join('');
 
+    const empty = pool.length === 0
+      ? '<div class="rm-empty">В найме пока нет карт. Завершите ход — придут новые.</div>'
+      : '';
+
     this.el.innerHTML = `
       <h2>Найм карт · ${gen.name}</h2>
       <div class="rm-subtitle">
-        Очки найма: ${used}/${total} · 💰${pool.gold} · ⚔${pool.weapons}
+        Очки найма: ${used}/${total} · 💰${poolRes.gold} · ⚔${poolRes.weapons}
+        · В пуле: ${pool.length} карт
       </div>
+      ${empty}
       <div class="rm-grid">${cards}</div>
       <button class="rm-close" data-close="1">Закрыть</button>
     `;
   }
+}
+
+function rarityName(r) {
+  return { common: 'Обычная', rare: 'Редкая', epic: 'Эпическая', legendary: 'Легендарная' }[r] || r;
 }

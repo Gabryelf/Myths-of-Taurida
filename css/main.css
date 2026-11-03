@@ -11,10 +11,12 @@
 @import './components/battle-modal.css';
 @import './components/battle-board.css';
 @import './components/battle-hand.css';
+@import './components/battle-animations.css';
 @import './components/tutorial-modal.css';
 @import './components/turn-indicator.css';
 @import './components/confirm-dialog.css';
 @import './components/city-panel.css';
+@import './components/battle-result.css';
 
 #app {
     position: relative;

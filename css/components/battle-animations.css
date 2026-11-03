@@ -1,0 +1,322 @@
+/* ═══════════════════════════════════════════════════════════
+   Анимации боя: снаряды, всплывающие цифры, вспышки, тряска.
+   Подключается в main.css после battle-modal.css.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Контейнер для абсолютных эффектов ─── */
+.battle-arena {
+    position: relative;
+    /* якорь для снарядов и цифр */
+}
+
+/* ─── Всплывающие цифры ─── */
+.floating-number {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-ui);
+    font-weight: 900;
+    font-size: 22px;
+    pointer-events: none;
+    z-index: 50;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.95), 0 2px 4px rgba(0, 0, 0, 0.9);
+    animation: floatUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    white-space: nowrap;
+}
+
+.floating-number.fn-damage {
+    color: #ff6b6b;
+}
+
+.floating-number.fn-heal {
+    color: #90d8a0;
+}
+
+.floating-number.fn-general {
+    color: #ffd57a;
+    font-size: 26px;
+}
+
+.floating-number.fn-info {
+    color: #a0c8f0;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+
+    15% {
+        opacity: 1;
+        transform: translate(-50%, -70%) scale(1.15);
+    }
+
+    30% {
+        transform: translate(-50%, -80%) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -160%) scale(0.9);
+    }
+}
+
+/* ─── Снаряды ─── */
+.projectile {
+    position: absolute;
+    pointer-events: none;
+    z-index: 40;
+    transform-origin: 0 50%;
+}
+
+/* Стрела (archer) */
+.projectile.proj-archer {
+    height: 3px;
+    background: linear-gradient(90deg, #d4a94c, #f5d57a, #fff3d0);
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(245, 213, 122, 0.9);
+    transform: scaleX(0);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1);
+    margin-top: -1.5px;
+    margin-left: 0;
+}
+
+/* Удар (warrior) */
+.projectile.proj-warrior {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff, #e74c3c 60%, transparent);
+    transform: translate(-50%, -50%);
+    animation: projPulse 0.32s ease-out;
+}
+
+@keyframes projPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0.2;
+    }
+}
+
+/* Магия (special) */
+.projectile.proj-special {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #f5d57a, #c07ad8 50%, transparent);
+    box-shadow: 0 0 14px #c07ad8, 0 0 6px #f5d57a;
+    transform: translate(-50%, -50%);
+}
+
+/* Поддержка (support) */
+.projectile.proj-support {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #90d8a0, #2a6b3e 70%, transparent);
+    box-shadow: 0 0 10px #5ec37a;
+    transform: translate(-50%, -50%);
+}
+
+/* ─── Вспышка при попадании ─── */
+.impact {
+    position: absolute;
+    pointer-events: none;
+    z-index: 41;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    animation: impactFade 0.45s ease-out forwards;
+}
+
+.impact-archer {
+    width: 26px;
+    height: 26px;
+    background: radial-gradient(circle, #fff, #d4a94c 50%, transparent);
+}
+
+.impact-warrior {
+    width: 34px;
+    height: 34px;
+    background: radial-gradient(circle, #fff, #e74c3c 50%, transparent);
+}
+
+.impact-special {
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(circle, #fff, #c07ad8 50%, transparent);
+}
+
+.impact-support {
+    width: 26px;
+    height: 26px;
+    background: radial-gradient(circle, #fff, #5ec37a 50%, transparent);
+}
+
+@keyframes impactFade {
+    0% {
+        transform: translate(-50%, -50%) scale(0.4);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* ─── Тряска карты при уроне ─── */
+.cell.shake {
+    animation: cellShake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes cellShake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20% {
+        transform: translateX(-3px);
+    }
+
+    40% {
+        transform: translateX(3px);
+    }
+
+    60% {
+        transform: translateX(-2px);
+    }
+
+    80% {
+        transform: translateX(2px);
+    }
+}
+
+/* ─── Вспышка лечения ─── */
+.cell.heal-flash {
+    animation: healFlash 0.5s ease-out;
+}
+
+@keyframes healFlash {
+    0% {
+        box-shadow: inset 0 0 0 0 rgba(144, 216, 160, 0);
+    }
+
+    30% {
+        box-shadow: inset 0 0 20px 4px rgba(144, 216, 160, 0.8);
+    }
+
+    100% {
+        box-shadow: inset 0 0 0 0 rgba(144, 216, 160, 0);
+    }
+}
+
+/* ─── Вспышка смерти ─── */
+.cell.cell-death-flash {
+    animation: deathFlash 0.5s ease-out;
+}
+
+@keyframes deathFlash {
+    0% {
+        background: rgba(231, 76, 60, 0.7);
+    }
+
+    100% {
+        background: rgba(15, 10, 5, 0.6);
+    }
+}
+
+/* ─── Вспышка выкладки карты ─── */
+.cell.place-flash {
+    animation: placeFlash 0.4s ease-out;
+}
+
+@keyframes placeFlash {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 213, 122, 0.9);
+    }
+
+    100% {
+        box-shadow: 0 0 0 12px rgba(245, 213, 122, 0);
+    }
+}
+
+/* ─── Статусы на карте ─── */
+.cell.status-poison {
+    box-shadow: inset 0 0 14px 2px rgba(94, 195, 122, 0.8);
+}
+
+.cell.status-burn {
+    box-shadow: inset 0 0 14px 2px rgba(231, 76, 60, 0.8);
+}
+
+.cell.status-freeze {
+    box-shadow: inset 0 0 14px 2px rgba(122, 160, 200, 0.8);
+}
+
+/* ─── Урон полководцу ─── */
+.hero-hurt {
+    animation: heroHurt 0.5s ease-out;
+}
+
+@keyframes heroHurt {
+
+    0%,
+    100% {
+        filter: none;
+    }
+
+    30% {
+        filter: brightness(1.8) sepia(1) hue-rotate(-30deg) saturate(2);
+    }
+}
+
+/* ─── Добор карты в псевдо-руку ─── */
+.pseudo-card.drawn-anim {
+    animation: drawnIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes drawnIn {
+    0% {
+        transform: translateY(-30px) scale(0.6);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* ─── Кнопка Авто-бой ─── */
+.btn-auto {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    border: 1px solid #8a7aff;
+    color: #d0c8ff;
+}
+
+.btn-auto:hover:not(:disabled) {
+    border-color: #b0a0ff;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(138, 122, 255, 0.5);
+}
+
+.btn-auto:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
