@@ -8,41 +8,23 @@
 @import './components/resource-bar.css';
 @import './components/deck-panel.css';
 @import './components/recruit-modal.css';
+@import './components/market-panel.css';
 @import './components/battle-modal.css';
+@import './components/battle-background.css';
 @import './components/battle-board.css';
 @import './components/battle-hand.css';
 @import './components/battle-animations.css';
+@import './components/battle-result.css';
 @import './components/tutorial-modal.css';
 @import './components/turn-indicator.css';
 @import './components/confirm-dialog.css';
 @import './components/city-panel.css';
-@import './components/battle-result.css';
+@import './components/factions-panel.css';
+@import './components/minimap.css';
+@import './components/glossary-modal.css';
 
-#app {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-#game-canvas {
-    position: absolute;
-    inset: 0;
-    display: block;
-}
-
-#ui-root {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-#ui-root>* {
-    pointer-events: auto;
-}
-
-#toast-root {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 100;
-}
+#app { position: relative; width: 100%; height: 100%; }
+#game-canvas { position: absolute; inset: 0; display: block; }
+#ui-root { position: absolute; inset: 0; pointer-events: none; }
+#ui-root > * { pointer-events: auto; }
+#toast-root { position: absolute; inset: 0; pointer-events: none; z-index: 100; }

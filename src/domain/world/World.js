@@ -12,6 +12,7 @@ import { RecruitService } from '../economy/RecruitService.js';
 import { CardFactory } from '../card/CardFactory.js';
 import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
+import { Market } from '../economy/Market.js';
 
 export class World {
   constructor({ seed = 1337, radius = 6 } = {}) {
@@ -35,6 +36,7 @@ export class World {
 
     this.recruitPointsUsedMap = new Map();   // factionId -> использовано очков
     this.recruit = new RecruitService({ economy: this.economy, world: this });
+    this.market = new Market({ world: this });
   }
 
   selectPlayerFaction(id) {
@@ -152,6 +154,29 @@ export class World {
       const pool = this.resourcePools.get(f.id);
       const income = this.economy.computeIncome(this, f.id);
       pool.add(income);
+    }
+    this._aiMarketTurn();
+  }
+
+  _aiMarketTurn() {
+    // ИИ с золотом > 60 покупает дешёвые ставки чужих фракций
+    for (const f of this.factions) {
+      if (f.isPlayer) continue;
+      const pool = this.resourcePools.get(f.id);
+      if (!pool || pool.gold < 60) continue;
+      const gen = this.generals.find((g) => g.factionId === f.id && g.alive);
+      if (!gen) continue;
+      const cheap = this.market.offersFromOthers(f.id)
+        .filter((o) => o.price <= 25 && o.price <= pool.gold - 30)
+        .sort((a, b) => a.price - b.price);
+      for (const offer of cheap) {
+        const res = this.market.buyOffer({
+          offerId: offer.id,
+          buyerFactionId: f.id,
+          buyerGeneralId: gen.id,
+        });
+        if (res.ok) break; // 1 покупка за ход
+      }
     }
   }
 

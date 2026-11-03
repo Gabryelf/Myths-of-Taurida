@@ -1,12 +1,11 @@
 /* ═══════════════════════════════════════════════════════════
    Анимации боя: снаряды, всплывающие цифры, вспышки, тряска.
-   Подключается в main.css после battle-modal.css.
+   Подключается в main.css.
    ═══════════════════════════════════════════════════════════ */
 
 /* ─── Контейнер для абсолютных эффектов ─── */
 .battle-arena {
     position: relative;
-    /* якорь для снарядов и цифр */
 }
 
 /* ─── Всплывающие цифры ─── */
@@ -69,7 +68,6 @@
     transform-origin: 0 50%;
 }
 
-/* Стрела (archer) */
 .projectile.proj-archer {
     height: 3px;
     background: linear-gradient(90deg, #d4a94c, #f5d57a, #fff3d0);
@@ -78,10 +76,8 @@
     transform: scaleX(0);
     transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1);
     margin-top: -1.5px;
-    margin-left: 0;
 }
 
-/* Удар (warrior) */
 .projectile.proj-warrior {
     width: 18px;
     height: 18px;
@@ -103,7 +99,6 @@
     }
 }
 
-/* Магия (special) */
 .projectile.proj-special {
     width: 14px;
     height: 14px;
@@ -113,7 +108,6 @@
     transform: translate(-50%, -50%);
 }
 
-/* Поддержка (support) */
 .projectile.proj-support {
     width: 16px;
     height: 16px;
@@ -169,7 +163,7 @@
     }
 }
 
-/* ─── Тряска карты при уроне ─── */
+/* ─── Тряска карты ─── */
 .cell.shake {
     animation: cellShake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
@@ -198,7 +192,7 @@
     }
 }
 
-/* ─── Вспышка лечения ─── */
+/* ─── Реген ─── */
 .cell.heal-flash {
     animation: healFlash 0.5s ease-out;
 }
@@ -209,7 +203,7 @@
     }
 
     30% {
-        box-shadow: inset 0 0 20px 4px rgba(144, 216, 160, 0.8);
+        box-shadow: inset 0 0 24px 6px rgba(144, 216, 160, 0.9);
     }
 
     100% {
@@ -217,22 +211,24 @@
     }
 }
 
-/* ─── Вспышка смерти ─── */
+/* ─── Смерть: флеш ячейки ─── */
 .cell.cell-death-flash {
-    animation: deathFlash 0.5s ease-out;
+    animation: deathFlash 0.6s ease-out;
 }
 
 @keyframes deathFlash {
     0% {
-        background: rgba(231, 76, 60, 0.7);
+        background: rgba(231, 76, 60, 0.8);
+        box-shadow: inset 0 0 30px 10px rgba(231, 76, 60, 0.9);
     }
 
     100% {
         background: rgba(15, 10, 5, 0.6);
+        box-shadow: inset 0 0 0 0 rgba(231, 76, 60, 0);
     }
 }
 
-/* ─── Вспышка выкладки карты ─── */
+/* ─── Выкладка карты ─── */
 .cell.place-flash {
     animation: placeFlash 0.4s ease-out;
 }
@@ -243,11 +239,11 @@
     }
 
     100% {
-        box-shadow: 0 0 0 12px rgba(245, 213, 122, 0);
+        box-shadow: 0 0 0 14px rgba(245, 213, 122, 0);
     }
 }
 
-/* ─── Статусы на карте ─── */
+/* ─── Статусы ─── */
 .cell.status-poison {
     box-shadow: inset 0 0 14px 2px rgba(94, 195, 122, 0.8);
 }
@@ -279,17 +275,17 @@
 
 /* ─── Добор карты в псевдо-руку ─── */
 .pseudo-card.drawn-anim {
-    animation: drawnIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: drawnIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes drawnIn {
     0% {
-        transform: translateY(-30px) scale(0.6);
+        transform: translateY(-40px) rotate(-8deg) scale(0.5);
         opacity: 0;
     }
 
     100% {
-        transform: translateY(0) scale(1);
+        transform: translateY(0) rotate(0) scale(1);
         opacity: 1;
     }
 }

@@ -104,3 +104,59 @@
   line-height: 1.35;
   padding: 2px 0;
 }
+
+/* ─── Значок обилки на карте ─── */
+.bc-ability-badge {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #f5d57a, #a07a20);
+  color: #1a1208;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border: 1px solid #fff3d0;
+  box-shadow: 0 0 6px rgba(245, 213, 122, 0.8);
+  cursor: help;
+}
+/* ─── Значок стоимости на карте ─── */
+.bc-cost-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 22px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+  color: #e0d8ff;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border: 1px solid #8a7aff;
+}
+/* ─── Стоимость в тултипе ─── */
+.bc-tt-cost {
+  font-size: 11px;
+  color: #b0a0ff;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+/* ─── Заголовок террейна в battle-title ─── */
+.battle-terrain {
+  font-size: 10px;
+  color: #b8a380;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+  margin-top: 2px;
+  text-transform: none;
+}

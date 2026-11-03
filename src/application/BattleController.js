@@ -5,32 +5,22 @@ export class BattleController {
     this.battle = null;
     this._aiScheduled = false;
   }
-
   open({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     const battle = this.world.startBattle({
       attackerGen, targetTile, defenderFactionId, playerSide,
     });
     this.battle = battle;
-    console.log('[BattleController.open] battle ready',
-      'playerSide=', battle.playerSide,
-      'turn=', battle.turn,
-      'playerHand=', battle.playerData.hand.length,
-      'enemyHand=', battle.enemyData.hand.length);
     this.bus.emit('battle:started', { battle });
-    // Если игрок — defender, а нападающий ИИ (первый ход у attacker) —
-    // запускаем ИИ сразу
     if (battle.turn !== battle.playerSide) {
       this._scheduleAI();
     }
     return battle;
   }
-
   selectCard(card) {
     if (!this.battle) return;
     this.battle.selectCard(card);
     this.bus.emit('battle:updated', { battle: this.battle });
   }
-
   playCard(card, lane, index) {
     if (!this.battle) return false;
     const ok = this.battle.playCard(card, lane, index);
@@ -40,21 +30,18 @@ export class BattleController {
     }
     return ok;
   }
-
   endTurn() {
     if (!this.battle) return;
     this.battle.endPlayerTurn();
     this.bus.emit('battle:updated', { battle: this.battle });
     this._scheduleAI();
   }
-
   skipTurn() {
     if (!this.battle) return;
     this.battle.skipTurn();
     this.bus.emit('battle:updated', { battle: this.battle });
     this._scheduleAI();
   }
-
   _scheduleAI() {
     if (!this.battle) return;
     if (this.battle.finished) return;
@@ -65,18 +52,13 @@ export class BattleController {
       this._aiScheduled = false;
       if (!this.battle || this.battle.finished) return;
       if (this.battle.turn === this.battle.playerSide) return;
-      try {
-        this.battle.aiTurn();
-      } catch (e) {
-        console.error('[AI]', e);
-      }
+      try { this.battle.aiTurn(); } catch (e) { console.error('[AI]', e); }
       this.bus.emit('battle:updated', { battle: this.battle });
       if (!this.battle.finished && this.battle.turn !== this.battle.playerSide) {
         this._scheduleAI();
       }
     }, 700);
   }
-
   finish() {
     if (!this.battle) return;
     const b = this.battle;
@@ -93,12 +75,13 @@ export class BattleController {
     this.battle = null;
     this.bus.emit('battle:finished', result);
   }
-
   retreat() {
     if (!this.battle) return;
+    // Отступление = игрок проигрывает бой. Но не наносим урон полководцу дважды.
     this.battle.finished = true;
     this.battle.winner = this.battle.playerSide === 'attacker' ? 'defender' : 'attacker';
+    this.battle._log('Вы отступили');
+    // Показываем экран результата — finish() вызовется по кнопке «Продолжить»
     this.bus.emit('battle:updated', { battle: this.battle });
-    this.finish();
   }
 }

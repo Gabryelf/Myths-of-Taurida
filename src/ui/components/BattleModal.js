@@ -1,6 +1,7 @@
 import { BattleCardEl } from './BattleCardEl.js';
 import { BattleHand } from './BattleHand.js';
 import { BattleVisualLayer } from '../../infrastructure/battle-visuals/BattleVisualLayer.js';
+import { BattleBackground } from '../../infrastructure/battle-visuals/BattleBackground.js';
 import { BattleResultScreen } from './BattleResultScreen.js';
 import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
 
@@ -16,9 +17,9 @@ export class BattleModal {
     this.bus = bus;
     this._cardEl = new BattleCardEl();
     this._battle = null;
-    this._finishScheduled = false;
     this._hand = null;
     this._visualLayer = null;
+    this._background = null;
     this._autoPlayActive = false;
     this._resultScreen = null;
 
@@ -35,7 +36,6 @@ export class BattleModal {
     this.bus.on('battle:updated', ({ battle }) => {
       this._battle = battle;
       this._render();
-      // Показываем экран результата, если бой завершён — но не закрываем сразу
       if (battle.finished && !this._resultScreen) {
         this._showResult(battle);
       }
@@ -43,11 +43,16 @@ export class BattleModal {
 
     this.bus.on('battle:started', ({ battle }) => {
       this._battle = battle;
-      this._finishScheduled = false;
       this._autoPlayActive = false;
       this._resultScreen = null;
+
+      // Фон монтируем в overlay (НЕ в this.el — он перерисовывается)
+      this._background?.destroy();
+      this._background = new BattleBackground(this.overlay, battle.targetTile?.terrain || 'plain');
+
       this.overlay.classList.add('visible');
       this._render();
+
       const arena = this.el.querySelector('.battle-arena');
       if (arena) {
         this._visualLayer?.dispose();
@@ -62,16 +67,16 @@ export class BattleModal {
       this.overlay.classList.remove('visible');
       this._visualLayer?.dispose();
       this._visualLayer = null;
+      this._background?.destroy();
+      this._background = null;
       this._battle = null;
       this._hand = null;
       this._autoPlayActive = false;
       this._resultScreen = null;
-      this._finishScheduled = false;
     });
   }
 
   _onClick(e) {
-    // Клики по экрану результата обрабатывает сам BattleResultScreen — пропускаем
     if (e.target.closest?.('.battle-result-overlay')) return;
 
     const action = e.target.closest?.('[data-action]')?.getAttribute('data-action');
@@ -112,7 +117,7 @@ export class BattleModal {
       ? 'Ничья'
       : playerWon ? 'Победа!' : 'Поражение';
     const cls = b.winner === 'draw' ? 'draw' : playerWon ? 'win' : 'lose';
-    this._resultScreen = new BattleResultScreen(this.el, {
+    this._resultScreen = new BattleResultScreen(this.overlay, {
       title,
       kind: cls,
       playerSide: b.playerSide,
@@ -139,7 +144,8 @@ export class BattleModal {
       this.bus.emit('toast:show', { text: 'Сначала выберите карту в руке' });
       return;
     }
-    if (b.selectedCard.str > b.playerData.tacticPoints) {
+    const cost = b.costFor(b.selectedCard, b.playerSide);
+    if (cost > b.playerData.tacticPoints) {
       this.bus.emit('toast:show', { text: 'Недостаточно тактики' });
       return;
     }
@@ -153,13 +159,10 @@ export class BattleModal {
     const enemySide = playerSide === 'attacker' ? 'defender' : 'attacker';
     const playerData = b[playerSide];
     const enemyData  = b[enemySide];
-    const laneInfo = b.getLineBonusInfo();
-    const colInfo  = b.getColumnBonusInfo();
-
-    // Сохраняем результат-экран перед пересозданием innerHTML — он живёт в overlay
-    // и его не надо трогать при перерисовке арены. Но он был в this.el — пересоздастся.
-    // Поэтому BattleResultScreen монтируется в overlay, а не в el.
-    const resultNode = this._resultScreen?._el || null;
+    const playerLineInfo = b.getLineBonusInfoFor(playerSide);
+    const enemyLineInfo  = b.getLineBonusInfoFor(enemySide);
+    const playerColInfo  = b.getColumnBonusInfoFor(playerSide);
+    const enemyColInfo   = b.getColumnBonusInfoFor(enemySide);
 
     this.el.innerHTML = `
       <div class="battle-top">
@@ -168,7 +171,10 @@ export class BattleModal {
           <div class="hero-name">${enemyData.gen.name}</div>
           <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
         </div>
-        <div class="battle-title">⚔ Бой · ход ${b.turnCount}</div>
+        <div class="battle-title">
+          ⚔ Бой · ход ${b.turnCount}
+          <div class="battle-terrain">${b.terrain.name} · ${b.terrain.getNote(playerSide)}</div>
+        </div>
         <div class="battle-hero player-hero">
           ${this._portraitHtml(playerData.gen, 'player')}
           <div class="hero-name">${playerData.gen.name}</div>
@@ -181,10 +187,10 @@ export class BattleModal {
         </div>
         <div class="battle-arena">
           <div class="battle-field battle-field-enemy">
-            ${this._boardHtml(enemySide, enemyData, laneInfo, colInfo)}
+            ${this._boardHtml(enemySide, enemyData, enemyLineInfo, enemyColInfo)}
           </div>
           <div class="battle-field battle-field-player">
-            ${this._boardHtml(playerSide, playerData, laneInfo, colInfo)}
+            ${this._boardHtml(playerSide, playerData, playerLineInfo, playerColInfo)}
           </div>
         </div>
         <div class="battle-side-right">
@@ -197,10 +203,10 @@ export class BattleModal {
             <button class="btn-auto"     data-action="auto-play" ${this._autoPlayActive ? 'disabled' : ''}>⚡ Авто-бой</button>
             <button class="btn-retreat"  data-action="retreat">Отступить</button>
           </div>
+          <div class="battle-log-side">
+            ${this._logHtml(b.log)}
+          </div>
         </div>
-      </div>
-      <div class="battle-log-bar">
-        ${this._logHtml(b.log)}
       </div>
     `;
 
@@ -211,9 +217,9 @@ export class BattleModal {
       playerData.tacticPoints,
       b.selectedCard,
       (card) => { this.controller.selectCard(card); },
+      (card) => b.costFor(card, b.playerSide),
     );
 
-    // Перемонтируем визуальный слой на новую арену и проигрываем накопленные эффекты
     const arena = this.el.querySelector('.battle-arena');
     if (arena) {
       if (this._visualLayer) {
@@ -223,18 +229,14 @@ export class BattleModal {
           sideToPlayer: b.playerSide,
         });
       }
-      // ← ГЛАВНОЕ: flush — проиграть накопленные события поверх нового DOM
-      requestAnimationFrame(() => {
-        this._visualLayer?.flush();
-      });
+      requestAnimationFrame(() => this._visualLayer?.flush());
     }
   }
 
   _portraitHtml(gen, cls) {
-    const file = GENERAL_PORTRAITS[gen.factionId];
-    const url = imgUrl(file);
+    const url = imgUrl(GENERAL_PORTRAITS[gen.factionId]);
     const style = url ? `style="background-image:url('${url}')"` : '';
-    return `<div class="hero-portrait ${cls}" ${style}></div>`;
+    return `<div class="hero-portrait ${cls}" data-faction="${gen.factionId}" ${style}></div>`;
   }
 
   _pseudoHandHtml(enemyData, side) {
@@ -245,11 +247,11 @@ export class BattleModal {
     return html;
   }
 
-  _boardHtml(side, data, laneInfo, colInfo) {
+  _boardHtml(side, data, lineInfoForSide, colInfoForSide) {
     const b = this._battle;
     const isPlayer = side === b.playerSide;
     const rows = LANES.map((lane) => {
-      const lineInfo = laneInfo[lane.key];
+      const lineInfo = lineInfoForSide[lane.key];
       const lineActive = lineInfo.active;
       const lineIcon = `
         <div class="lane-icon ${lineActive ? 'active' : ''}" data-lane-icon="1">
@@ -264,11 +266,14 @@ export class BattleModal {
         const card = data.board.get(lane.key, i);
         let cls = 'cell';
         let inner = '';
-        if (card) inner = this._cardEl.create(card, { side }).outerHTML;
+        if (card) {
+          const cost = b.costFor(card, side);
+          inner = this._cardEl.create(card, { side, effectiveCost: cost }).outerHTML;
+        }
         if (b.isPlayerTurn && b.selectedCard && isPlayer && !card) {
           cls += ' valid-place';
         }
-        const colActive = colInfo[i].active;
+        const colActive = colInfoForSide[i].active;
         const colHint = colActive ? 'col-active' : '';
         return `<div class="${cls} ${colHint}" data-side="${side}" data-lane="${lane.key}" data-idx="${i}">${inner}</div>`;
       }).join('');
@@ -284,7 +289,7 @@ export class BattleModal {
   }
 
   _logHtml(log) {
-    const last = log.slice(-3).reverse();
+    const last = log.slice(-5).reverse();
     return last.map((l) => `<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
   }
 }

@@ -1,0 +1,84 @@
+.glossary-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 260;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+.glossary-modal-overlay.visible {
+    display: flex;
+}
+
+.glossary-modal {
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+    width: min(640px, 96vw);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.glossary-modal h2 {
+    color: var(--color-gold-bright);
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.glossary-modal .gl-subtitle {
+    text-align: center;
+    color: #8a7a58;
+    font-size: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.glossary-modal .gl-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.glossary-modal .gl-item {
+    padding: 10px 12px;
+    background: rgba(10, 6, 3, 0.5);
+    border: 1px solid rgba(212, 169, 76, 0.15);
+    border-radius: var(--radius-sm);
+}
+
+.glossary-modal .gl-term {
+    color: var(--color-gold-bright);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.glossary-modal .gl-desc {
+    color: var(--color-text);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.glossary-modal .gl-close {
+    display: block;
+    margin: 16px auto 0;
+    padding: 10px 24px;
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

@@ -43,6 +43,40 @@
     position: relative;
 }
 
+.general-panel .gp-level {
+    font-size: 11px;
+    color: var(--color-gold);
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .general-panel .gp-xp {
+    margin-bottom: 8px;
+  }
+  .general-panel .gp-xp-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(10,6,3,0.8);
+    border: 1px solid rgba(212,169,76,0.3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .general-panel .gp-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #d4a94c, #f5d57a);
+    transition: width 0.4s ease;
+  }
+  .general-panel .gp-xp-text {
+    font-size: 10px;
+    color: #8a7a58;
+    text-align: right;
+    margin-top: 2px;
+  }
+  .general-panel .gp-perk {
+    display: inline-block;
+    font-size: 14px;
+    margin-left: 4px;
+  }
+
 .general-panel .gp-name {
     font-size: 15px;
     font-weight: 700;

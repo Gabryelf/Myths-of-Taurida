@@ -1,0 +1,115 @@
+/* ═══════════════════════════════════════════════════════════
+   Фон боя по террейну. Подслой под .battle-modal.
+   ═══════════════════════════════════════════════════════════ */
+.battle-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: var(--radius-md);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* Тонкая виньетка поверх любого фона */
+.battle-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+    pointer-events: none;
+}
+
+/* Лес — тёмно-зелёный, силуэты елей */
+.bg-forest {
+    background:
+        radial-gradient(ellipse at 20% 80%, rgba(20, 50, 20, 0.75), transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(30, 60, 25, 0.6), transparent 55%),
+        linear-gradient(180deg, #0e1a0e 0%, #1a2a14 50%, #0a1408 100%);
+}
+
+.bg-forest::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(115deg, transparent 0 40px, rgba(15, 35, 15, 0.55) 40px 42px),
+        repeating-linear-gradient(65deg, transparent 0 55px, rgba(15, 35, 15, 0.4) 55px 57px);
+    opacity: 0.7;
+}
+
+/* Равнина — золотисто-зелёный */
+.bg-plain {
+    background:
+        radial-gradient(ellipse at 50% 100%, rgba(90, 80, 30, 0.5), transparent 60%),
+        linear-gradient(180deg, #1a1f14 0%, #2a3018 50%, #14180a 100%);
+}
+
+.bg-plain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 30% 60%, rgba(120, 110, 60, 0.15) 0 2px, transparent 3px),
+        radial-gradient(circle at 70% 30%, rgba(120, 110, 60, 0.1) 0 2px, transparent 3px);
+    background-size: 80px 80px, 120px 120px;
+}
+
+/* Город — каменный, колонны */
+.bg-city {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(80, 60, 30, 0.6), transparent 60%),
+        linear-gradient(180deg, #1a1408 0%, #2a2010 50%, #0a0804 100%);
+}
+
+.bg-city::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(90deg, transparent 0 80px, rgba(140, 110, 60, 0.15) 80px 82px),
+        repeating-linear-gradient(0deg, transparent 0 60px, rgba(140, 110, 60, 0.08) 60px 62px);
+}
+
+/* Горы — серый с пиками */
+.bg-mountain {
+    background:
+        radial-gradient(ellipse at 50% 100%, rgba(60, 60, 70, 0.6), transparent 60%),
+        linear-gradient(180deg, #0a0a12 0%, #1a1a24 50%, #050508 100%);
+}
+
+.bg-mountain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(115deg, transparent 45%, rgba(70, 70, 80, 0.4) 45.5%, rgba(70, 70, 80, 0.4) 46%, transparent 46.5%),
+        linear-gradient(65deg, transparent 55%, rgba(70, 70, 80, 0.3) 55.5%, rgba(70, 70, 80, 0.3) 56%, transparent 56.5%);
+    background-size: 160px 160px;
+}
+
+/* Степь — жёлто-коричневый */
+.bg-steppe {
+    background:
+        radial-gradient(ellipse at 50% 100%, rgba(120, 90, 40, 0.55), transparent 65%),
+        linear-gradient(180deg, #1a1408 0%, #2a200c 50%, #0a0804 100%);
+}
+
+.bg-steppe::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(100deg, transparent 0 30px, rgba(140, 110, 50, 0.12) 30px 31px),
+        repeating-linear-gradient(80deg, transparent 0 45px, rgba(140, 110, 50, 0.08) 45px 46px);
+}
+
+/* Поверх фона — .battle-modal-content, чтобы контент был выше */
+.battle-modal {
+    position: relative;
+    z-index: 1;
+}
+
+.battle-modal>*:not(.battle-bg) {
+    position: relative;
+    z-index: 1;
+}

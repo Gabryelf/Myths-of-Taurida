@@ -113,3 +113,37 @@
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
+
+/* ─── Значок обилки на карте в руке ─── */
+.bhc-ability-badge {
+  position: absolute;
+  top: 24px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #f5d57a, #a07a20);
+  color: #1a1208;
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border: 1px solid #fff3d0;
+  box-shadow: 0 0 8px rgba(245, 213, 122, 0.9);
+}
+/* ─── Стоимость на карте в руке ─── */
+.bhc-cost {
+  position: absolute;
+  bottom: 26px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+  color: #e0d8ff;
+  font-size: 11px;
+  font-weight: 900;
+  z-index: 4;
+  border: 1px solid #8a7aff;
+}

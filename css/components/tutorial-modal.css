@@ -62,3 +62,34 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+.tutorial-modal .tut-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.tutorial-modal .btn-prev {
+    background: rgba(80, 60, 20, 0.4);
+    border: 1px solid var(--color-gold-dark);
+    color: #d0b880;
+    padding: 10px 24px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tutorial-modal .btn-skip {
+    background: transparent;
+    border: none;
+    color: #8a7a58;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 4px;
+    font-style: italic;
+}

@@ -12,6 +12,7 @@ import { BattleController } from '../application/BattleController.js';
 import { TurnManager } from '../domain/ai/TurnManager.js';
 import { SoundManager } from '../infrastructure/audio/SoundManager.js';
 import { ConfirmDialog } from '../ui/components/ConfirmDialog.js';
+import { MarketController } from '../application/MarketController.js';
 
 export class Game {
   constructor({ canvas, uiRoot, toastRoot }) {
@@ -26,20 +27,24 @@ export class Game {
     this.sound = new SoundManager();
     this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
 
+    // ─── Контроллеры (приложение) ───
     this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
+    this.marketController = new MarketController({ world: this.world, bus: this.bus });
     this.battleController = new BattleController({ world: this.world, bus: this.bus });
 
+    // ─── UI ───
     this.ui = new UIManager({
       root: uiRoot, toastRoot, bus: this.bus, world: this.world,
       onEndTurn: () => this.endTurn(),
       onRecruit: (key) => this.recruitController.tryRecruit(key),
       battleController: this.battleController,
+      marketController: this.marketController,
       sound: this.sound,
     });
-
-    // Кнопка «Найм» → открыть модалку найма для выбранного полководца
     this.ui.onHire = () => this.openRecruitForSelected();
+    this.ui.onMarket = () => this.openMarket();
 
+    // ─── Ввод ───
     this.input = new InputController({
       canvas, camera: this.renderer.camera,
       onTileClick: (tile, hitGeneral, hitCity) => this._onTileClick(tile, hitGeneral, hitCity),
@@ -47,9 +52,11 @@ export class Game {
     });
     this.input.attachCameraController(this.cameraController);
 
+    // ─── Подписки ───
     this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
     this.bus.on('battle:started', () => this.sound.play('play'));
 
+    // ─── Состояние ───
     this.selectedGeneralId = null;
     this.selectedTileKey = null;
     this._pendingBattleCost = 0;
@@ -74,7 +81,16 @@ export class Game {
       this.cameraController.centerOn(player.startHex, Theme.hexSize);
     }
 
-    if (!localStorage.getItem('tavrida_tutorial')) {
+    // ─── Мини-карта ───
+    this.ui.initMinimap({
+      cameraController: this.cameraController,
+      onCenter: (tile) => {
+        if (tile) this.cameraController.centerOn(tile.hex, Theme.hexSize);
+      },
+    });
+
+    // ─── Туториал (обновлённый ключ) ───
+    if (!localStorage.getItem('tavrida_tutorial_v1')) {
       this.ui.showTutorial(() => {
         this.input.setPickables(this.sceneBuilder.getPickables());
       });
@@ -86,7 +102,9 @@ export class Game {
     this.logger.info('Game started:', factionId);
   }
 
-  // ─── Ввод ───
+  // ═══════════════════════════════════════════
+  //  ВВОД
+  // ═══════════════════════════════════════════
   _onTileClick(tile, hitGeneral, hitCity) {
     const playerFactionId = this.world.playerFactionId;
 
@@ -149,7 +167,6 @@ export class Game {
   }
 
   _onTileHover(tile, screenPos, meta = {}) {
-    // Сброс hover
     if (this._hoveredGeneralId) {
       this.sceneBuilder.setGeneralHovered(this._hoveredGeneralId, false);
       this._hoveredGeneralId = null;
@@ -158,7 +175,6 @@ export class Game {
       this.sceneBuilder.setCityHovered(this._hoveredCityId, false);
       this._hoveredCityId = null;
     }
-    // Новый hover
     if (meta.hoverType === 'general' && meta.general) {
       this._hoveredGeneralId = meta.general.id;
       this.sceneBuilder.setGeneralHovered(this._hoveredGeneralId, true);
@@ -166,7 +182,6 @@ export class Game {
       this._hoveredCityId = tile.cityId;
       this.sceneBuilder.setCityHovered(this._hoveredCityId, true);
     }
-
     this.sceneBuilder.highlight.setHovered(tile ? tile.key : null);
     this.bus.emit('tile:hovered', { tile, screenPos });
   }
@@ -184,7 +199,9 @@ export class Game {
     });
   }
 
-  // ─── Выбор ───
+  // ═══════════════════════════════════════════
+  //  ВЫБОР
+  // ═══════════════════════════════════════════
   _selectGeneral(general) {
     if (general && general.factionId !== this.world.playerFactionId) general = null;
     if (this.selectedGeneralId) {
@@ -222,7 +239,9 @@ export class Game {
     this.sceneBuilder.highlight.setSelected(tile.key, neighbors);
   }
 
-  // ─── Ход ───
+  // ═══════════════════════════════════════════
+  //  ХОД
+  // ═══════════════════════════════════════════
   _executeMove(general, tile, distance) {
     const fromKey = general.hex.key;
     general.spendMove(distance);
@@ -238,6 +257,7 @@ export class Game {
     this.selectedGeneralId = null;
 
     this.bus.emit('general:moved', { general, fromKey, toKey: tile.key, cost: distance });
+    this.ui.minimap?.refresh();
 
     if (general.movePoints > 0) this._selectGeneral(general);
     else this._updateHireButton();
@@ -268,9 +288,26 @@ export class Game {
     const playerWon =
       (playerSide === 'attacker' && winner === 'attacker') ||
       (playerSide === 'defender' && winner === 'defender');
+
+    // ─── Опыт и повышение уровня ───
+    const playerGen = playerSide === 'attacker' ? attackerGen : defenderGen;
+    if (playerGen && playerWon) {
+      const events = playerGen.addXp(10);
+      for (const ev of events) {
+        if (ev.kind === 'level') {
+          this.bus.emit('toast:show', { text: `⭐ ${playerGen.name}: уровень ${ev.level}!` });
+          this.sound.play('victory');
+        } else if (ev.kind === 'perk') {
+          this.bus.emit('toast:show', { text: `🏅 Новый перк: ${ev.perkName}` });
+        }
+      }
+      this.bus.emit('general:selected', { general: playerGen });
+    }
+
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
     else this.bus.emit('toast:show', { text: 'Бой завершился ничьей' });
+
     if (playerWon) {
       if (playerSide === 'attacker') {
         if (targetTile) {
@@ -293,52 +330,33 @@ export class Game {
     } else {
       this.bus.emit('toast:show', { text: 'Ничья' });
     }
+
     this.world.recomputeVisibility();
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
+    this.ui.minimap?.refresh();
     this._updateHireButton();
     if (this._aiBusy) this._afterAITurns();
   }
 
-  // ─── ИИ ───
-  async _runAITurns() {
-    this._aiBusy = true;
-    this.ui.turnIndicator.show('Ход противника…');
-    this.sound.play('turn');
-
-    const battleAction = await this.turnManager.runAITurns(this.world.playerFactionId, {
-      onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
-    });
-
-    if (battleAction) {
-      this.ui.turnIndicator.hide();
-      this.battleController.open({
-        attackerGen: battleAction.attackerGen,
-        targetTile: battleAction.targetTile,
-        defenderFactionId: battleAction.defenderFactionId,
-        playerSide: 'defender',
-      });
-    } else {
-      this.ui.turnIndicator.hide();
-      this._afterAITurns();
-    }
-    this._aiBusy = false;
-  }
-
-  _afterAITurns() {
-    this.world.recomputeVisibility();
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.rebuild(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this._updateHireButton();
-  }
-
-  // ─── Города и найм ───
+  // ═══════════════════════════════════════════
+  //  ГОРОДА, НАЙМ, РЫНОК
+  // ═══════════════════════════════════════════
   _openCity(tile, city) {
     this.ui.openCityPanel({ tile, city, world: this.world });
+  }
+
+  openMarket() {
+    const general = this.selectedGeneralId
+      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
+      : this.world.generals.find((g) => g.factionId === this.world.playerFactionId && g.alive);
+    if (!general) {
+      this.bus.emit('toast:show', { text: 'Нет полководца' });
+      return;
+    }
+    this.ui.marketPanel.open({ general });
   }
 
   openRecruitForSelected() {
@@ -378,7 +396,9 @@ export class Game {
     this.ui.setHireEnabled(!!own);
   }
 
-  // ─── Конец хода ───
+  // ═══════════════════════════════════════════
+  //  КОНЕЦ ХОДА + ИИ
+  // ═══════════════════════════════════════════
   endTurn() {
     if (this._aiBusy) return;
     this.world.endTurn();
@@ -386,10 +406,45 @@ export class Game {
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.bus.emit('turn:ended', { turn: this.world.turn });
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
+    this.ui.minimap?.refresh();
     this._runAITurns();
   }
 
-  // ─── Цикл ───
+  async _runAITurns() {
+    this._aiBusy = true;
+    this.ui.turnIndicator.show('Ход противника…');
+    this.sound.play('turn');
+    const battleAction = await this.turnManager.runAITurns(this.world.playerFactionId, {
+      onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
+    });
+    if (battleAction) {
+      this.ui.turnIndicator.hide();
+      this.battleController.open({
+        attackerGen: battleAction.attackerGen,
+        targetTile: battleAction.targetTile,
+        defenderFactionId: battleAction.defenderFactionId,
+        playerSide: 'defender',
+      });
+    } else {
+      this.ui.turnIndicator.hide();
+      this._afterAITurns();
+    }
+    this._aiBusy = false;
+  }
+
+  _afterAITurns() {
+    this.world.recomputeVisibility();
+    this.sceneBuilder.updateFog(this.world);
+    this.sceneBuilder.rebuild(this.world);
+    this.input.setPickables(this.sceneBuilder.getPickables());
+    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
+    this.ui.minimap?.refresh();
+    this._updateHireButton();
+  }
+
+  // ═══════════════════════════════════════════
+  //  ЦИКЛ
+  // ═══════════════════════════════════════════
   _loop() {
     if (this._running) return;
     this._running = true;

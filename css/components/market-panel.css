@@ -1,0 +1,226 @@
+.market-panel-overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.92), rgba(0, 0, 0, 0.97));
+    z-index: 115;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(6px);
+}
+
+.market-panel-overlay.visible {
+    display: flex;
+}
+
+.market-panel {
+    width: 100%;
+    max-width: 900px;
+    max-height: 92vh;
+    overflow-y: auto;
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: 0 0 100px rgba(212, 169, 76, 0.3), 0 24px 80px rgba(0, 0, 0, 0.95);
+}
+
+.market-panel h2 {
+    font-weight: 900;
+    color: var(--color-gold-bright);
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+}
+
+.market-panel .mp-subtitle {
+    text-align: center;
+    color: #8a7a58;
+    font-style: italic;
+    font-size: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.market-panel .mp-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.market-panel .mp-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(80, 60, 20, 0.3);
+    border: 1px solid var(--color-gold-dark);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.market-panel .mp-tab.active {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+}
+
+.market-panel .mp-content {
+    min-height: 200px;
+}
+
+.market-panel .mp-section-title {
+    font-size: 11px;
+    color: var(--color-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 12px 0 8px;
+    font-weight: 700;
+}
+
+.market-panel .mp-empty {
+    color: #8a7a58;
+    font-style: italic;
+    text-align: center;
+    padding: 20px 0;
+    font-size: 13px;
+}
+
+.market-panel .mp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.market-panel .mp-card {
+    position: relative;
+    background: rgba(10, 6, 3, 0.5);
+    border: 1px solid var(--color-gold-dark);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.market-panel .mp-art {
+    height: 130px;
+    position: relative;
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+}
+
+.market-panel .mp-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-gold-bright);
+}
+
+.market-panel .mp-rarity {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 0, 0, 0.6);
+}
+
+.market-panel .mp-rarity-common {
+    background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e);
+}
+
+.market-panel .mp-rarity-rare {
+    background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9);
+}
+
+.market-panel .mp-rarity-epic {
+    background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0);
+}
+
+.market-panel .mp-rarity-legendary {
+    background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706);
+    box-shadow: 0 0 8px rgba(255, 180, 50, 0.8);
+}
+
+.market-panel .mp-name {
+    font-size: 11px;
+    color: var(--color-text);
+    text-align: center;
+    padding: 4px;
+    border-bottom: 1px solid rgba(212, 169, 76, 0.15);
+}
+
+.market-panel .mp-seller {
+    font-size: 10px;
+    color: #8a7a58;
+    text-align: center;
+    font-style: italic;
+    padding: 2px;
+}
+
+.market-panel .mp-action {
+    padding: 6px;
+    border: none;
+    border-top: 1px solid rgba(212, 169, 76, 0.2);
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.market-panel .mp-action:hover {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+}
+
+.market-panel .mp-action.buy {
+    background: linear-gradient(180deg, #2a5a2c, #0a1a0a);
+    color: #a0e8b0;
+}
+
+.market-panel .mp-action.buy:hover {
+    background: linear-gradient(180deg, #3a7a3c, #1a2a1a);
+}
+
+.market-panel .mp-action.cancel {
+    background: linear-gradient(180deg, #5a1a1a, #1a0a0a);
+    color: #f0b0b0;
+}
+
+.market-panel .mp-close {
+    display: block;
+    margin: 16px auto 0;
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    border: 1px solid var(--color-gold);
+    color: var(--color-gold-bright);
+    padding: 10px 24px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

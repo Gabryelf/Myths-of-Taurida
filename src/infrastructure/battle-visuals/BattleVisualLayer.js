@@ -5,8 +5,7 @@ import { BattleEvents } from '../../domain/battle/BattleEvents.js';
 /**
  * Визуальный слой боя. Слушает события Battle через onEvent-колбэк,
  * БУФЕРИЗУЕТ их и проигрывает по flush() — после того как BattleModal
- * перерисовал DOM. Это критично: на момент события DOM ещё старый,
- * а после _render() ячейки создаются заново.
+ * перерисовал DOM.
  *
  * flush() вызывается из BattleModal._render() в самом конце.
  */
@@ -15,7 +14,7 @@ export class BattleVisualLayer {
     this.battle = battle;
     this.container = container;
     this.sideToPlayer = sideToPlayer;
-    this._queue = [];      // события, ожидающие отрисовки
+    this._queue = [];
     this._timers = [];
     battle.onEvent = (event, payload) => this._onEvent(event, payload);
   }
@@ -27,12 +26,8 @@ export class BattleVisualLayer {
     this._queue = [];
   }
 
-  /** Обновить контейнер (после innerHTML = '' арена — новый DOM). */
-  setContainer(el) {
-    this.container = el;
-  }
+  setContainer(el) { this.container = el; }
 
-  /** Найти DOM-ячейку по стороне/линии/индексу. */
   _cellEl(side, lane, index) {
     if (!this.container) return null;
     return this.container.querySelector(
@@ -52,7 +47,6 @@ export class BattleVisualLayer {
     return null;
   }
 
-  /** Просто складываем в очередь — проиграем после перерисовки. */
   _onEvent(event, payload) {
     switch (event) {
       case BattleEvents.CARD_DAMAGED:
@@ -69,10 +63,6 @@ export class BattleVisualLayer {
     }
   }
 
-  /**
-   * Проиграть все накопленные события поверх актуального DOM.
-   * Вызывается из BattleModal после перерисовки.
-   */
   flush() {
     if (!this.container || this._queue.length === 0) {
       this._queue = [];
@@ -97,23 +87,22 @@ export class BattleVisualLayer {
     }
   }
 
-  // ─── Анимации ───
+  // ─── Снаряд + цифра урона ───
   _onCardDamaged({ card, amount, source }) {
     if (!amount || amount <= 0) return;
     const targetEl = this._cellElForCard(card);
     if (!targetEl) return;
 
-    // Снаряд от источника к цели (если source есть на поле)
     const fromEl = source ? this._cellElForCard(source) : null;
     if (fromEl) {
       const kind = source.type === 'archer' ? 'archer'
                  : source.type === 'special' ? 'special'
+                 : source.type === 'support' ? 'support'
                  : 'warrior';
       Projectile.fire(this.container, fromEl, targetEl, kind);
     }
 
     const t = setTimeout(() => {
-      // Пере-ищем — на случай, если к этому моменту DOM перерисован
       const el = this._cellElForCard(card) || targetEl;
       FloatingNumber.spawn(this.container, el, `-${amount}`, 'damage');
       el.classList.remove('shake');
@@ -124,6 +113,7 @@ export class BattleVisualLayer {
     this._timers.push(t);
   }
 
+  // ─── Реген: зелёная вспышка + цифра ───
   _onCardHealed({ card, amount }) {
     if (!amount || amount <= 0) return;
     const el = this._cellElForCard(card);
@@ -132,23 +122,20 @@ export class BattleVisualLayer {
     el.classList.remove('heal-flash');
     void el.offsetWidth;
     el.classList.add('heal-flash');
-    setTimeout(() => el.classList.remove('heal-flash'), 1000);
+    setTimeout(() => el.classList.remove('heal-flash'), 500);
   }
 
+  // ─── Смерть: карта уже удалена из board — флешим все пустые ячейки стороны ───
   _onCardDied({ card, side }) {
-    // card.lane/index уже сброшены при удалении из board — ищем по side+index,
-    // но индекс потерян. Поэтому просто ищем все ячейки и подсвечиваем те, где нет карты.
-    // Проще: не подсвечивать по карте, а подсветить всю ячейку по сохранённым координатам.
-    // Battle._cardSide + card.lane в момент эмита ещё валидны? Нет — board.remove уже вызван.
-    // Значит, событие CARD_DIED приходит уже после remove. Используем хак: подсветить все
-    // ячейки стороны, где нет карты, коротким флешем.
     if (!this.container || !side) return;
     const cells = this.container.querySelectorAll(`.cell[data-side="${side}"]`);
     cells.forEach((cell) => {
+      // Только пустые (где карта умерла)
+      if (cell.querySelector('.battle-card')) return;
       cell.classList.remove('cell-death-flash');
       void cell.offsetWidth;
       cell.classList.add('cell-death-flash');
-      setTimeout(() => cell.classList.remove('cell-death-flash'), 500);
+      setTimeout(() => cell.classList.remove('cell-death-flash'), 600);
     });
   }
 
@@ -158,21 +145,24 @@ export class BattleVisualLayer {
     el.classList.remove('place-flash');
     void el.offsetWidth;
     el.classList.add('place-flash');
-    setTimeout(() => el.classList.remove('place-flash'), 800);
+    setTimeout(() => el.classList.remove('place-flash'), 400);
   }
 
+  // ─── Добор в псевдо-руку врага ───
   _onCardDrawn({ side }) {
     if (side === this.sideToPlayer) return;
-    const pseudo = this.container?.querySelector('.pseudo-hand-cards');
+    const modal = this.container?.closest('.battle-modal');
+    if (!modal) return;
+    const pseudo = modal.querySelector('.pseudo-hand-cards');
     if (!pseudo) return;
     const el = document.createElement('div');
     el.className = 'pseudo-card drawn-anim';
     pseudo.appendChild(el);
-    setTimeout(() => el.classList.remove('drawn-anim'), 1000);
+    setTimeout(() => el.classList.remove('drawn-anim'), 600);
   }
 
+  // ─── Урон полководцу ───
   _onGeneralDamaged({ side, amount }) {
-    // Ищем в battle-modal (не в arena) — .player-hero / .enemy-hero в шапке
     const modal = this.container?.closest('.battle-modal');
     if (!modal) return;
     const heroEl = modal.querySelector(
@@ -183,7 +173,7 @@ export class BattleVisualLayer {
     heroEl.classList.remove('hero-hurt');
     void heroEl.offsetWidth;
     heroEl.classList.add('hero-hurt');
-    setTimeout(() => heroEl.classList.remove('hero-hurt'), 1000);
+    setTimeout(() => heroEl.classList.remove('hero-hurt'), 500);
   }
 
   _onStatusAdded({ card, kind }) {
@@ -191,6 +181,6 @@ export class BattleVisualLayer {
     if (!el) return;
     const color = kind === 'poison' ? 'poison' : kind === 'burn' ? 'burn' : 'freeze';
     el.classList.add(`status-${color}`);
-    setTimeout(() => el.classList.remove(`status-${color}`), 1200);
+    setTimeout(() => el.classList.remove(`status-${color}`), 800);
   }
 }

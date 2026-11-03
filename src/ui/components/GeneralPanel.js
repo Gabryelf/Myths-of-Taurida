@@ -1,11 +1,6 @@
 import { Theme } from '../../infrastructure/config/ThemeConfig.js';
 import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
 
-/**
- * Панель выбранного полководца.
- * Аватарка-герб — из GENERAL_PORTRAITS[фракция].
- * Координаты убраны (по запросу).
- */
 export class GeneralPanel {
   constructor(root) {
     this.el = document.createElement('div');
@@ -23,29 +18,34 @@ export class GeneralPanel {
     this.el.classList.remove('visible');
     this._general = null;
   }
-  refresh() {
-    if (this._general) this._render();
-  }
+  refresh() { if (this._general) this._render(); }
+
   _render() {
     const g = this._general;
     const factionName = Theme.factionName[g.factionId] || g.factionId;
     const livesHtml = Array.from({ length: g.maxLives }, (_, i) =>
       `<span class="gp-life ${i >= g.lives ? 'lost' : ''}"></span>`
     ).join('');
-
-    const file = GENERAL_PORTRAITS[g.factionId];
-    const url = imgUrl(file);
+    const url = imgUrl(GENERAL_PORTRAITS[g.factionId]);
     const emblemStyle = url
       ? `background-image:url('${url}');background-size:cover;background-position:center top;`
-      : `background:${this._factionColor(g.factionId)};color:${this._factionColor(g.factionId)};`;
+      : '';
+    const xpPct = Math.min(100, Math.round((g.xp / g.xpToNext) * 100));
+    const perksHtml = g.perks.length > 0
+      ? `<div class="gp-row"><span>Перки</span><b>${g.perks.map((p) => this._perkIcon(p)).join(' ')}</b></div>`
+      : '';
 
     this.el.innerHTML = `
       <div class="gp-header">
         <div class="gp-emblem" style="${emblemStyle}"></div>
         <div>
-          <div class="gp-name">${g.name}</div>
+          <div class="gp-name">${g.name} <span class="gp-level">ур. ${g.level}</span></div>
           <div class="gp-faction">${factionName}</div>
         </div>
+      </div>
+      <div class="gp-xp">
+        <div class="gp-xp-bar"><div class="gp-xp-fill" style="width:${xpPct}%"></div></div>
+        <div class="gp-xp-text">${g.xp} / ${g.xpToNext} XP</div>
       </div>
       <div class="gp-row">
         <span>Жизни</span>
@@ -55,10 +55,15 @@ export class GeneralPanel {
         <span>Движение</span>
         <b>${g.movePoints} / ${g.maxMovePoints}</b>
       </div>
+      ${perksHtml}
     `;
   }
-  _factionColor(factionId) {
-    const c = Theme.faction[factionId] || 0xd4a94c;
-    return '#' + c.toString(16).padStart(6, '0');
+
+  _perkIcon(perkId) {
+    const map = {
+      move: '👟', lives: '❤', capacity: '🃏',
+    };
+    const key = perkId.includes('move') ? 'move' : perkId.includes('lives') ? 'lives' : 'capacity';
+    return `<span class="gp-perk" title="${perkId}">${map[key]}</span>`;
   }
 }

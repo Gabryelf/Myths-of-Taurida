@@ -5,6 +5,7 @@ import { BattleEvents } from './BattleEvents.js';
 import { LineBonus } from './LineBonus.js';
 import { ColumnBonus } from './ColumnBonus.js';
 import { GeneralDamageRule } from './GeneralDamageRule.js';
+import { TerrainBattleModifier } from './TerrainBattleModifier.js';
 
 export class Battle {
   constructor({
@@ -21,6 +22,9 @@ export class Battle {
     this.targetTile = targetTile;
     this.playerSide = playerSide;
     this.maxIdleTurns = maxIdleTurns;
+
+    // Террейн-модификатор
+    this.terrain = new TerrainBattleModifier(targetTile?.terrain || 'plain');
 
     this.attacker = this._makeSide(attackerGen, attackerDeck || []);
     this.defender = this._makeSide(defenderGen, defenderDeck || []);
@@ -39,23 +43,12 @@ export class Battle {
     this.finished = false;
     this.winner = null;
     this.selectedCard = null;
-
-    // ─── Визуальный мост: колбэк для внешнего слоя (BattleVisualLayer) ───
-    // Сигнатура: onEvent(eventType, payload)
     this.onEvent = null;
 
     this._drawOpeningHand('attacker', 1);
     this._drawOpeningHand('defender', 1);
     this._refreshTactic('attacker');
     this._refreshTactic('defender');
-
-    console.log('[Battle] constructor',
-      'attackerHand=', this.attacker.hand.length,
-      'defenderHand=', this.defender.hand.length,
-      'attackerDeck=', this.attacker.deck.length,
-      'defenderDeck=', this.defender.deck.length,
-      'playerSide=', this.playerSide,
-      'turn=', this.turn);
 
     this._checkLineBonus();
     this._checkColumnBonus();
@@ -113,30 +106,34 @@ export class Battle {
     d.tacticPoints = 1 + supportCount + 1;
   }
 
-  // ─── Геттеры ───
+  /** Итоговая стоимость карты для стороны с учётом террейна. */
+  costFor(card, side) {
+    return this.terrain.effectiveCost(card, side);
+  }
+
   get isPlayerTurn() { return this.turn === this.playerSide && !this.finished; }
   get playerData() { return this[this.playerSide]; }
   get enemyData() { return this[this.playerSide === 'attacker' ? 'defender' : 'attacker']; }
   get enemySide() { return this.playerSide === 'attacker' ? 'defender' : 'attacker'; }
 
-  // ─── Действия ───
   selectCard(card) {
     if (!this.isPlayerTurn) return false;
-    if (card.str > this.playerData.tacticPoints) return false;
+    if (this.costFor(card, this.playerSide) > this.playerData.tacticPoints) return false;
     this.selectedCard = this.selectedCard === card ? null : card;
     return true;
   }
 
   playCard(card, lane, index) {
     if (!this.isPlayerTurn) return false;
-    if (card.str > this.playerData.tacticPoints) return false;
+    const cost = this.costFor(card, this.playerSide);
+    if (cost > this.playerData.tacticPoints) return false;
     const side = this.playerSide;
     const board = this[side].board;
     if (!board.place(lane, index, card)) return false;
-    this[side].tacticPoints -= card.str;
+    this[side].tacticPoints -= cost;
     this[side].hand = this[side].hand.filter((c) => c.id !== card.id);
     this.selectedCard = null;
-    this._log(`${card.name} → ${laneLabel(lane)}`);
+    this._log(`${card.name} → ${laneLabel(lane)} (-${cost}⚡)`);
     this._emit(BattleEvents.CARD_PLAYED, { card, side, lane, index });
     this._checkLineBonus();
     this._checkColumnBonus();
@@ -185,9 +182,7 @@ export class Battle {
     if (this.finished) return;
 
     const drawn = this._drawToHand(this.turn);
-    if (drawn) {
-      this._emit(BattleEvents.CARD_DRAWN, { side: this.turn, card: drawn });
-    }
+    if (drawn) this._emit(BattleEvents.CARD_DRAWN, { side: this.turn, card: drawn });
     this._emit(BattleEvents.TURN_STARTED, { side: this.turn, turn: this.turnCount });
   }
 
@@ -204,21 +199,22 @@ export class Battle {
       this._endTurn(side);
     } catch (e) {
       console.error('[aiTurn]', e);
-      try { this._endTurn(side); } catch (_) {}
+      try { this._endTurn(side); } catch (_) { }
     }
   }
 
   _aiPlayType(side, types, lane) {
     const d = this[side];
     const typeArr = Array.isArray(types) ? types : [types];
-    const card = d.hand.find((c) => typeArr.includes(c.type) && c.str <= d.tacticPoints);
+    const card = d.hand.find((c) => typeArr.includes(c.type) && this.costFor(c, side) <= d.tacticPoints);
     if (!card) return;
+    const cost = this.costFor(card, side);
     for (let i = 0; i < 3; i++) {
       if (d.board.isEmpty(lane, i)) {
-        d.tacticPoints -= card.str;
+        d.tacticPoints -= cost;
         d.board.place(lane, i, card);
         d.hand = d.hand.filter((c) => c.id !== card.id);
-        this._log(`Враг: ${card.name} → ${laneLabel(lane)}`);
+        this._log(`Враг: ${card.name} → ${laneLabel(lane)} (-${cost}⚡)`);
         this._emit(BattleEvents.CARD_PLAYED, { card, side, lane, index: i });
         this._checkLineBonus();
         this._checkColumnBonus();
@@ -227,16 +223,10 @@ export class Battle {
     }
   }
 
-  /**
-   * Авто-бой: обе стороны играет ИИ, шагами.
-   * Возвращает промис, который резолвится по завершении.
-   * onStep вызывается после каждого хода (для UI-обновления).
-   */
   autoPlay(onStep, stepDelayMs = 220) {
     return new Promise((resolve) => {
       const step = () => {
         if (this.finished) { resolve(this.winner); return; }
-        // Игрок и ИИ теперь просто чередуются как две ИИ-стороны
         this._aiTurnForSide(this.turn);
         if (this.finished) { onStep?.(); resolve(this.winner); return; }
         onStep?.();
@@ -255,24 +245,21 @@ export class Battle {
       this._endTurn(side);
     } catch (e) {
       console.error('[autoPlay]', e);
-      try { this._endTurn(side); } catch (_) {}
+      try { this._endTurn(side); } catch (_) { }
     }
   }
 
-  // ─── Внутренний emit: способности + внешний колбэк ───
   _emit(event, payload) {
-    // 1) Внешний мост (визуал)
     if (this.onEvent) {
       try { this.onEvent(event, payload); } catch (e) { console.error('[Battle.onEvent]', e); }
     }
-    // 2) Способности карт
     const ctxBase = { battle: this, event, payload };
     for (const side of ['attacker', 'defender']) {
       const board = this[side].board;
       for (const card of board.allCards()) {
         for (const ability of card.abilities) {
           const ctx = { ...ctxBase, self: card, side };
-          try { ability.fire(ctx); } catch (e) {}
+          try { ability.fire(ctx); } catch (e) { }
         }
       }
     }
@@ -305,14 +292,15 @@ export class Battle {
     const d = this[side];
     const card = d.hand[0];
     if (!card) return;
+    const cost = this.costFor(card, side);
     for (const lane of ['defense', 'attack', 'support']) {
       if (d.board.isEmpty(lane, columnIndex)) {
-        if (card.str > d.tacticPoints && !this.columnBonus[side].canUseCredit()) return;
-        if (card.str > d.tacticPoints) {
+        if (cost > d.tacticPoints && !this.columnBonus[side].canUseCredit()) return;
+        if (cost > d.tacticPoints) {
           this.columnBonus[side].markCreditUsed();
           this._log(`Враг в кредит ставит ${card.name}`);
         } else {
-          d.tacticPoints -= card.str;
+          d.tacticPoints -= cost;
         }
         d.board.place(lane, columnIndex, card);
         d.hand = d.hand.filter((c) => c.id !== card.id);
@@ -463,22 +451,33 @@ export class Battle {
     if (this.log.length > 40) this.log.shift();
   }
 
-  getLineBonusInfo() {
+  /** Информация о бонусах линии для конкретной стороны. */
+  getLineBonusInfoFor(side) {
+    const lb = this.lineBonus[side];
     return {
-      attack: { active: this.lineBonus.attacker.active.attack, desc: 'Полный ряд атаки: 1 урон полководцу каждый ход' },
-      defense: { active: this.lineBonus.attacker.active.defense, desc: 'Полный ряд обороны: блокирует обилки врага' },
-      support: { active: this.lineBonus.attacker.active.support, desc: 'Полный ряд поддержки: реген +1 каждый ход' },
+      attack: { active: lb.active.attack, desc: 'Полный ряд атаки: 1 урон полководцу врага каждый ход' },
+      defense: { active: lb.active.defense, desc: 'Полный ряд обороны: блокирует обилки врага' },
+      support: { active: lb.active.support, desc: 'Полный ряд поддержки: реген +1 каждый ход' },
     };
   }
 
-  getColumnBonusInfo() {
-    return this.columnBonus.attacker.active.map((active, i) => ({
+  /** Совместимость: инфа для игрока. */
+  getLineBonusInfo() {
+    return this.getLineBonusInfoFor(this.playerSide);
+  }
+
+  getColumnBonusInfoFor(side) {
+    return this.columnBonus[side].active.map((active, i) => ({
       index: i,
       active,
       desc: active
-        ? `Колонка ${i + 1} полная: при уничтожении карты — обязательная замена (раз в ход можно в кредит)`
+        ? `Колонка ${i + 1} полная: при уничтожении карты — обязательная замена`
         : `Колонка ${i + 1}: заполните все 3 ряда, чтобы активировать`,
     }));
+  }
+
+  getColumnBonusInfo() {
+    return this.getColumnBonusInfoFor(this.playerSide);
   }
 }
 
