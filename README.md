@@ -44,12 +44,24 @@
 [![v0.0.2](https://img.shields.io/badge/v0.0.2-Raycast%20и%20подсветка-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/2)
 [![v0.0.3](https://img.shields.io/badge/v0.0.3-Море%20и%20атмосфера-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](../../issues/3)
 [![v0.0.4](https://img.shields.io/badge/v0.0.4-Полководцы%20и%20система%20ходов-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/4)
+[![v0.0.5](https://img.shields.io/badge/v0.0.5-Карточная%20система%20-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/5)
+[![v0.0.6](https://img.shields.io/badge/v0.0.6-Боевая%20система%20-blue?style=for-the-badge&logo=progress&logoColor=white)](../../issues/6)
+[![v0.0.7](https://img.shields.io/badge/v0.0.7-ИИ,%20баланс,%20звук,%20туториал-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/7)
+[![v0.0.8](https://img.shields.io/badge/v0.0.8-Тактический%20бой%20и%20баланс-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/8)
 
 
 </div>
 
 ![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.1-0.0.2.png)
 ![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.3.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.4.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.5.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.6.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.7.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.8.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.0.9.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.0.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.1.png)
 
 ---
 
@@ -62,38 +74,9 @@
 
 **Принципы:** domain не знает о THREE/DOM. Renderer читает домен, но не меняет. Всё через `EventBus`.
 
+## 📚 Документация по версиям - полный перечень изменений
 
-## Что на данный момент есть и работает
-
-☑ Гекс-карта из seed
-
-☑ Камера: орбита (drag), зум (wheel), центрирование
-
-☑ Пять фракций с цветными кольцами
-
-☑ Слоистая архитектура
-
-☑ Фабрики сущностей
-
-☑ Модульные CSS с переменными темы
-
-☑ Тосты
-
-☑ Точный raycast по гексам
-
-☑ Hover-подсветка + tooltip с координатами
-
-☑ Selection-подсветка + подсветка соседей
-
-☑ Курсор-pointer над гексами
-
-□ Атмосферное море и звёзды (v0.3)
-
-## Управление
-
-- **Drag** — вращение камеры
-- **Колесо** — зум
-- **Клик** — тост с координатой (raycast)
+![ссылка на wiki](https://github.com/Gabryelf/Myths-of-Taurida/wiki/Strategy-&-Tactical-0.0.8-version)
 
 
 ---
