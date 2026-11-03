@@ -183,3 +183,19 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+.recruit-modal .rm-rarity {
+    position: absolute;
+    top: 4px; left: 4px;
+    padding: 1px 5px;
+    font-size: 9px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.7);
+    color: #8a7a58;
+    z-index: 3;
+  }
+  .recruit-modal .rm-rarity-common    { color: #8a7a58; }
+  .recruit-modal .rm-rarity-rare      { color: #58a6ff; }
+  .recruit-modal .rm-rarity-epic      { color: #a371f7; }
+  .recruit-modal .rm-rarity-legendary { color: #f5d57a; }

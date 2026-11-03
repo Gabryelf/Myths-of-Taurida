@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '../../config/ThemeConfig.js';
 
-/**
- * Город на гексе. Домик с башней и флагом.
- */
 export class CityVisual {
   constructor(city, size) {
     this.city = city;
@@ -14,8 +11,6 @@ export class CityVisual {
 
   _build() {
     const { size, city } = this;
-    const cfg = Theme.city;
-
     // База
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(size * 0.28, size * 0.32, size * 0.12, 6),
@@ -25,22 +20,18 @@ export class CityVisual {
     base.castShadow = true;
     this.group.add(base);
 
-    // Стены
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
       const wall = new THREE.Mesh(
         new THREE.BoxGeometry(size * 0.08, size * 0.14, size * 0.02),
         new THREE.MeshStandardMaterial({ color: 0xc9a860, roughness: 0.75 }),
       );
-      wall.position.set(
-        Math.cos(a) * size * 0.3, 0.42 + size * 0.13, Math.sin(a) * size * 0.3,
-      );
+      wall.position.set(Math.cos(a) * size * 0.3, 0.42 + size * 0.13, Math.sin(a) * size * 0.3);
       wall.rotation.y = -a + Math.PI / 2;
       wall.castShadow = true;
       this.group.add(wall);
     }
 
-    // Башня
     const tower = new THREE.Mesh(
       new THREE.CylinderGeometry(size * 0.08, size * 0.1, size * 0.34, 6),
       new THREE.MeshStandardMaterial({
@@ -52,7 +43,6 @@ export class CityVisual {
     tower.castShadow = true;
     this.group.add(tower);
 
-    // Купол
     const dome = new THREE.Mesh(
       new THREE.SphereGeometry(size * 0.09, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
       new THREE.MeshStandardMaterial({
@@ -63,7 +53,6 @@ export class CityVisual {
     dome.position.y = 0.42 + size * 0.42;
     this.group.add(dome);
 
-    // Флаг (цвет фракции, если назначена)
     if (city.factionId) {
       const color = Theme.faction[city.factionId] || 0xd4a94c;
       const pole = new THREE.Mesh(
@@ -81,7 +70,17 @@ export class CityVisual {
       flag.position.set(size * 0.36, 0.42 + size * 0.7, 0);
       this.group.add(flag);
     }
+
+    // ─── userData: 'city' ───
+    this.group.traverse((c) => {
+      if (c.isMesh || c.isSprite) {
+        c.userData = c.userData || {};
+        c.userData.city = city;
+        c.userData.hoverable = 'city';
+      }
+    });
   }
+
   addTo(scene) { scene.add(this.group); return this; }
   removeFrom(scene) { scene.remove(this.group); }
 }

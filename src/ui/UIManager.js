@@ -5,10 +5,10 @@ import { EndTurnButton } from './components/EndTurnButton.js';
 import { ResourceBar } from './components/ResourceBar.js';
 import { DeckPanel } from './components/DeckPanel.js';
 import { RecruitModal } from './components/RecruitModal.js';
+import { CityPanel } from './components/CityPanel.js';
 import { BattleModal } from './components/BattleModal.js';
 import { TutorialModal } from './components/TutorialModal.js';
 import { TurnIndicator } from './components/TurnIndicator.js';
-import { CityPanel } from './components/CityPanel.js';
 
 export class UIManager {
   constructor({ root, toastRoot, bus, world, onEndTurn, onRecruit, battleController, sound }) {
@@ -16,6 +16,8 @@ export class UIManager {
     this.bus = bus;
     this.world = world;
     this.sound = sound;
+    this.onHire = null;
+    this.onRecruit = onRecruit;
 
     this.toast = new Toast(toastRoot);
     this.tooltip = new Tooltip(root);
@@ -23,17 +25,18 @@ export class UIManager {
     this.deckPanel = new DeckPanel(root);
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
-    this.cityPanel = new CityPanel(root, { bus });
 
+    // Строим HUD
     this._buildHud();
+
+    // Кнопки и модалки
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
       this.sound?.play('click');
-      onEndTurn();
+      onEndTurn?.();
     });
-    this.recruitModal = new RecruitModal(root, {
-      onRecruit: (key) => { this.sound?.play('click'); onRecruit?.(key); },
-      onClose: () => {},
-    });
+
+    this.recruitModal = new RecruitModal(root, { bus });
+    this.cityPanel = new CityPanel(root, { bus });
     this.battleModal = new BattleModal(root, { controller: battleController, bus });
     this.tutorial = new TutorialModal(root, () => {
       localStorage.setItem('tavrida_tutorial', '1');
@@ -46,25 +49,28 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.0.9</div>
+      <div class="hud-title">ТАВРИДА · v0.9</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
-        <button class="hud-btn" id="btn-recruit">Найм</button>
+        <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
         <button class="hud-btn-mute" id="btn-mute">🔊</button>
       </div>
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
-  
-    // Resource bar теперь внутри HUD
+
+    // Resource bar внутри HUD
     this.resourceBar.el = hud.querySelector('#resource-bar');
     this.resourceBar.refresh();
-  
-    hud.querySelector('#btn-recruit').addEventListener('click', () => {
+
+    // Кнопка «Найм» — вызывает onHire (устанавливается извне)
+    const hireBtn = hud.querySelector('#btn-recruit');
+    hireBtn.addEventListener('click', () => {
       this.sound?.play('click');
-      this.openRecruit();
+      if (this.onHire) this.onHire();
     });
-  
+
+    // Кнопка mute
     const muteBtn = hud.querySelector('#btn-mute');
     if (this.sound?.isMuted()) {
       muteBtn.textContent = '🔇';
@@ -77,15 +83,29 @@ export class UIManager {
     });
   }
 
-  openRecruit() {
-    const factionId = this.world.playerFactionId;
-    const pool = this.world.resourcePools.get(factionId);
-    if (!pool) return;
-    this.recruitModal.open({ factionId, pool, economy: this.world.economy });
+  /** Включить/выключить кнопку «Найм» */
+  setHireEnabled(enabled) {
+    const btn = this._hudEl.querySelector('#btn-recruit');
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? '1' : '0.4';
   }
 
-  bindResources(pool) { this.resourceBar.bind(pool); }
+  // ─── Открытие модалок ───
+  openRecruitModal({ factionId, general, world }) {
+    this.recruitModal.open({ factionId, general, world });
+  }
 
+  openCityPanel({ tile, city, world }) {
+    this.cityPanel.open({ tile, city, world });
+  }
+
+  // ─── Ресурсы ───
+  bindResources(pool) {
+    this.resourceBar.bind(pool);
+  }
+
+  // ─── Туториал ───
   showTutorial(onDone) {
     this.tutorial.onDone = () => {
       localStorage.setItem('tavrida_tutorial', '1');
@@ -94,19 +114,19 @@ export class UIManager {
     this.tutorial.open();
   }
 
-  openCityPanel({ tile, city, world }) {
-    const general = world.getGeneralAt(tile.hex);
-    this.cityPanel.open({ tile, city, world, general });
-  }
-
   _subscribe() {
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
       if (tile) this.tooltip.show(tile, screenPos);
       else this.tooltip.hide();
     });
     this.bus.on('general:selected', ({ general }) => {
-      if (general) { this.generalPanel.show(general); this.deckPanel.show(general); }
-      else { this.generalPanel.hide(); this.deckPanel.hide(); }
+      if (general) {
+        this.generalPanel.show(general);
+        this.deckPanel.show(general);
+      } else {
+        this.generalPanel.hide();
+        this.deckPanel.hide();
+      }
     });
     this.bus.on('general:moved', ({ general, cost }) => {
       this.generalPanel.refresh();

@@ -1,8 +1,9 @@
-import { CardFactory } from '../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
 
 /**
- * Модалка города/деревни. Показывает найм карт и кнопку найма полководца.
+ * Модалка города. Открывается кликом по городу/деревне.
+ * Показывает: статистику империи, список полководцев, кнопку найма нового
+ * полководца (если это город).
  */
 export class CityPanel {
   constructor(root, { bus }) {
@@ -11,56 +12,31 @@ export class CityPanel {
     this.el.className = 'city-panel-overlay';
     this.el.innerHTML = `<div class="city-panel"></div>`;
     root.appendChild(this.el);
-    this._imgLoader = new CardImageLoader();
+    this._world = null;
     this._city = null;
     this._tile = null;
-    this._world = null;
-    this._general = null;
+    this._imgLoader = new CardImageLoader();
 
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) this.hide();
-      const action = e.target.getAttribute?.('data-action');
-      if (action === 'recruit-card') {
-        const key = e.target.getAttribute('data-key');
-        this._tryRecruit(key);
-      }
-      if (action === 'recruit-general') this._tryRecruitGeneral();
-      if (action === 'close') this.hide();
+      const close = e.target.getAttribute?.('data-close');
+      if (close !== null) { this.hide(); return; }
+      const hireGen = e.target.getAttribute?.('data-hire-general');
+      if (hireGen !== null) { this._tryHireGeneral(); return; }
     });
   }
 
-  open({ tile, city, world, general }) {
+  open({ tile, city, world }) {
     this._tile = tile;
     this._city = city;
     this._world = world;
-    this._general = general || world.getGeneralAt(tile.hex);
     this.el.classList.add('visible');
     this._render();
   }
 
   hide() { this.el.classList.remove('visible'); }
 
-  _tryRecruit(cardKey) {
-    if (!this._general) {
-      this.bus.emit('toast:show', { text: 'Нужен полководец в городе' });
-      return;
-    }
-    const result = this._world.recruit.recruit({
-      factionId: this._world.playerFactionId,
-      cardKey,
-      generalId: this._general.id,
-    });
-    if (!result.ok) {
-      this.bus.emit('toast:show', { text: result.reason });
-      return;
-    }
-    this.bus.emit('resources:changed', { factionId: this._world.playerFactionId });
-    this.bus.emit('deck:changed', { general: this._general });
-    this.bus.emit('toast:show', { text: `${result.card.name} нанят` });
-    this._render();
-  }
-
-  _tryRecruitGeneral() {
+  _tryHireGeneral() {
     const result = this._world.recruit.recruitGeneral({
       factionId: this._world.playerFactionId,
       tileKey: this._tile.key,
@@ -70,59 +46,72 @@ export class CityPanel {
       return;
     }
     this.bus.emit('resources:changed', { factionId: this._world.playerFactionId });
-    this.bus.emit('toast:show', { text: `Нанят полководец: ${result.general.name}` });
+    this.bus.emit('toast:show', { text: `Нанят: ${result.general.name}` });
     this.bus.emit('world:generalsChanged', {});
     this._render();
   }
 
   _render() {
-    const { _city: city, _world: world, _general: gen } = this;
-    if (!city) return;
-    const factionId = world.playerFactionId;
-    const cityFactionId = city.factionId;
-    const isMine = cityFactionId === factionId;
-    const used = world.recruitPointsUsed(factionId);
-    const total = world.economy.recruitPointsForFaction(world, factionId);
-    const keys = CardFactory.keysForFaction(factionId);
+    const world = this._world;
+    const city = this._city;
+    if (!world || !city) return;
 
-    const cardRows = keys.map((key) => {
-      const def = CardFactory.defForKey(key);
-      const cost = world.economy.recruitCost(CardFactory.create(key));
-      const pts = world.economy.recruitPointsFor(CardFactory.create(key));
-      const url = this._imgLoader.getUrl(key);
-      const affordable = world.resourcePools.get(factionId).canAfford(cost);
-      const canPoints = used + pts <= total;
-      const disabled = !isMine || !affordable || !canPoints || !gen;
-      const bg = url ? `background-image:url("${url}");` : '';
+    const factionId = world.playerFactionId;
+    const pool = world.resourcePools.get(factionId);
+    const income = world.economy.computeIncome(world, factionId);
+    const generals = world.generals.filter((g) => g.factionId === factionId && g.alive);
+    const citiesOfMine = world.cities.filter((c) => c.factionId === factionId);
+    const myCities = citiesOfMine.filter((c) => c.isCity).length;
+    const myVillages = citiesOfMine.length - myCities;
+    const isMine = city.factionId === factionId;
+    const maxGenerals = Math.max(1, myCities + 1);
+    const canHireGeneral = isMine && city.isCity && generals.length < maxGenerals;
+    const cityGeneral = world.getGeneralAt(this._tile.hex);
+
+    const generalsHtml = generals.map((g) => {
+      const inCity = g.hex.key === this._tile.key;
       return `
-        <div class="cp-card type-${def.type}">
-          <div class="cp-card-art" style="${bg}">
-            <div class="cp-rarity cp-rarity-${def.rarity}">${def.rarity}</div>
-            <div class="cp-str">${def.str}</div>
+        <div class="cp-general-row">
+          <div class="cp-general-name">${g.name}</div>
+          <div class="cp-general-stats">
+            ❤ ${g.lives}/${g.maxLives} · ⌖ ${g.movePoints}/${g.maxMovePoints}
+            · 🃏 ${g.deck.cards.length}
+            ${inCity ? '· <b style="color:#3fb950">здесь</b>' : ''}
           </div>
-          <div class="cp-card-name">${def.name}</div>
-          <div class="cp-card-cost">⚔${cost.weapons} 💰${cost.gold} · ${pts} очк.</div>
-          <button class="btn" data-action="recruit-card" data-key="${key}" ${disabled ? 'disabled' : ''}>Нанять</button>
         </div>
       `;
-    }).join('');
-
-    const generalBtn = isMine && city.isCity ? `
-      <div class="cp-general">
-        <button class="btn primary" data-action="recruit-general">Нанять полководца · 30💰</button>
-      </div>
-    ` : '';
+    }).join('') || '<div class="cp-empty">Нет полководцев</div>';
 
     this.el.querySelector('.city-panel').innerHTML = `
       <h2>${city.name}</h2>
       <div class="cp-subtitle">
         ${city.isCity ? 'Город' : 'Деревня'} · ${isMine ? 'Ваш' : 'Не ваш'}
-        · Очки найма: ${used}/${total}
-        · ${gen ? `Полководец: ${gen.name}` : 'Нет полководца'}
+        ${cityGeneral ? ` · Полководец: ${cityGeneral.name}` : ''}
       </div>
-      <div class="cp-grid">${cardRows}</div>
-      ${generalBtn}
-      <button class="btn cp-close" data-action="close">Закрыть</button>
+
+      <div class="cp-section">
+        <div class="cp-section-title">Империя</div>
+        <div class="cp-stat-row"><span>Гексы</span><b>${world.map.landTiles().filter((t) => t.factionId === factionId).length}</b></div>
+        <div class="cp-stat-row"><span>Города</span><b>${myCities}</b></div>
+        <div class="cp-stat-row"><span>Деревни</span><b>${myVillages}</b></div>
+        <div class="cp-stat-row"><span>Доход</span><b>💰${income.gold} 🌾${income.prov} ⚔${income.weapons}</b></div>
+        <div class="cp-stat-row"><span>Очки найма</span><b>${world.recruitPointsUsed(factionId)}/${world.economy.recruitPointsForFaction(world, factionId)}</b></div>
+      </div>
+
+      <div class="cp-section">
+        <div class="cp-section-title">Полководцы (${generals.length}/${maxGenerals})</div>
+        ${generalsHtml}
+        ${canHireGeneral ? `
+          <button class="btn primary cp-hire-btn" data-hire-general="1">
+            Нанять полководца · 30💰
+          </button>
+        ` : ''}
+        ${isMine && city.isCity && generals.length >= maxGenerals
+          ? `<div class="cp-hint">Максимум полководцев — постройте больше городов</div>`
+          : ''}
+      </div>
+
+      <button class="btn cp-close" data-close="1">Закрыть</button>
     `;
   }
 }

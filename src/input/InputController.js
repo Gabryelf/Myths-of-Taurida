@@ -6,7 +6,6 @@ export class InputController {
     this.camera = camera;
     this.onTileClick = onTileClick;
     this.onTileHover = onTileHover;
-
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     this._pickables = [];
@@ -15,7 +14,6 @@ export class InputController {
     this._prev = { x: 0, y: 0 };
     this._cameraController = null;
     this._lastHoverKey = null;
-
     this._bind();
   }
 
@@ -24,15 +22,12 @@ export class InputController {
 
   _bind() {
     const c = this.canvas;
-
     c.addEventListener('mousedown', (e) => {
       this._isDragging = true;
       this._dragMoved = false;
       this._prev = { x: e.clientX, y: e.clientY };
     });
-
     window.addEventListener('mouseup', () => { this._isDragging = false; });
-
     window.addEventListener('mousemove', (e) => {
       if (this._isDragging && this._cameraController) {
         const dx = e.clientX - this._prev.x;
@@ -44,33 +39,24 @@ export class InputController {
       }
       this._handleHover(e);
     });
-
-    // click срабатывает только если pointer не ушёл далеко; на всякий случай проверяем ещё раз
     c.addEventListener('click', (e) => {
       if (this._dragMoved) { this._dragMoved = false; return; }
       this._handleClick(e);
     });
-
     c.addEventListener('wheel', (e) => {
       e.preventDefault();
       this._cameraController?.zoom(e.deltaY);
     }, { passive: false });
 
-    // Тач
     let touchStart = null;
     c.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
-        touchStart = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
-          time: Date.now(),
-        };
+        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
         this._isDragging = true;
         this._dragMoved = false;
         this._prev = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }
     }, { passive: true });
-
     c.addEventListener('touchmove', (e) => {
       if (e.touches.length === 1 && this._isDragging && this._cameraController) {
         const t = e.touches[0];
@@ -81,7 +67,6 @@ export class InputController {
         this._cameraController.pan(dx, dy);
       }
     }, { passive: true });
-
     c.addEventListener('touchend', (e) => {
       this._isDragging = false;
       if (!touchStart) return;
@@ -99,46 +84,52 @@ export class InputController {
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    if (this._pickables.length === 0) return { tile: null, general: null };
+    if (this._pickables.length === 0) {
+      return { tile: null, general: null, city: null, hoverType: null };
+    }
 
     const hits = this.raycaster.intersectObjects(this._pickables, true);
-
     let tile = null;
     let general = null;
+    let city = null;
+    let hoverType = null;
 
     for (const h of hits) {
       let cur = h.object;
       while (cur) {
         const ud = cur.userData;
-        if (!general && ud?.general) general = ud.general;
-        if (!tile && ud?.tile) tile = ud.tile;
-        if (general && tile) break;
+        if (ud?.hoverable === 'general' && !general) {
+          general = ud.general;
+          hoverType = 'general';
+        }
+        if (ud?.hoverable === 'city' && !city) {
+          city = ud.city;
+          if (!general) hoverType = 'city';
+        }
+        if (ud?.tile && !tile) tile = ud.tile;
         cur = cur.parent;
       }
-      if (general && tile) break;
+      if (general && tile && city) break;
     }
 
-    // ─── Если нашли general, но не tile — берём tile по позиции генерала ───
-    // (часто бывает: клик попал в верхушку маркера, а плита ниже)
-    if (general && !tile) {
-      // tile можно найти по ключу hex, если у нас есть карта (не в InputController),
-      // поэтому отдаём null — Game обработает fallback по general.hex.
-    }
-
-    return { tile, general };
+    return { tile, general, city, hoverType };
   }
 
   _handleClick(e) {
-    const { tile, general } = this._pick(e.clientX, e.clientY);
-    this.onTileClick?.(tile, general);
+    const { tile, general, city } = this._pick(e.clientX, e.clientY);
+    this.onTileClick?.(tile, general, city);
   }
 
   _handleHover(e) {
-    const { tile } = this._pick(e.clientX, e.clientY);
-    const key = tile?.key ?? null;
+    const { tile, hoverType, general } = this._pick(e.clientX, e.clientY);
+    const key = `${hoverType || 'none'}:${general?.id || ''}:${tile?.key || ''}`;
     if (key === this._lastHoverKey) return;
     this._lastHoverKey = key;
-    this.canvas.style.cursor = tile ? 'pointer' : 'default';
-    this.onTileHover?.(tile, { x: e.clientX, y: e.clientY });
+
+    let cursor = 'default';
+    if (hoverType === 'general' || hoverType === 'city') cursor = 'pointer';
+
+    this.canvas.style.cursor = cursor;
+    this.onTileHover?.(tile, { x: e.clientX, y: e.clientY }, { hoverType, general });
   }
 }

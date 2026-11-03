@@ -192,4 +192,16 @@ export class SceneBuilder {
     this._attackOverlays.clear();
     this._fogVisuals.clear();
   }
+
+  setGeneralHovered(generalId, isHovered) {
+    const v = this._generalVisuals.get(generalId);
+    if (v) v.setHovered(isHovered);
+  }
+  
+  setCityHovered(cityId, isHovered) {
+    const v = this._cityVisuals.get(cityId);
+    if (!v) return;
+    // Лёгкая подсветка города: поднимаем группу
+    v.group.position.y = isHovered ? 0.3 : 0;
+  }
 }
