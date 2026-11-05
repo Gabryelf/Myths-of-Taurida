@@ -23,7 +23,7 @@ export class Battle {
     this.playerSide = playerSide;
     this.maxIdleTurns = maxIdleTurns;
 
-    // Террейн-модификатор
+    // Террейн-модификатор (стоимость карт, штрафы города)
     this.terrain = new TerrainBattleModifier(targetTile?.terrain || 'plain');
 
     this.attacker = this._makeSide(attackerGen, attackerDeck || []);
@@ -43,7 +43,11 @@ export class Battle {
     this.finished = false;
     this.winner = null;
     this.selectedCard = null;
+
+    // ─── Визуальный мост (BattleVisualLayer) ───
     this.onEvent = null;
+    // ─── Возврат погибшей карты в пул (устанавливает BattleController) ───
+    this.onCardDied = null;
 
     this._drawOpeningHand('attacker', 1);
     this._drawOpeningHand('defender', 1);
@@ -106,16 +110,18 @@ export class Battle {
     d.tacticPoints = 1 + supportCount + 1;
   }
 
-  /** Итоговая стоимость карты для стороны с учётом террейна. */
+  /** Итоговая стоимость карты для стороны (с учётом террейна). */
   costFor(card, side) {
     return this.terrain.effectiveCost(card, side);
   }
 
+  // ─── Геттеры ───
   get isPlayerTurn() { return this.turn === this.playerSide && !this.finished; }
   get playerData() { return this[this.playerSide]; }
   get enemyData() { return this[this.playerSide === 'attacker' ? 'defender' : 'attacker']; }
   get enemySide() { return this.playerSide === 'attacker' ? 'defender' : 'attacker'; }
 
+  // ─── Действия ───
   selectCard(card) {
     if (!this.isPlayerTurn) return false;
     if (this.costFor(card, this.playerSide) > this.playerData.tacticPoints) return false;
@@ -199,7 +205,7 @@ export class Battle {
       this._endTurn(side);
     } catch (e) {
       console.error('[aiTurn]', e);
-      try { this._endTurn(side); } catch (_) { }
+      try { this._endTurn(side); } catch (_) {}
     }
   }
 
@@ -245,10 +251,11 @@ export class Battle {
       this._endTurn(side);
     } catch (e) {
       console.error('[autoPlay]', e);
-      try { this._endTurn(side); } catch (_) { }
+      try { this._endTurn(side); } catch (_) {}
     }
   }
 
+  // ─── Внутренний emit: способности + внешний колбэк ───
   _emit(event, payload) {
     if (this.onEvent) {
       try { this.onEvent(event, payload); } catch (e) { console.error('[Battle.onEvent]', e); }
@@ -259,7 +266,7 @@ export class Battle {
       for (const card of board.allCards()) {
         for (const ability of card.abilities) {
           const ctx = { ...ctxBase, self: card, side };
-          try { ability.fire(ctx); } catch (e) { }
+          try { ability.fire(ctx); } catch (e) {}
         }
       }
     }
@@ -385,6 +392,10 @@ export class Battle {
         board.remove(card);
         this._log(`${card.name} пал`);
         this._emit(BattleEvents.CARD_DIED, { card, side });
+        // Возврат карты игрока в пул найма
+        if (side === this.playerSide && this.onCardDied) {
+          try { this.onCardDied(card); } catch (e) { console.error('[Battle.onCardDied]', e); }
+        }
         this._checkColumnBonus();
       }
     }
@@ -451,20 +462,17 @@ export class Battle {
     if (this.log.length > 40) this.log.shift();
   }
 
-  /** Информация о бонусах линии для конкретной стороны. */
+  /** Бонусы линии для конкретной стороны. */
   getLineBonusInfoFor(side) {
     const lb = this.lineBonus[side];
     return {
-      attack: { active: lb.active.attack, desc: 'Полный ряд атаки: 1 урон полководцу врага каждый ход' },
+      attack:  { active: lb.active.attack,  desc: 'Полный ряд атаки: 1 урон полководцу врага каждый ход' },
       defense: { active: lb.active.defense, desc: 'Полный ряд обороны: блокирует обилки врага' },
       support: { active: lb.active.support, desc: 'Полный ряд поддержки: реген +1 каждый ход' },
     };
   }
 
-  /** Совместимость: инфа для игрока. */
-  getLineBonusInfo() {
-    return this.getLineBonusInfoFor(this.playerSide);
-  }
+  getLineBonusInfo() { return this.getLineBonusInfoFor(this.playerSide); }
 
   getColumnBonusInfoFor(side) {
     return this.columnBonus[side].active.map((active, i) => ({
@@ -476,9 +484,7 @@ export class Battle {
     }));
   }
 
-  getColumnBonusInfo() {
-    return this.getColumnBonusInfoFor(this.playerSide);
-  }
+  getColumnBonusInfo() { return this.getColumnBonusInfoFor(this.playerSide); }
 }
 
 function laneLabel(lane) {

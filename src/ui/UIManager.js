@@ -15,7 +15,11 @@ import { GlossaryModal } from './components/GlossaryModal.js';
 import { Minimap } from './components/Minimap.js';
 
 export class UIManager {
-  constructor({ root, toastRoot, bus, world, onEndTurn, onRecruit, battleController, marketController, sound }) {
+  constructor({
+    root, toastRoot, bus, world,
+    onEndTurn, onRecruit,
+    battleController, marketController, sound,
+  }) {
     this.root = root;
     this.bus = bus;
     this.world = world;
@@ -23,8 +27,10 @@ export class UIManager {
     this.onHire = null;
     this.onMarket = null;
     this.onRecruit = onRecruit;
+    this.battleController = battleController;
     this.marketController = marketController;
 
+    // ─── Базовые элементы ───
     this.toast = new Toast(toastRoot);
     this.tooltip = new Tooltip(root);
     this.generalPanel = new GeneralPanel(root);
@@ -32,16 +38,20 @@ export class UIManager {
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
 
+    // ─── HUD ───
     this._buildHud();
-
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
       this.sound?.play('click');
       onEndTurn?.();
     });
 
+    // ─── Модалки (battleController/marketController могут быть null до старта) ───
     this.recruitModal = new RecruitModal(root, { bus });
     this.cityPanel = new CityPanel(root, { bus });
-    this.battleModal = new BattleModal(root, { controller: battleController, bus });
+    this.battleModal = new BattleModal(root, {
+      controller: battleController,
+      bus,
+    });
     this.tutorial = new TutorialModal(root, () => {
       localStorage.setItem('tavrida_tutorial_v1', '1');
     });
@@ -50,24 +60,33 @@ export class UIManager {
     this.marketPanel = new MarketPanel(root, {
       bus, controller: marketController, world,
     });
-
     // Фракции
     this.factionsPanel = new FactionsPanel(root, { world });
-
     // Глоссарий
     this.glossary = new GlossaryModal(root);
 
-    // Мини-карта (создаётся после game.start, чтобы был доступ к sceneBuilder)
+    // Мини-карта создаётся после game.start
     this.minimap = null;
 
     this._subscribe();
+  }
+
+  // ─── Смена мира (при старте партии) ───
+  setWorld(world) {
+    this.world = world;
+    if (this.marketPanel) this.marketPanel.world = world;
+    if (this.factionsPanel) this.factionsPanel.world = world;
+    if (this.minimap) {
+      this.minimap.world = world;
+      this.minimap.refresh();
+    }
   }
 
   _buildHud() {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.1.0</div>
+      <div class="hud-title">ТАВРИДА · v0.1.1</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
         <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
@@ -79,6 +98,7 @@ export class UIManager {
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
+
     this.resourceBar.el = hud.querySelector('#resource-bar');
     this.resourceBar.refresh();
 
@@ -118,7 +138,6 @@ export class UIManager {
     btn.style.opacity = enabled ? '1' : '0.4';
   }
 
-  /** Создать мини-карту (вызывается из Game.start после cameraController). */
   initMinimap({ cameraController, onCenter }) {
     if (this.minimap) { this.minimap.refresh(); return; }
     this.minimap = new Minimap(this.root, {
@@ -134,22 +153,9 @@ export class UIManager {
   openRecruitModal({ factionId, general, world }) {
     this.recruitModal.open({ factionId, general, world });
   }
+
   openCityPanel({ tile, city, world }) {
     this.cityPanel.open({ tile, city, world });
-  }
-  openMarketForSelected() {
-    const general = this.world.selectedGeneralId
-      ? this.world.generals.find((g) => g.id === this.world.selectedGeneralId)
-      : null;
-    // fallback — первый полководец игрока
-    const g = general || this.world.generals.find(
-      (x) => x.factionId === this.world.playerFactionId && x.alive
-    );
-    if (!g) {
-      this.bus.emit('toast:show', { text: 'Нет полководца' });
-      return;
-    }
-    this.marketPanel.open({ general: g });
   }
 
   bindResources(pool) {
@@ -178,11 +184,12 @@ export class UIManager {
         this.deckPanel.hide();
       }
     });
-    this.bus.on('general:moved', ({ general, cost }) => {
+    this.bus.on('general:moved', () => {
       this.generalPanel.refresh();
     });
     this.bus.on('resources:changed', () => {
-      const factionId = this.world.playerFactionId;
+      const factionId = this.world?.playerFactionId;
+      if (!factionId) return;
       const pool = this.world.resourcePools.get(factionId);
       if (pool) this.bindResources(pool);
     });

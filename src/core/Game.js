@@ -14,31 +14,46 @@ import { SoundManager } from '../infrastructure/audio/SoundManager.js';
 import { ConfirmDialog } from '../ui/components/ConfirmDialog.js';
 import { MarketController } from '../application/MarketController.js';
 
+// ─── Лобби / коллекция / профиль ───
+import { LobbyScreen } from '../ui/components/lobby/LobbyScreen.js';
+import { SummonModal } from '../ui/components/lobby/SummonModal.js';
+import { SaveManager } from '../domain/collection/SaveManager.js';
+import { createStarterProfile } from '../domain/collection/PlayerProfileFactory.js';
+import { DeckRepository } from '../domain/deck/DeckRepository.js';
+
 export class Game {
   constructor({ canvas, uiRoot, toastRoot }) {
     this.logger = new Logger('Game');
     this.bus = new EventBus();
-    this.world = new World({ seed: Date.now() & 0xffff, radius: 6 });
 
+    // ─── Профиль игрока: коллекция, монеты, колоды ───
+    this.profile = SaveManager.load() || createStarterProfile('scythians');
+    this.deckRepo = DeckRepository.fromJSON(
+      this.profile.unlockedDecks,
+      this.profile.collection,
+    );
+    // Автосборка стартовых колод для всех фракций, если пусто
+    for (const fid of ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths']) {
+      const deck = this.deckRepo.getDeck(fid);
+      if (deck.totalCount === 0) this.deckRepo.autoFill(fid);
+    }
+
+    // ─── Мир создаётся при старте партии; пока — null ───
+    this.world = null;
+
+    // ─── Рендер / сцена ───
     this.renderer = new Renderer(canvas);
     this.cameraController = new CameraController(this.renderer.camera, this.renderer.renderer);
     this.sceneBuilder = new SceneBuilder(this.renderer.scene);
-
     this.sound = new SoundManager();
-    this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
 
-    // ─── Контроллеры (приложение) ───
-    this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
-    this.marketController = new MarketController({ world: this.world, bus: this.bus });
-    this.battleController = new BattleController({ world: this.world, bus: this.bus });
-
-    // ─── UI ───
+    // ─── UI (создаём до мира, world подставим позже) ───
     this.ui = new UIManager({
-      root: uiRoot, toastRoot, bus: this.bus, world: this.world,
+      root: uiRoot, toastRoot, bus: this.bus, world: null,
       onEndTurn: () => this.endTurn(),
-      onRecruit: (key) => this.recruitController.tryRecruit(key),
-      battleController: this.battleController,
-      marketController: this.marketController,
+      onRecruit: (key) => this.recruitController?.tryRecruit(key),
+      battleController: null,
+      marketController: null,
       sound: this.sound,
     });
     this.ui.onHire = () => this.openRecruitForSelected();
@@ -52,7 +67,7 @@ export class Game {
     });
     this.input.attachCameraController(this.cameraController);
 
-    // ─── Подписки ───
+    // ─── Подписки шины ───
     this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
     this.bus.on('battle:started', () => this.sound.play('play'));
 
@@ -64,9 +79,95 @@ export class Game {
     this._hoveredCityId = null;
     this._running = false;
     this._aiBusy = false;
+
+    // ─── Лобби / модалки ───
+    this.lobby = null;
+    this.summonModal = null;
   }
 
-  start(factionId = 'scythians') {
+  // ═══════════════════════════════════════════
+  //  СТАРТ: показываем лобби
+  // ═══════════════════════════════════════════
+  start(_factionId = 'scythians') {
+    this._showLobby();
+    this._loop();
+  }
+
+  _showLobby() {
+    this.lobby = new LobbyScreen(this.ui.root, {
+      profile: this.profile,
+      decks: this.deckRepo,
+      onPlay: (factionId) => this._startGame(factionId),
+      onSummon: () => this._openSummon(),
+      onSave: (opts) => {
+        this.profile.unlockedDecks = this.deckRepo.toJSON();
+        SaveManager.save(this.profile);
+        if (opts?.error) this.bus.emit('toast:show', { text: opts.error });
+      },
+    });
+    this.lobby.show();
+  }
+
+  _openSummon() {
+    if (!this.summonModal) {
+      this.summonModal = new SummonModal(this.ui.root, {
+        profile: this.profile,
+        onSummoned: () => {
+          this.profile.unlockedDecks = this.deckRepo.toJSON();
+          SaveManager.save(this.profile);
+          this.lobby?._render();
+        },
+      });
+    }
+    this.summonModal.open();
+  }
+
+  _startGame(factionId) {
+    const v = this.deckRepo.validate(factionId);
+    if (!v.ok) {
+      this.bus.emit('toast:show', { text: v.errors.join('; ') });
+      return;
+    }
+    if (this.lobby) this.lobby.hide();
+    this._initWorldForFaction(factionId);
+  }
+
+  _initWorldForFaction(factionId) {
+    const playerDeck = this.deckRepo.getDeck(factionId);
+
+    // Пересоздаём мир с колодой игрока
+    this.world = new World({
+      seed: Date.now() & 0xffff,
+      radius: 6,
+      playerDeck,
+    });
+
+    // Контроллеры на новый мир
+    this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
+    this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
+    this.marketController = new MarketController({ world: this.world, bus: this.bus });
+    this.battleController = new BattleController({ world: this.world, bus: this.bus });
+
+    // Обновляем UI (привязка к новому миру)
+    this.ui.setWorld(this.world);
+    this.ui.battleController = this.battleController;
+    this.ui.marketController = this.marketController;
+    if (this.ui.battleModal) {
+      this.ui.battleModal.controller = this.battleController;
+    }
+    if (this.ui.marketPanel) {
+      this.ui.marketPanel.controller = this.marketController;
+      this.ui.marketPanel.world = this.world;
+    }
+    if (this.ui.factionsPanel) {
+      this.ui.factionsPanel.world = this.world;
+    }
+
+    // Запуск мира
+    this._startWorld(factionId);
+  }
+
+  _startWorld(factionId) {
     this.world.selectPlayerFaction(factionId);
     const pool = this.world.resourcePools.get(this.world.playerFactionId);
     this.ui.bindResources(pool);
@@ -81,7 +182,7 @@ export class Game {
       this.cameraController.centerOn(player.startHex, Theme.hexSize);
     }
 
-    // ─── Мини-карта ───
+    // Мини-карта
     this.ui.initMinimap({
       cameraController: this.cameraController,
       onCenter: (tile) => {
@@ -89,7 +190,7 @@ export class Game {
       },
     });
 
-    // ─── Туториал (обновлённый ключ) ───
+    // Туториал
     if (!localStorage.getItem('tavrida_tutorial_v1')) {
       this.ui.showTutorial(() => {
         this.input.setPickables(this.sceneBuilder.getPickables());
@@ -97,7 +198,6 @@ export class Game {
     }
 
     this._updateHireButton();
-    this._loop();
     this.bus.emit('game:started', { faction: factionId });
     this.logger.info('Game started:', factionId);
   }
@@ -106,9 +206,10 @@ export class Game {
   //  ВВОД
   // ═══════════════════════════════════════════
   _onTileClick(tile, hitGeneral, hitCity) {
+    if (!this.world) return;
     const playerFactionId = this.world.playerFactionId;
 
-    // 1) Полководец имеет приоритет
+    // 1) Полководец
     if (hitGeneral) {
       if (hitGeneral.factionId !== playerFactionId) {
         if (this.selectedGeneralId) {
@@ -130,7 +231,7 @@ export class Game {
       return;
     }
 
-    // 2) Город/деревня
+    // 2) Город
     if (hitCity && tile?.cityId) {
       this._openCity(tile, hitCity);
       return;
@@ -195,7 +296,7 @@ export class Game {
       confirmText: 'Атаковать',
       cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost),
-      onCancel: () => { },
+      onCancel: () => {},
     });
   }
 
@@ -289,7 +390,7 @@ export class Game {
       (playerSide === 'attacker' && winner === 'attacker') ||
       (playerSide === 'defender' && winner === 'defender');
 
-    // ─── Опыт и повышение уровня ───
+    // ─── XP и перки ───
     const playerGen = playerSide === 'attacker' ? attackerGen : defenderGen;
     if (playerGen && playerWon) {
       const events = playerGen.addXp(10);
@@ -349,6 +450,7 @@ export class Game {
   }
 
   openMarket() {
+    if (!this.world) return;
     const general = this.selectedGeneralId
       ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
       : this.world.generals.find((g) => g.factionId === this.world.playerFactionId && g.alive);
@@ -360,6 +462,7 @@ export class Game {
   }
 
   openRecruitForSelected() {
+    if (!this.world) return;
     const general = this.selectedGeneralId
       ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
       : null;
@@ -380,7 +483,7 @@ export class Game {
   }
 
   _isGeneralInOwnCity(general) {
-    if (!general) return null;
+    if (!general || !this.world) return null;
     const tile = this.world.map.get(general.hex.q, general.hex.r);
     if (!tile?.cityId) return null;
     const city = this.world.getCity(tile.cityId);
@@ -389,7 +492,7 @@ export class Game {
   }
 
   _updateHireButton() {
-    const general = this.selectedGeneralId
+    const general = this.selectedGeneralId && this.world
       ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
       : null;
     const own = general ? this._isGeneralInOwnCity(general) : null;
@@ -400,7 +503,7 @@ export class Game {
   //  КОНЕЦ ХОДА + ИИ
   // ═══════════════════════════════════════════
   endTurn() {
-    if (this._aiBusy) return;
+    if (this._aiBusy || !this.world) return;
     this.world.endTurn();
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);

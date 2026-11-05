@@ -22,6 +22,7 @@
 @import './components/factions-panel.css';
 @import './components/minimap.css';
 @import './components/glossary-modal.css';
+@import './components/lobby.css';
 
 #app { position: relative; width: 100%; height: 100%; }
 #game-canvas { position: absolute; inset: 0; display: block; }

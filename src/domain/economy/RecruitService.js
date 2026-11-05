@@ -15,26 +15,24 @@ export class RecruitService {
     if (!city || city.factionId !== factionId) {
       return { ok: false, reason: 'Найм только в своих городах и деревнях' };
     }
-  
-    // Карта должна быть в пуле
-    const pool = this.world.getRecruitPool(factionId);
-    const poolIdx = pool.findIndex((p) => p.key === cardKey);
-    if (poolIdx === -1) {
-      return { ok: false, reason: 'Этой карты нет в найме' };
+    // Забираем из накопительного пула
+    const pool = this.world.recruitPools.get(factionId);
+    if (!pool) return { ok: false, reason: 'Нет пула найма' };
+    const available = pool.available.find((c) => c.key === cardKey);
+    if (!available) {
+      return { ok: false, reason: 'Этой карты нет в пуле найма' };
     }
-  
     const def = CardFactory.defForKey(cardKey);
     if (!def) return { ok: false, reason: 'Неизвестная карта' };
     const card = CardFactory.create(cardKey);
-  
-    // Очки найма (2/1 за город/деревню) — не больше лимита
+
+    // Ограничение по золоту/оружию/очкам найма
     const usedPoints = this.world.recruitPointsUsed(factionId);
     const needPoints = this.economy.recruitPointsFor(card);
     const totalPoints = this.economy.recruitPointsForFaction(this.world, factionId);
     if (usedPoints + needPoints > totalPoints) {
       return { ok: false, reason: `Недостаточно очков найма (${usedPoints}/${totalPoints})` };
     }
-  
     const cost = this.economy.recruitCost(card);
     const poolRes = this.world.resourcePools.get(factionId);
     if (!poolRes.canAfford(cost)) {
@@ -43,12 +41,10 @@ export class RecruitService {
     if (!general.deck.canAdd(card)) {
       return { ok: false, reason: 'Колода переполнена' };
     }
-  
     poolRes.spend(cost);
     general.deck.add(card);
     this.world.markRecruitPointsUsed(factionId, needPoints);
-    // Удаляем карту из пула
-    pool.splice(poolIdx, 1);
+    pool.take(cardKey);   // ← убираем из пула
     return { ok: true, card, cost, points: needPoints };
   }
 
