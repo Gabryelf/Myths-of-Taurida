@@ -160,3 +160,18 @@
   margin-top: 2px;
   text-transform: none;
 }
+
+.bc-count.low {
+  background: radial-gradient(circle at 30% 30%, #f5b342, #8a5a10);
+  box-shadow: 0 0 8px rgba(245, 179, 66, 0.7);
+}
+.bc-count.critical {
+  background: radial-gradient(circle at 30% 30%, #ff3a3a, #4a0a0a);
+  box-shadow: 0 0 12px rgba(255, 58, 58, 0.9);
+  animation: criticalPulse 1s ease-in-out infinite;
+}
+@keyframes criticalPulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.12); }
+}
+.bc-count .icon { filter: drop-shadow(0 0 2px #000); }

@@ -13,6 +13,7 @@ import { MarketPanel } from './components/MarketPanel.js';
 import { FactionsPanel } from './components/FactionsPanel.js';
 import { GlossaryModal } from './components/GlossaryModal.js';
 import { Minimap } from './components/Minimap.js';
+import { QuickJump } from './components/QuickJump.js';
 
 export class UIManager {
   constructor({
@@ -43,6 +44,13 @@ export class UIManager {
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
       this.sound?.play('click');
       onEndTurn?.();
+    });
+
+    // ─── Быстрые прыжки по карте ───
+    this.quickJump = new QuickJump(this.root, {
+      world: this.world,
+      cameraController: null,   // подставим в initMinimap
+      theme: { hexSize: 24 },   // будет обновлено через setTheme
     });
 
     // ─── Модалки (battleController/marketController могут быть null до старта) ───
@@ -145,6 +153,11 @@ export class UIManager {
       cameraController,
       onCenter,
     });
+    if (this.quickJump) {
+      this.quickJump.cameraController = cameraController;
+      // theme подтянем из SceneBuilder/ThemeConfig в Game, но проще — из глобалки
+      this.quickJump.theme = { hexSize: this.hexSize || 24 };
+    }
     this.bus.on('general:moved', () => this.minimap?.refresh());
     this.bus.on('turn:ended', () => this.minimap?.refresh());
     this.bus.on('battle:finished', () => this.minimap?.refresh());
@@ -202,5 +215,16 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
+  }
+
+  setWorld(world) {
+    this.world = world;
+    if (this.marketPanel) this.marketPanel.world = world;
+    if (this.factionsPanel) this.factionsPanel.world = world;
+    if (this.minimap) {
+      this.minimap.world = world;
+      this.minimap.refresh();
+    }
+    if (this.quickJump) this.quickJump.setWorld(world);
   }
 }

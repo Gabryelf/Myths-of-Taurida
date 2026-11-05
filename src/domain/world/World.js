@@ -12,7 +12,7 @@ import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
 
 export class World {
-  constructor({ seed = 1337, radius = 6, playerDeck = null } = {}) {
+  constructor({ seed = 1337, radius = 22, playerDeck = null } = {}) {
     this.seed = seed;
     this.radius = radius;
     const data = new WorldGenerator({ seed, radius }).generate();
@@ -95,21 +95,14 @@ export class World {
     }
   }
 
-  /**
-   * Стартовые колоды полководцев.
-   *  - Игрок: карты из PlayerDeck (если есть), иначе fallback.
-   *  - ИИ: стандартные карты фракции.
+    /**
+   * Генерал игрока стартует БЕЗ карт — карты докупаются в городе из пула.
+   * У ИИ — как раньше, 3 стартовые карты (для баланса).
    */
-  _seedStartingDecks() {
-    for (const gen of this.generals) {
-      const isPlayerFaction = gen.factionId === this.playerFactionId;
-      if (isPlayerFaction && this.playerDeck) {
-        const keys = this.playerDeck.expandedKeys();
-        for (const k of keys) {
-          const card = CardFactory.create(k);
-          if (gen.deck.canAdd(card)) gen.deck.add(card);
-        }
-      } else {
+     _seedStartingDecks() {
+      for (const gen of this.generals) {
+        const isPlayerFaction = gen.factionId === this.playerFactionId;
+        if (isPlayerFaction) continue;   // ← пустая армия
         const keys = CardFactory.keysForFaction(gen.factionId);
         const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
         const pool = cheap.length > 0 ? cheap : keys;
@@ -119,15 +112,19 @@ export class World {
         }
       }
     }
-  }
 
-  _initRecruitPools() {
-    for (const f of this.factions) {
-      this.recruitPools.set(f.id, new RecruitPool({ factionId: f.id }));
-      // Первичное начисление очков — за текущие города/деревни
-      this.recruitPools.get(f.id).addTurnIncome(this);
+    _initRecruitPools() {
+      for (const f of this.factions) {
+        const pool = new RecruitPool({ factionId: f.id });
+        this.recruitPools.set(f.id, pool);
+        // Игрок: на старте в пуле 2 карты (стартовая выдача)
+        if (f.id === this.playerFactionId) {
+          pool.addStarterCards(2);
+        } else {
+          pool.addTurnIncome(this);
+        }
+      }
     }
-  }
 
   get playerFaction() { return this.factions.find((f) => f.isPlayer) || null; }
   get playerGeneral() {

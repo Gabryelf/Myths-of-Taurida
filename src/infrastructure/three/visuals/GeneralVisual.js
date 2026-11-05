@@ -13,90 +13,159 @@ export class GeneralVisual {
     const { size, general } = this;
     const cfg = Theme.general;
     const color = Theme.faction[general.factionId] || 0xd4a94c;
-
-    // ─── Сдвиг в сторону от центра гекса ───
-    // Полководец стоит на «площадке» со смещением +0.35*size вправо.
     const shiftX = size * 0.35;
     const shiftZ = size * 0.15;
 
     // Пьедестал
-    const pedGeo = new THREE.CylinderGeometry(size * 0.22, size * 0.26, size * 0.10, 12);
-    const pedMat = new THREE.MeshStandardMaterial({
-      color: cfg.pedestalColor, roughness: 0.6, metalness: 0.5,
-      emissive: cfg.pedestalEmissive, emissiveIntensity: 0.3,
-    });
-    const ped = new THREE.Mesh(pedGeo, pedMat);
+    const ped = new THREE.Mesh(
+      new THREE.CylinderGeometry(size * 0.22, size * 0.26, size * 0.1, 12),
+      new THREE.MeshStandardMaterial({
+        color: cfg.pedestalColor, roughness: 0.6, metalness: 0.5,
+        emissive: cfg.pedestalEmissive, emissiveIntensity: 0.3,
+      }),
+    );
     ped.position.set(shiftX, size * 0.05, shiftZ);
     ped.castShadow = true;
     ped.receiveShadow = true;
     this.group.add(ped);
 
     // Цветной диск
-    const discGeo = new THREE.CylinderGeometry(
-      size * cfg.discRadius * 0.55,
-      size * cfg.discRadius * 0.65,
-      size * cfg.discHeight,
-      8,
+    const disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        size * cfg.discRadius * 0.55,
+        size * cfg.discRadius * 0.65,
+        size * cfg.discHeight, 8,
+      ),
+      new THREE.MeshStandardMaterial({
+        color, emissive: color, emissiveIntensity: 0.5,
+        roughness: 0.3, metalness: 0.7,
+      }),
     );
-    const discMat = new THREE.MeshStandardMaterial({
-      color, emissive: color, emissiveIntensity: 0.5,
-      roughness: 0.3, metalness: 0.7,
-    });
-    const disc = new THREE.Mesh(discGeo, discMat);
     disc.position.set(shiftX, size * 0.18, shiftZ);
     disc.castShadow = true;
     this.group.add(disc);
 
-    // Знамя
-    const poleGeo = new THREE.CylinderGeometry(
-      size * 0.012, size * 0.012, size * cfg.flagHeight * 0.8, 6,
+    // ─── Конь ───
+    const horseColor = 0x3a2010;
+    const horseBody = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.55, size * 0.22, size * 0.22),
+      new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
     );
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a });
-    const pole = new THREE.Mesh(poleGeo, poleMat);
-    pole.position.set(shiftX + size * 0.18, size * 0.35, shiftZ);
-    this.group.add(pole);
+    horseBody.position.set(shiftX, size * 0.38, shiftZ);
+    horseBody.castShadow = true;
+    this.group.add(horseBody);
 
-    const bannerGeo = new THREE.PlaneGeometry(
-      size * cfg.bannerWidth * 0.8,
-      size * cfg.bannerHeight * 0.8,
+    // Ноги коня (4)
+    for (let i = 0; i < 4; i++) {
+      const leg = new THREE.Mesh(
+        new THREE.CylinderGeometry(size * 0.03, size * 0.025, size * 0.22, 5),
+        new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.9 }),
+      );
+      const dx = (i < 2 ? -1 : 1) * size * 0.18;
+      const dz = (i % 2 === 0 ? -1 : 1) * size * 0.06;
+      leg.position.set(shiftX + dx, size * 0.15, shiftZ + dz);
+      leg.castShadow = true;
+      this.group.add(leg);
+    }
+
+    // Шея + голова коня
+    const neck = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.12, size * 0.24, size * 0.12),
+      new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
     );
-    const bannerMat = new THREE.MeshStandardMaterial({
-      color, emissive: color, emissiveIntensity: 0.35, side: THREE.DoubleSide,
-    });
-    const banner = new THREE.Mesh(bannerGeo, bannerMat);
-    banner.position.set(shiftX + size * 0.32, size * 0.7, shiftZ);
-    this.group.add(banner);
+    neck.position.set(shiftX + size * 0.32, size * 0.5, shiftZ);
+    neck.rotation.z = -0.4;
+    neck.castShadow = true;
+    this.group.add(neck);
 
-    // Кольцо выбора (скрыто)
-    const selGeo = new THREE.RingGeometry(size * 0.28, size * 0.34, 32);
-    const selMat = new THREE.MeshBasicMaterial({
-      color: cfg.selectedGlow, side: THREE.DoubleSide,
-      transparent: true, opacity: 0.9, depthWrite: false,
-    });
-    this._selRing = new THREE.Mesh(selGeo, selMat);
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.16, size * 0.1, size * 0.1),
+      new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
+    );
+    head.position.set(shiftX + size * 0.42, size * 0.58, shiftZ);
+    head.castShadow = true;
+    this.group.add(head);
+
+    // ─── Всадник ───
+    const bodyColor = color;
+    const rider = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.16, size * 0.2, size * 0.14),
+      new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.3 }),
+    );
+    rider.position.set(shiftX, size * 0.62, shiftZ);
+    rider.castShadow = true;
+    this.group.add(rider);
+
+    // Голова
+    const headR = new THREE.Mesh(
+      new THREE.SphereGeometry(size * 0.07, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0xd4a070, roughness: 0.7 }),
+    );
+    headR.position.set(shiftX, size * 0.78, shiftZ);
+    headR.castShadow = true;
+    this.group.add(headR);
+
+    // Шлем
+    const helmet = new THREE.Mesh(
+      new THREE.ConeGeometry(size * 0.08, size * 0.08, 8),
+      new THREE.MeshStandardMaterial({ color: 0xc0a060, roughness: 0.4, metalness: 0.8 }),
+    );
+    helmet.position.set(shiftX, size * 0.84, shiftZ);
+    this.group.add(helmet);
+
+    // ─── Меч в правой руке ───
+    const swordPivot = new THREE.Group();
+    swordPivot.position.set(shiftX + size * 0.12, size * 0.66, shiftZ);
+    swordPivot.rotation.z = 0.4;
+
+    const blade = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.02, size * 0.28, size * 0.015),
+      new THREE.MeshStandardMaterial({
+        color: 0xd0d0d0, roughness: 0.2, metalness: 0.9,
+        emissive: 0x303030, emissiveIntensity: 0.2,
+      }),
+    );
+    blade.position.y = size * 0.2;
+    blade.castShadow = true;
+    swordPivot.add(blade);
+
+    const hilt = new THREE.Mesh(
+      new THREE.BoxGeometry(size * 0.06, size * 0.02, size * 0.02),
+      new THREE.MeshStandardMaterial({ color: 0x8a6a30, metalness: 0.7 }),
+    );
+    swordPivot.add(hilt);
+
+    this.group.add(swordPivot);
+
+    // ─── Кольцо выбора + свет ───
+    this._selRing = new THREE.Mesh(
+      new THREE.RingGeometry(size * 0.28, size * 0.34, 32),
+      new THREE.MeshBasicMaterial({
+        color: cfg.selectedGlow, side: THREE.DoubleSide,
+        transparent: true, opacity: 0.9, depthWrite: false,
+      }),
+    );
     this._selRing.rotation.x = -Math.PI / 2;
-    this._selRing.position.set(shiftX, size * 0.15, shiftZ);
+    this._selRing.position.set(shiftX, size * 0.28, shiftZ);
     this._selRing.visible = false;
     this._selRing.renderOrder = 3;
     this.group.add(this._selRing);
 
-    // Свет для выбранного
     this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
-    this._light.position.set(shiftX, size * 0.25, shiftZ);
+    this._light.position.set(shiftX, size * 0.4, shiftZ);
     this.group.add(this._light);
 
-    // Hover-свет (включается при наведении)
     this._hoverLight = new THREE.PointLight(0x58a6ff, 0, size * 3);
-    this._hoverLight.position.set(shiftX, size * 0.25, shiftZ);
+    this._hoverLight.position.set(shiftX, size * 0.4, shiftZ);
     this.group.add(this._hoverLight);
 
-    // ─── userData: general + hoverable ───
+    // userData
     this.group.traverse((c) => {
       if (c.isMesh || c.isSprite) {
         c.userData = c.userData || {};
         c.userData.general = general;
         c.userData.hoverable = 'general';
-        c.userData.generalShiftX = shiftX;   // запоминаем сдвиг (для hover-подсветки)
+        c.userData.generalShiftX = shiftX;
         c.userData.generalShiftZ = shiftZ;
       }
     });

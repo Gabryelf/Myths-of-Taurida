@@ -10,10 +10,9 @@ export class CameraController {
     this.target = new THREE.Vector3(0, 0, 0);
     this.angle = 0.6;
     this.pitch = 0.9;
-    this.distance = 40;
+    this.distance = 160;
     this._update();
   }
-
   centerOn(hex, size) {
     const sqrt3 = Math.sqrt(3);
     this.target.x = size * (sqrt3 * hex.q + (sqrt3 / 2) * hex.r);
@@ -28,7 +27,7 @@ export class CameraController {
   }
 
   zoom(delta) {
-    this.distance = Math.max(14, Math.min(80, this.distance + delta * 0.03));
+    this.distance = Math.max(40, Math.min(320, this.distance + delta * 0.1));
     this._update();
   }
 

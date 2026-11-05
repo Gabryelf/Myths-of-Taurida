@@ -137,8 +137,8 @@ export class Game {
 
     // Пересоздаём мир с колодой игрока
     this.world = new World({
-      seed: Date.now() & 0xffff,
-      radius: 6,
+      seed: 1337,        // ← фиксированный seed, карта не меняется
+      radius: 22,        // ← большой радиус под новую карту
       playerDeck,
     });
 
@@ -161,6 +161,10 @@ export class Game {
     }
     if (this.ui.factionsPanel) {
       this.ui.factionsPanel.world = this.world;
+    }
+    if (this.ui.quickJump) {
+      this.ui.quickJump.theme = { hexSize: Theme.hexSize };
+      this.ui.quickJump.cameraController = this.cameraController;
     }
 
     // Запуск мира

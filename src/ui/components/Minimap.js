@@ -74,6 +74,7 @@ export class Minimap {
     }
 
     // Города
+    // Города
     for (const city of this.world.cities) {
       if (!city.tileKey) continue;
       const tile = this.world.map.getByKey(city.tileKey);
@@ -81,10 +82,19 @@ export class Minimap {
       const { x, z } = tile.hex.toWorld(1);
       const cx = offX + (x - minX) * scale;
       const cy = offZ + (z - minZ) * scale;
-      ctx.fillStyle = city.isCity ? '#f5d57a' : '#b8a380';
+      const isMine = city.factionId === this.world.playerFactionId;
+      // Свои города — ярче и крупнее
+      ctx.fillStyle = isMine
+        ? (city.isCity ? '#f5d57a' : '#d4a94c')
+        : (city.isCity ? '#8a7a58' : '#5a4a30');
       ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(2.5, scale * 0.35), 0, Math.PI * 2);
+      ctx.arc(cx, cy, Math.max(2.5, scale * (isMine ? 0.5 : 0.35)), 0, Math.PI * 2);
       ctx.fill();
+      if (isMine) {
+        ctx.strokeStyle = '#fff3d0';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
     }
 
     // Полководцы
@@ -93,15 +103,17 @@ export class Minimap {
       const { x, z } = gen.hex.toWorld(1);
       const cx = offX + (x - minX) * scale;
       const cy = offZ + (z - minZ) * scale;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
+      const isMine = gen.factionId === this.world.playerFactionId;
+      // Свои — крупнее с обводкой
+      ctx.strokeStyle = isMine ? '#fff3d0' : '#fff';
+      ctx.lineWidth = isMine ? 2 : 1.5;
       ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(3, scale * 0.5), 0, Math.PI * 2);
+      ctx.arc(cx, cy, Math.max(3, scale * (isMine ? 0.7 : 0.5)), 0, Math.PI * 2);
       ctx.stroke();
       const c = Theme.faction[gen.factionId] || 0xffffff;
       ctx.fillStyle = '#' + c.toString(16).padStart(6, '0');
       ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(2.5, scale * 0.42), 0, Math.PI * 2);
+      ctx.arc(cx, cy, Math.max(2.5, scale * (isMine ? 0.6 : 0.42)), 0, Math.PI * 2);
       ctx.fill();
     }
   }

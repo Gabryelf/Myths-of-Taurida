@@ -80,6 +80,14 @@ export class RecruitPool {
         // Не пытаемся сразу выкупить — только на следующем ходу
     }
 
+    /** На старте партии — сразу выдать N карт из начала очереди без трат очков. */
+    addStarterCards(count = 2) {
+        for (let i = 0; i < count && this.queue.length > 0; i++) {
+            const c = this.queue.shift();
+            this.available.push({ key: c.key, str: c.str });
+        }
+    }
+
     toJSON() {
         return {
             points: this.points,

@@ -13,7 +13,12 @@ export class Renderer {
   constructor(canvas) {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(Theme.sky.color);
-    this.scene.fog = new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity);
+    //this.scene.fog = new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity);
+    // Туман убран — на большой карте он съедает обзор.
+    // Если нужна атмосфера — включай через Theme.sky.fogDensity > 0.
+    this.scene.fog = Theme.sky.fogDensity > 0
+    ? new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity)
+    : null;
 
     this.camera = new THREE.PerspectiveCamera(
       45, window.innerWidth / window.innerHeight, 0.1, 1000,
@@ -61,14 +66,14 @@ export class Renderer {
     this.sea = new SeaVisual();
     this.sea.addTo(this.scene);
 
-    this.stars = new StarField();
-    this.stars.addTo(this.scene);
+    //this.stars = new StarField();
+    //this.stars.addTo(this.scene);
   }
 
   tick() {
     const t = (performance.now() - this._t0) / 1000;
     this.sea.update(t);
-    this.stars.update(t);
+    //this.stars.update(t);
     this.renderer.render(this.scene, this.camera);
   }
 

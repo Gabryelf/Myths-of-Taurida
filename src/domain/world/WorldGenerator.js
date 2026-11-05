@@ -1,46 +1,36 @@
 import { TileFactory } from '../hex/TileFactory.js';
 import { HexMap } from '../hex/HexMap.js';
 import { Hex } from '../hex/Hex.js';
-import { Random } from '../../core/Random.js';
 import { CityFactory } from '../city/CityFactory.js';
 import { TILE_TYPES } from '../hex/Tile.js';
-import { HexMath } from '../hex/HexMath.js';
+import { generateTauridaTiles, TAURIDA_CITIES } from './TauridaMap.js';
 
-export const HISTORIC_CITIES = CityFactory.defsWithPositions();
+export const HISTORIC_CITIES = TAURIDA_CITIES;
 
 export class WorldGenerator {
-  constructor({ seed = 1337, radius = 6 } = {}) {
+  constructor({ seed = 1337, radius = 22 } = {}) {
     this.seed = seed;
     this.radius = radius;
-    this.rng = new Random(seed);
   }
 
   generate() {
     const map = new HexMap();
-    for (let q = -this.radius; q <= this.radius; q++) {
-      const rMin = Math.max(-this.radius, -q - this.radius);
-      const rMax = Math.min(this.radius, -q + this.radius);
-      for (let r = rMin; r <= rMax; r++) {
-        const hex = new Hex(q, r);
-        const dist = hex.distance(new Hex(0, 0));
-        const isLand = this.rng.next() < 0.95 - (dist / this.radius) * 0.3;
-        if (isLand) {
-          const terrain = this._pickLandTerrain();
-          map.add(TileFactory.createLand({ q, r, terrain }));
-        } else {
-          map.add(TileFactory.createSea({ q, r }));
-        }
-      }
+
+    // ─── 1. Фиксированные гексы Крыма ───
+    const fixedTiles = generateTauridaTiles();
+    for (const t of fixedTiles) {
+      map.add(TileFactory.createLand({ q: t.q, r: t.r, terrain: t.terrain }));
     }
-    // Подключаем города
+    // Остальное (что не попало в маску) — не создаём. Гекс-карта —
+    // это только суша; море — плоскость SeaVisual.
+
+    // ─── 2. Города ───
     const cities = CityFactory.createAll();
-    const landTiles = map.landTiles();
     for (let i = 0; i < cities.length; i++) {
-      const def = HISTORIC_CITIES[i];
+      const def = TAURIDA_CITIES[i];
       if (!def) break;
-      const land = this._findNearestLand(map, def.q, def.r);
-      if (land && !land.cityId) {
-        const tile = map.get(land.q, land.r);
+      const tile = this._findNearestLand(map, def.q, def.r);
+      if (tile && !tile.cityId) {
         tile.isCity = def.isCity;
         tile.isVillage = !def.isCity;
         tile.cityId = cities[i].id;
@@ -48,18 +38,24 @@ export class WorldGenerator {
         cities[i].tileKey = tile.key;
       }
     }
-    // Дороги: между всеми городами и деревнями — цепочкой по прямым
+
+    // ─── 3. Дороги ───
     this._buildRoads(map, cities);
+
     return { tiles: map, radius: this.radius, seed: this.seed, cities };
   }
 
-  _findNearestLand(map, q, r, maxDist = 4) {
-    const visited = new Set([`${q},${r}`]);
+  /** Поиск ближайшего сухого гекса от точки. */
+  _findNearestLand(map, q, r, maxDist = 8) {
+    const visited = new Set();
     let queue = [{ q, r, d: 0 }];
     while (queue.length) {
       const cur = queue.shift();
+      const key = `${cur.q},${cur.r}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
       const t = map.get(cur.q, cur.r);
-      if (t && t.isLand) return { q: cur.q, r: cur.r };
+      if (t && t.isLand) return t;
       if (cur.d >= maxDist) continue;
       for (const d of [
         { q: cur.q + 1, r: cur.r }, { q: cur.q + 1, r: cur.r - 1 },
@@ -68,7 +64,6 @@ export class WorldGenerator {
       ]) {
         const k = `${d.q},${d.r}`;
         if (visited.has(k) || !map.has(d.q, d.r)) continue;
-        visited.add(k);
         queue.push({ q: d.q, r: d.r, d: cur.d + 1 });
       }
     }
@@ -76,7 +71,6 @@ export class WorldGenerator {
   }
 
   _buildRoads(map, cities) {
-    // Простой BFS между парами городов (по 2 ближайшим), ставим hasRoad на промежуточных
     const nodes = cities
       .map((c) => ({ c, tile: c.tileKey ? map.getByKey(c.tileKey) : null }))
       .filter((n) => n.tile);
@@ -84,7 +78,7 @@ export class WorldGenerator {
       for (let j = i + 1; j < nodes.length; j++) {
         const a = nodes[i].tile;
         const b = nodes[j].tile;
-        if (a.hex.distance(b.hex) > 4) continue;
+        if (a.hex.distance(b.hex) > 6) continue;
         const path = this._bfsPath(map, a, b);
         if (path) for (const t of path) t.hasRoad = true;
       }
@@ -110,14 +104,5 @@ export class WorldGenerator {
       }
     }
     return null;
-  }
-
-  _pickLandTerrain() {
-    const r = this.rng.next();
-    if (r < 0.4) return TILE_TYPES.PLAINS;
-    if (r < 0.65) return TILE_TYPES.FOREST;
-    if (r < 0.8) return TILE_TYPES.MOUNTAIN;
-    if (r < 0.92) return TILE_TYPES.STEPPE;
-    return TILE_TYPES.RUINS;
   }
 }
