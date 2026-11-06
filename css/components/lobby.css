@@ -144,7 +144,7 @@
     flex: 1;
     overflow-y: auto;
     margin-bottom: 12px;
-    padding: 4px;
+    padding: 8px;
 }
 
 .lobby-grid {
@@ -207,50 +207,69 @@
     text-transform: uppercase;
 }
 
-.lobby-card {
+/* ─── Карточка в лобби: CardDetailView + кнопка ─── */
+.lobby-card-wrap {
     position: relative;
-    background: rgba(10, 6, 3, 0.5);
-    border: 1px solid var(--color-gold-dark);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
 }
 
-.lobby-card-art {
-    height: 110px;
-    position: relative;
-    background-color: #2a1d0f;
-    background-size: cover;
-    background-position: center top;
+.lobby-card-wrap .card-detail {
+    width: 200px;
 }
 
 .lobby-card-count {
     position: absolute;
     top: 4px;
     right: 4px;
-    min-width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 12px;
     background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
     color: #fff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1.5px solid var(--color-gold-bright);
-    z-index: 2;
+    z-index: 5;
+    pointer-events: none;
 }
 
-.lobby-card-rarity {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(0, 0, 0, 0.6);
+.lobby-card-btn {
+    padding: 6px;
+    border: 1px solid var(--color-gold);
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.lobby-card-btn.add:hover {
+    background: #2a5a2c;
+    color: #a0e8b0;
+    border-color: #90d8a0;
+}
+
+.lobby-card-btn.remove:hover {
+    background: #5a1a1a;
+    color: #f0b0b0;
+    border-color: #ff8a8a;
+}
+
+/* ─── Сетка лобби — крупные карточки ─── */
+.lobby-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
 }
 
 .lobby-card-rarity-common {
@@ -277,27 +296,6 @@
     padding: 4px;
 }
 
-.lobby-card-btn {
-    padding: 4px;
-    border: none;
-    background: rgba(10, 6, 3, 0.9);
-    color: var(--color-gold-bright);
-    font-family: var(--font-ui);
-    font-size: 14px;
-    font-weight: 900;
-    cursor: pointer;
-    border-top: 1px solid rgba(212, 169, 76, 0.2);
-}
-
-.lobby-card-btn.add:hover {
-    background: #2a5a2c;
-    color: #a0e8b0;
-}
-
-.lobby-card-btn.remove:hover {
-    background: #5a1a1a;
-    color: #f0b0b0;
-}
 
 .lobby-footer {
     padding-top: 12px;

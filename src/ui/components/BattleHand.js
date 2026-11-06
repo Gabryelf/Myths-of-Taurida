@@ -47,6 +47,7 @@ export class BattleHand {
   _createCardEl(card, { disabled, selected, cost }) {
     const el = document.createElement('div');
     el.className = `battle-hand-card type-${card.type}`;
+    el.setAttribute('data-card-id', card.id);
     if (disabled) el.classList.add('disabled');
     if (selected) el.classList.add('selected');
 

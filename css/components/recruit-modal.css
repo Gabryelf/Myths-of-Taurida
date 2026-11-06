@@ -1,4 +1,10 @@
-.recruit-modal-overlay {
+/* ═══════════════════════════════════════════════════════════
+   Модалка найма карт в городе.
+   Карточки — через CardDetailView (полная карта с описанием обилок),
+   под картой — цена. Ховер — подсветка + подъём.
+   ═══════════════════════════════════════════════════════════ */
+
+   .recruit-modal-overlay {
     position: absolute;
     inset: 0;
     background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.9), rgba(0, 0, 0, 0.97));
@@ -9,14 +15,15 @@
     padding: 20px;
     backdrop-filter: blur(6px);
 }
-
 .recruit-modal-overlay.visible {
     display: flex;
 }
 
 .recruit-modal {
     width: 100%;
-    max-width: 900px;
+    max-width: 1100px;
+    max-height: 92vh;
+    overflow-y: auto;
     background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
         linear-gradient(160deg, #221610, #0a0603);
     border: 1px solid var(--color-gold);
@@ -40,135 +47,93 @@
     font-style: italic;
     font-size: 12px;
     padding-bottom: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     border-bottom: 1px solid rgba(212, 169, 76, 0.25);
 }
 
+/* ─── Сетка карточек ─── */
 .recruit-modal .rm-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
     margin-bottom: 16px;
 }
-.recruit-modal .rm-card {
+
+/* ─── Обёртка карточки: CardDetailView + строка цены ─── */
+.recruit-modal .rm-card-wrap {
     position: relative;
-    height: 220px;             /* ← было aspect-ratio: 3/4 */
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 1px solid var(--color-gold-dark);
-    background: #1a1208;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     cursor: pointer;
-    transition: all var(--transition-fast);
-}
-.recruit-modal .rm-art {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-color: #2a1d0f;
-    /* Для отладки: если картинки нет — покажется тёмный фон */
+    transition: transform var(--transition-fast);
 }
 
-.recruit-modal .rm-card:hover {
-    border-color: var(--color-gold-bright);
+.recruit-modal .rm-card-wrap:hover:not(.disabled) {
     transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(212, 169, 76, 0.4);
 }
 
-.recruit-modal .rm-card.disabled {
+.recruit-modal .rm-card-wrap:hover:not(.disabled) .card-detail {
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 6px 24px rgba(245, 213, 122, 0.5);
+}
+
+.recruit-modal .rm-card-wrap.disabled {
     opacity: 0.4;
     cursor: not-allowed;
     filter: grayscale(0.6);
 }
 
-.recruit-modal .rm-card.disabled:hover {
+.recruit-modal .rm-card-wrap.disabled:hover {
     transform: none;
+}
+
+.recruit-modal .rm-card-wrap.disabled .card-detail {
     border-color: var(--color-gold-dark);
     box-shadow: none;
 }
 
-.recruit-modal .rm-art {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center top;
-    background-color: #2a1d0f;
+/* CardDetailView внутри найма — фиксированная ширина */
+.recruit-modal .rm-card-wrap .card-detail {
+    width: 100%;
 }
 
-.recruit-modal .rm-name-top {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: rgba(10, 6, 3, 0.85);
-    padding: 3px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--color-text);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    z-index: 2;
-}
-
-.recruit-modal .rm-count {
-    position: absolute;
-    top: 24px;
-    right: 4px;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+/* ─── Строка цены под картой ─── */
+.recruit-modal .rm-card-cost {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(10, 6, 3, 0.7);
+    border: 1px solid rgba(212, 169, 76, 0.3);
+    border-radius: var(--radius-sm);
     font-size: 11px;
-    font-weight: 900;
-    color: #fff;
-    border: 1.5px solid var(--color-gold-bright);
-    z-index: 3;
-}
-
-.recruit-modal .rm-cost-bottom {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(10, 6, 3, 0.85);
-    padding: 3px 4px;
-    font-size: 10px;
     color: var(--color-gold);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.recruit-modal .rm-card-wrap:hover:not(.disabled) .rm-card-cost {
+    border-color: var(--color-gold);
+    color: var(--color-gold-bright);
+}
+
+.recruit-modal .rm-card-cost .icon {
+    vertical-align: middle;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+
+/* ─── Пустой пул ─── */
+.recruit-modal .rm-empty {
+    color: #8a7a58;
+    font-style: italic;
     text-align: center;
-    z-index: 2;
+    padding: 30px 0;
+    font-size: 13px;
 }
 
-.recruit-modal .rm-type-stripe {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    z-index: 2;
-}
-
-.recruit-modal .rm-card.type-warrior .rm-type-stripe {
-    background: #e74c3c;
-}
-
-.recruit-modal .rm-card.type-archer .rm-type-stripe {
-    background: #7aa0c8;
-}
-
-.recruit-modal .rm-card.type-support .rm-type-stripe {
-    background: #5ec37a;
-}
-
-.recruit-modal .rm-card.type-special .rm-type-stripe {
-    background: #c07ad8;
-}
-
+/* ─── Кнопка «Закрыть» ─── */
 .recruit-modal .rm-close {
     display: block;
     margin: 0 auto;
@@ -178,98 +143,32 @@
     padding: 10px 24px;
     border-radius: var(--radius-sm);
     cursor: pointer;
+    font-family: var(--font-ui);
     font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    transition: all var(--transition-fast);
+}
+.recruit-modal .rm-close:hover {
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 0 16px rgba(245, 213, 122, 0.4);
 }
 
-.recruit-modal .rm-rarity {
-    position: absolute;
-    top: 4px; left: 4px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(0, 0, 0, 0.6);
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), 0 1px 3px rgba(0,0,0,0.6);
-    z-index: 4;
-  }
-  .recruit-modal .rm-rarity-common    { background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e); }
-  .recruit-modal .rm-rarity-rare      { background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9); }
-  .recruit-modal .rm-rarity-epic      { background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0); }
-  .recruit-modal .rm-rarity-legendary { background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706); box-shadow: 0 0 8px rgba(255, 180, 50, 0.8), inset 0 1px 2px rgba(255,255,255,0.5); }
-  
-  .recruit-modal .rm-empty {
-    color: #8a7a58;
-    font-style: italic;
-    text-align: center;
-    padding: 20px 0;
-    font-size: 13px;
-  }
-
-  /* ─── Тултип на карте в найме ─── */
-.recruit-modal .rm-card { position: relative; }
-.recruit-modal .rm-tooltip {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
-  background: rgba(10, 6, 3, 0.98);
-  border: 1px solid var(--color-gold);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--color-text);
-  line-height: 1.4;
-  width: 240px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s, transform 0.15s;
-  z-index: 50;
-  text-align: left;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.8);
-}
-.recruit-modal .rm-card:hover .rm-tooltip {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-.recruit-modal .rm-tt-name {
-  color: var(--color-gold-bright);
-  font-weight: 700;
-  font-size: 12px;
-  margin-bottom: 3px;
-}
-.recruit-modal .rm-tt-meta {
-  color: #8a7a58;
-  font-size: 10px;
-  margin-bottom: 4px;
-}
-.recruit-modal .rm-tt-rarity {
-  color: #b8a380;
-  font-size: 10px;
-  margin-bottom: 4px;
-}
-.recruit-modal .rm-tt-abilities-title {
-  color: var(--color-gold);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 4px 0 2px;
-  font-weight: 700;
-}
-.recruit-modal .rm-tt-ability {
-  color: #d0c0a0;
-  font-size: 11px;
-  font-style: italic;
-  line-height: 1.35;
-  padding: 1px 0;
-}
-.recruit-modal .rm-tt-ability b {
-  font-style: normal;
-  color: var(--color-gold-bright);
-}
-.recruit-modal .rm-tt-ability span {
-  color: #b8a380;
-  font-style: italic;
+/* ─── Адаптив ─── */
+@media (max-width: 700px) {
+    .recruit-modal {
+        padding: 12px;
+    }
+    .recruit-modal h2 {
+        font-size: 18px;
+    }
+    .recruit-modal .rm-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+    }
+    .recruit-modal .rm-card-cost {
+        font-size: 10px;
+        padding: 4px 6px;
+    }
 }

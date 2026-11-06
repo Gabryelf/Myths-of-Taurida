@@ -3,6 +3,8 @@ import { BattleHand } from './BattleHand.js';
 import { BattleVisualLayer } from '../../infrastructure/battle-visuals/BattleVisualLayer.js';
 import { BattleBackground } from '../../infrastructure/battle-visuals/BattleBackground.js';
 import { BattleResultScreen } from './BattleResultScreen.js';
+import { BattlePreviewPanel } from './BattlePreviewPanel.js';
+import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
 import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
 
 const LANES = [
@@ -22,6 +24,8 @@ export class BattleModal {
     this._background = null;
     this._autoPlayActive = false;
     this._resultScreen = null;
+    this._previewPanel = null;
+    this._imgLoader = new CardImageLoader();
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-modal-overlay';
@@ -32,6 +36,10 @@ export class BattleModal {
     this.overlay.appendChild(this.el);
 
     this.el.addEventListener('click', (e) => this._onClick(e));
+
+    // ─── Hover на карты и ячейки ───
+    this.el.addEventListener('mouseover', (e) => this._onHover(e));
+    this.el.addEventListener('mouseout', (e) => this._onHoverOut(e));
 
     this.bus.on('battle:updated', ({ battle }) => {
       this._battle = battle;
@@ -45,14 +53,10 @@ export class BattleModal {
       this._battle = battle;
       this._autoPlayActive = false;
       this._resultScreen = null;
-
-      // Фон монтируем в overlay (НЕ в this.el — он перерисовывается)
       this._background?.destroy();
       this._background = new BattleBackground(this.overlay, battle.targetTile?.terrain || 'plain');
-
       this.overlay.classList.add('visible');
       this._render();
-
       const arena = this.el.querySelector('.battle-arena');
       if (arena) {
         this._visualLayer?.dispose();
@@ -73,12 +77,62 @@ export class BattleModal {
       this._hand = null;
       this._autoPlayActive = false;
       this._resultScreen = null;
+      this._previewPanel = null;
     });
+  }
+
+  // ─── Hover ───
+  _onHover(e) {
+    if (!this._previewPanel) return;
+    // Наведение на карту в руке
+    const handCard = e.target.closest?.('.battle-hand-card');
+    if (handCard) {
+      const cardId = handCard.getAttribute('data-card-id');
+      const card = this._findCardInHand(cardId);
+      if (card) {
+        const cost = this._battle.costFor(card, this._battle.playerSide);
+        this._previewPanel.showCard(card, { effectiveCost: cost });
+      }
+      return;
+    }
+    // Наведение на карту на поле
+    const boardCard = e.target.closest?.('.battle-card');
+    if (boardCard) {
+      const cell = boardCard.closest('.cell');
+      if (!cell) return;
+      const side = cell.getAttribute('data-side');
+      const lane = cell.getAttribute('data-lane');
+      const idx = parseInt(cell.getAttribute('data-idx'), 10);
+      const card = this._battle[side].board.get(lane, idx);
+      if (card) {
+        const cost = this._battle.costFor(card, side);
+        this._previewPanel.showCard(card, { effectiveCost: cost });
+      }
+    }
+  }
+
+  _onHoverOut(e) {
+    if (!this._previewPanel) return;
+    const leftHand = e.target.closest?.('.battle-hand-card');
+    const leftBoard = e.target.closest?.('.battle-card');
+    if (!leftHand && !leftBoard) return;
+    // Если карта выбрана — оставляем её превью
+    if (this._battle?.selectedCard) {
+      const card = this._battle.selectedCard;
+      const cost = this._battle.costFor(card, this._battle.playerSide);
+      this._previewPanel.showCard(card, { effectiveCost: cost });
+    } else {
+      this._previewPanel.hideCard();
+    }
+  }
+
+  _findCardInHand(cardId) {
+    if (!cardId || !this._battle) return null;
+    return this._battle.playerData.hand.find((c) => c.id === cardId);
   }
 
   _onClick(e) {
     if (e.target.closest?.('.battle-result-overlay')) return;
-
     const action = e.target.closest?.('[data-action]')?.getAttribute('data-action');
     if (action === 'end-turn')  { this.controller.endTurn();  return; }
     if (action === 'skip-turn') { this.controller.skipTurn(); return; }
@@ -182,9 +236,7 @@ export class BattleModal {
         </div>
       </div>
       <div class="battle-main">
-        <div class="pseudo-hand enemy">
-          ${this._pseudoHandHtml(enemyData, 'enemy')}
-        </div>
+        <div class="battle-preview-panel-root" id="battle-preview-panel-root"></div>
         <div class="battle-arena">
           <div class="battle-field battle-field-enemy">
             ${this._boardHtml(enemySide, enemyData, enemyLineInfo, enemyColInfo)}
@@ -210,6 +262,19 @@ export class BattleModal {
       </div>
     `;
 
+    // ─── Панель-превью ───
+    const previewRoot = this.el.querySelector('#battle-preview-panel-root');
+    this._previewPanel = new BattlePreviewPanel(previewRoot);
+    this._previewPanel.setImageLoader(this._imgLoader);
+    this._previewPanel.setPseudoHand(enemyData.hand.length);
+
+    // Если карта уже выбрана — показать её превью
+    if (b.selectedCard) {
+      const cost = b.costFor(b.selectedCard, b.playerSide);
+      this._previewPanel.showCard(b.selectedCard, { effectiveCost: cost });
+    }
+
+    // ─── Рука ───
     const handRoot = this.el.querySelector('#battle-hand-root');
     this._hand = new BattleHand(handRoot);
     this._hand.setData(
@@ -220,6 +285,7 @@ export class BattleModal {
       (card) => b.costFor(card, b.playerSide),
     );
 
+    // ─── Визуальный слой ───
     const arena = this.el.querySelector('.battle-arena');
     if (arena) {
       if (this._visualLayer) {
@@ -237,14 +303,6 @@ export class BattleModal {
     const url = imgUrl(GENERAL_PORTRAITS[gen.factionId]);
     const style = url ? `style="background-image:url('${url}')"` : '';
     return `<div class="hero-portrait ${cls}" data-faction="${gen.factionId}" ${style}></div>`;
-  }
-
-  _pseudoHandHtml(enemyData, side) {
-    const count = Math.max(0, enemyData.hand.length);
-    let html = '<div class="pseudo-hand-label">Рука врага</div><div class="pseudo-hand-cards">';
-    for (let i = 0; i < count; i++) html += `<div class="pseudo-card"></div>`;
-    html += '</div>';
-    return html;
   }
 
   _boardHtml(side, data, lineInfoForSide, colInfoForSide) {

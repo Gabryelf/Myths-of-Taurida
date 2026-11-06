@@ -126,40 +126,12 @@
 .battle-main {
   flex: 1;
   display: grid;
-  grid-template-columns: 120px 1fr 260px;
+  grid-template-columns: 200px 1fr 280px;
   gap: 8px;
   min-height: 0;
   overflow: hidden;
 }
 
-/* ─── Псевдо-рука врага (слева) ─── */
-.pseudo-hand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 4px;
-  background: rgba(10, 6, 3, 0.5);
-  border: 1px solid rgba(212, 169, 76, 0.15);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.pseudo-hand-label {
-  font-size: 10px;
-  color: #8a7a58;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-align: center;
-}
-
-.pseudo-hand-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-  width: 100%;
-}
 
 .pseudo-card {
   width: 44px;

@@ -1,0 +1,91 @@
+/* ═══════════════════════════════════════════════════════════
+   Панель-превью большой карты в бою (левая колонка).
+   ═══════════════════════════════════════════════════════════ */
+.battle-preview-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px;
+    background: rgba(10, 6, 3, 0.6);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+/* Псевдо-рука */
+.battle-preview-panel .bpp-pseudo-hand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.battle-preview-panel .bpp-pseudo-label {
+    font-size: 10px;
+    color: #8a7a58;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+}
+
+.battle-preview-panel .bpp-pseudo-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+}
+
+.battle-preview-panel .bpp-pseudo-card {
+    width: 40px;
+    aspect-ratio: 3 / 4;
+    border-radius: 4px;
+    background:
+        linear-gradient(135deg, #4a2a10, #1a0a06),
+        repeating-linear-gradient(45deg, transparent 0 6px, rgba(212, 169, 76, 0.1) 6px 7px);
+    border: 1.5px solid var(--color-gold-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    position: relative;
+}
+
+.battle-preview-panel .bpp-pseudo-card::after {
+    content: '❖';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(212, 169, 76, 0.4);
+    font-size: 14px;
+}
+
+/* Превью карты */
+.battle-preview-panel .bpp-card-view {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    overflow-y: auto;
+    padding: 2px;
+    animation: bppCardIn 0.2s ease-out;
+}
+
+@keyframes bppCardIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.battle-preview-panel .bpp-card-view .card-detail {
+    width: 100%;
+    max-width: 160px;
+}
