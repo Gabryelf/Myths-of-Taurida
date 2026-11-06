@@ -1,4 +1,5 @@
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
+import { iconImg, iconUrl } from '../../config/icons.js';
 
 export class BattleHand {
   constructor(root) {
@@ -50,7 +51,7 @@ export class BattleHand {
     if (selected) el.classList.add('selected');
 
     const abilitiesHtml = (card.abilities || []).map((a) =>
-      `<div class="bc-tt-ability"><b>${a.name}:</b> ${a.desc}</div>`
+      `<div class="bc-tt-ability">${iconImg(`ability_${a.id}`, { size: 12, cls: 'icon-inline' })}<b>${a.name}:</b> ${a.desc}</div>`
     ).join('');
 
     const hasAbility = (card.abilities || []).length > 0;

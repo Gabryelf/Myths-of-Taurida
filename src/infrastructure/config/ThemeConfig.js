@@ -6,7 +6,7 @@ export const Theme = {
     ambient: 0x6a5a4a,
     rim: 0x5a7ab0,
   },
-  hexSize: 24.0,
+  hexSize: 18.0,
   terrain: {
     plain:    { color: 0xa8bf6a, roughness: 0.95, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },
     forest:   { color: 0x4a6b30, roughness: 1.0,  moveCost: 2, yield: { gold: 0, prov: 1, weapons: 0 } },
@@ -55,7 +55,7 @@ export const Theme = {
   },
   sky: {
     color: 0x0a0d12, fogColor: 0x0a0d12, fogDensity: 0,   // было 0.012
-    starsCount: 800, starsColor: 0xffe8b0, starsSize: 0.35,
+    starsCount: 300, starsColor: 0xffe8b0, starsSize: 0.35,
     starsRadiusMin: 120, starsRadiusMax: 240, starsOpacity: 0.85,
   },
   general: {

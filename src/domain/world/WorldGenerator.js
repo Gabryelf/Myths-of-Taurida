@@ -8,7 +8,7 @@ import { generateTauridaTiles, TAURIDA_CITIES } from './TauridaMap.js';
 export const HISTORIC_CITIES = TAURIDA_CITIES;
 
 export class WorldGenerator {
-  constructor({ seed = 1337, radius = 22 } = {}) {
+  constructor({ seed = 1337, radius = 14 } = {}) {
     this.seed = seed;
     this.radius = radius;
   }

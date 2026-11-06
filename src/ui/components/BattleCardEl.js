@@ -15,9 +15,8 @@ export class BattleCardEl {
     if (selected) el.classList.add('selected');
 
     const abilitiesHtml = (card.abilities || []).map((a) => {
-      const icon = iconUrl(`ability_${a.id}`);
       return `<div class="bc-tt-ability">
-        ${icon ? `<img src="${icon}" width="12" height="12" class="icon icon-inline">` : ''}
+        ${iconImg(`ability_${a.id}`, { size: 12, cls: 'icon-inline' })}
         <b>${a.name}:</b> ${a.desc}
       </div>`;
     }).join('');

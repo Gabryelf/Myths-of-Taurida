@@ -1,10 +1,11 @@
 import { PlayerProfile } from './PlayerProfile.js';
 import { createStarterCollection } from './CollectionFactory.js';
 
-export function createStarterProfile(preferredFaction = 'scythians') {
+export function createStarterProfile(_preferredFaction = 'scythians') {
   const p = new PlayerProfile();
-  p.collection = createStarterCollection(preferredFaction);
+  p.collection = createStarterCollection();
   p.coins = 500;
-  p.lastPlayedFaction = preferredFaction;
+  p.lastPlayedFaction = 'scythians';
+  p.starterGeneralByFaction = {};
   return p;
 }

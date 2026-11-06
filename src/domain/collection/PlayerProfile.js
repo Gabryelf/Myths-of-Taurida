@@ -6,10 +6,11 @@ import { Collection } from './Collection.js';
  */
 export class PlayerProfile {
     constructor() {
-        this.coins = 500;          // стартовый капитал для лобби
+        this.coins = 500;
         this.collection = new Collection();
-        this.unlockedDecks = {};   // factionId -> PlayerDeck (сериализуемо)
+        this.unlockedDecks = {};
         this.lastPlayedFaction = null;
+        this.starterGeneralByFaction = {};   // ← новое
     }
 
     addCoins(n) { this.coins += n; }
@@ -25,9 +26,9 @@ export class PlayerProfile {
             collection: this.collection.toJSON(),
             unlockedDecks: this.unlockedDecks,
             lastPlayedFaction: this.lastPlayedFaction,
+            starterGeneralByFaction: this.starterGeneralByFaction,
         };
     }
-
     static fromJSON(obj) {
         const p = new PlayerProfile();
         if (!obj) return p;
@@ -35,6 +36,7 @@ export class PlayerProfile {
         p.collection = Collection.fromJSON(obj.collection);
         p.unlockedDecks = obj.unlockedDecks || {};
         p.lastPlayedFaction = obj.lastPlayedFaction || null;
+        p.starterGeneralByFaction = obj.starterGeneralByFaction || {};
         return p;
     }
 }

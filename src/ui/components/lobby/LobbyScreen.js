@@ -3,6 +3,7 @@ import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../../infrastructure/three/visuals/CardImageLoader.js';
 import { Theme } from '../../../infrastructure/config/ThemeConfig.js';
 import { GENERAL_PORTRAITS, imgUrl } from '../../../config.js';
+import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
 
 /**
  * Главный экран лобби. Коллекция, колоды, монеты, кнопка «Играть».
@@ -89,56 +90,87 @@ export class LobbyScreen {
             this._render();
             return;
         }
+
+        const presetBtn = e.target.closest?.('[data-preset]');
+        if (presetBtn) {
+          const idx = parseInt(presetBtn.getAttribute('data-preset'), 10);
+          this.profile.starterGeneralByFaction = this.profile.starterGeneralByFaction || {};
+          this.profile.starterGeneralByFaction[this._activeFaction] = idx;
+          this.onSave?.({});
+          this._render();
+          return;
+        }
     }
 
     _render() {
-        const factions = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
-        const facTabs = factions.map((fid) => {
-            const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
-            return `<button class="lobby-fac-tab ${fid === this._activeFaction ? 'active' : ''}"
-        data-faction="${fid}" style="border-color:${color}">
-        <span class="lfc-dot" style="background:${color}"></span>
-        ${Theme.factionName[fid] || fid}
-      </button>`;
-        }).join('');
+      const factions = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
+      const facTabs = factions.map((fid) => {
+          const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
+          return `<button class="lobby-fac-tab ${fid === this._activeFaction ? 'active' : ''}"
+      data-faction="${fid}" style="border-color:${color}">
+      <span class="lfc-dot" style="background:${color}"></span>
+      ${Theme.factionName[fid] || fid}
+    </button>`;
+      }).join('');
 
-        const header = `
-      <div class="lobby-header">
-        <div class="lobby-title">ТАВРИДА</div>
-        <div class="lobby-coins">💰 ${this.profile.coins}</div>
-      </div>
-      <div class="lobby-factions">${facTabs}</div>
-    `;
+      const header = `
+    <div class="lobby-header">
+      <div class="lobby-title">ТАВРИДА</div>
+      <div class="lobby-coins">💰 ${this.profile.coins}</div>
+    </div>
+    <div class="lobby-factions">${facTabs}</div>
+  `;
 
-        const tabs = `
-      <div class="lobby-tabs">
-        <button class="lobby-tab ${this._tab === 'collection' ? 'active' : ''}"
-          data-tab="collection">Коллекция</button>
-        <button class="lobby-tab ${this._tab === 'decks' ? 'active' : ''}"
-          data-tab="decks">Колода</button>
-        <button class="lobby-summon" data-summon="1">🎴 Призыв (100💰)</button>
-      </div>
-    `;
+      // Выбор полководца для фракции
+      const presets = GENERAL_PRESETS[this._activeFaction] || [];
+      const currentPreset = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
+      const generalPicker = presets.length > 0 ? `
+    <div class="lobby-generals">
+      <div class="lobby-gen-title">Полководец:</div>
+      ${presets.map((p, i) => `
+        <button class="lobby-gen-opt ${i === currentPreset ? 'active' : ''}"
+                data-preset="${i}">
+          <b>${p.name}</b>
+          <span>${p.desc}</span>
+          <em>${p.move}⛊ · ${p.lives}❤</em>
+        </button>
+      `).join('')}
+    </div>
+  ` : '';
 
-        const content = this._tab === 'collection'
-            ? this._collectionHtml()
-            : this._deckHtml();
+      const tabs = `
+    <div class="lobby-tabs">
+      <button class="lobby-tab ${this._tab === 'collection' ? 'active' : ''}"
+        data-tab="collection">Коллекция</button>
+      <button class="lobby-tab ${this._tab === 'decks' ? 'active' : ''}"
+        data-tab="decks">Колода</button>
+      <button class="lobby-summon" data-summon="1">🎴 Призыв (100💰)</button>
+    </div>
+  `;
 
-        const footer = `
-      <div class="lobby-footer">
-        <button class="lobby-play" data-play="1">▶ Начать партию</button>
-      </div>
-    `;
+      const content = this._tab === 'collection'
+          ? this._collectionHtml()
+          : this._deckHtml();
 
-        this.el.innerHTML = `
-      <div class="lobby-panel">
-        ${header}
-        ${tabs}
-        <div class="lobby-content">${content}</div>
-        ${footer}
-      </div>
-    `;
-    }
+      const footer = `
+    <div class="lobby-footer">
+      <button class="lobby-play" data-play="1">▶ Начать партию</button>
+    </div>
+  `;
+
+      this.el.innerHTML = `
+    <div class="lobby-panel">
+      ${header}
+      ${generalPicker}
+      ${tabs}
+      <div class="lobby-content">${content}</div>
+      ${footer}
+    </div>
+  `;
+
+      // ─── Пост-обработка: картинки в карточках ───
+      LobbyCard.applyImages(this.el, this._imgLoader);
+  }
 
     _collectionHtml() {
         const factionId = this._activeFaction;

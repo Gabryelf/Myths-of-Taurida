@@ -137,9 +137,10 @@ export class Game {
 
     // Пересоздаём мир с колодой игрока
     this.world = new World({
-      seed: 1337,        // ← фиксированный seed, карта не меняется
-      radius: 22,        // ← большой радиус под новую карту
+      seed: 1337,
+      radius: 14,
       playerDeck,
+      playerGeneralPreset: this.profile.starterGeneralByFaction?.[factionId] ?? 0,
     });
 
     // Контроллеры на новый мир

@@ -12,7 +12,7 @@ import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
 
 export class World {
-  constructor({ seed = 1337, radius = 22, playerDeck = null } = {}) {
+  constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0 } = {}) {
     this.seed = seed;
     this.radius = radius;
     const data = new WorldGenerator({ seed, radius }).generate();
@@ -23,6 +23,7 @@ export class World {
     this.factions = FactionFactory.createAll();
     this.generals = [];
     this.playerFactionId = null;
+    this.playerGeneralPreset = playerGeneralPreset;
     this.turn = 1;
     this.movement = new MovementService(this);
     this.economy = new EconomyService();
@@ -90,41 +91,46 @@ export class World {
     this.generals = [];
     for (const f of this.factions) {
       if (!f.startHex) continue;
-      const gen = GeneralFactory.createForFaction({ factionId: f.id, hex: f.startHex });
+      const presetIndex = f.isPlayer ? (this.playerGeneralPreset || 0) : 0;
+      const gen = GeneralFactory.createForFaction({
+        factionId: f.id,
+        hex: f.startHex,
+        presetIndex,
+      });
       this.generals.push(gen);
     }
   }
 
-    /**
-   * Генерал игрока стартует БЕЗ карт — карты докупаются в городе из пула.
-   * У ИИ — как раньше, 3 стартовые карты (для баланса).
-   */
-     _seedStartingDecks() {
-      for (const gen of this.generals) {
-        const isPlayerFaction = gen.factionId === this.playerFactionId;
-        if (isPlayerFaction) continue;   // ← пустая армия
-        const keys = CardFactory.keysForFaction(gen.factionId);
-        const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
-        const pool = cheap.length > 0 ? cheap : keys;
-        for (let i = 0; i < 3; i++) {
-          const card = CardFactory.create(pool[i % pool.length]);
-          if (gen.deck.canAdd(card)) gen.deck.add(card);
-        }
+  /**
+ * Генерал игрока стартует БЕЗ карт — карты докупаются в городе из пула.
+ * У ИИ — как раньше, 3 стартовые карты (для баланса).
+ */
+  _seedStartingDecks() {
+    for (const gen of this.generals) {
+      const isPlayerFaction = gen.factionId === this.playerFactionId;
+      if (isPlayerFaction) continue;   // ← пустая армия
+      const keys = CardFactory.keysForFaction(gen.factionId);
+      const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
+      const pool = cheap.length > 0 ? cheap : keys;
+      for (let i = 0; i < 3; i++) {
+        const card = CardFactory.create(pool[i % pool.length]);
+        if (gen.deck.canAdd(card)) gen.deck.add(card);
       }
     }
+  }
 
-    _initRecruitPools() {
-      for (const f of this.factions) {
-        const pool = new RecruitPool({ factionId: f.id });
-        this.recruitPools.set(f.id, pool);
-        // Игрок: на старте в пуле 2 карты (стартовая выдача)
-        if (f.id === this.playerFactionId) {
-          pool.addStarterCards(2);
-        } else {
-          pool.addTurnIncome(this);
-        }
+  _initRecruitPools() {
+    for (const f of this.factions) {
+      const pool = new RecruitPool({ factionId: f.id });
+      this.recruitPools.set(f.id, pool);
+      // Игрок: на старте в пуле 2 карты (стартовая выдача)
+      if (f.id === this.playerFactionId) {
+        pool.addStarterCards(2);
+      } else {
+        pool.addTurnIncome(this);
       }
     }
+  }
 
   get playerFaction() { return this.factions.find((f) => f.isPlayer) || null; }
   get playerGeneral() {

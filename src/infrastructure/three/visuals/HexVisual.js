@@ -68,21 +68,20 @@ export class HexVisual extends BaseVisual {
 
     switch (tile.terrain) {
       case 'forest':
-        this._addTrees(rng, size, baseY, 6 + Math.floor(rng() * 4));
+        this._addTrees(rng, size, baseY, 3 + Math.floor(rng() * 3));   // 3..5 
         break;
       case 'mountain':
-        this._addRocks(rng, size, baseY, 3 + Math.floor(rng() * 3));
+        this._addRocks(rng, size, baseY, 2 + Math.floor(rng() * 2));   // 2..3 
         break;
       case 'plain':
-        this._addGrass(rng, size, baseY, 5 + Math.floor(rng() * 5));
+        this._addGrass(rng, size, baseY, 2 + Math.floor(rng() * 3));   // 2..4 
         break;
       case 'steppe':
-        this._addGrass(rng, size, baseY, 3 + Math.floor(rng() * 3), 0xc0a040);
+        this._addGrass(rng, size, baseY, 2 + Math.floor(rng() * 2), 0xc0a040);
         break;
       case 'ruins':
-        this._addRuins(rng, size, baseY);
+        this._addRuins(rng, size, baseY);   // 2..3 
         break;
-      // city — свой CityVisual, не нуждается
     }
   }
 
@@ -99,7 +98,7 @@ export class HexVisual extends BaseVisual {
         new THREE.MeshStandardMaterial({ color: 0x3a2010 }),
       );
       trunk.position.set(x, baseY + h / 2, z);
-      trunk.castShadow = true;
+      trunk.castShadow = false;
       this.group.add(trunk);
       this._decorations.push(trunk);
 
@@ -109,7 +108,7 @@ export class HexVisual extends BaseVisual {
         new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.9 }),
       );
       crown.position.set(x, baseY + h + h * 0.4, z);
-      crown.castShadow = true;
+      crown.castShadow = false;
       this.group.add(crown);
       this._decorations.push(crown);
     }
@@ -131,7 +130,7 @@ export class HexVisual extends BaseVisual {
       );
       rock.position.set(x, baseY + h / 2, z);
       rock.rotation.y = rng() * Math.PI;
-      rock.castShadow = true;
+      rock.castShadow = false;
       this.group.add(rock);
       this._decorations.push(rock);
     }
@@ -170,7 +169,7 @@ export class HexVisual extends BaseVisual {
       );
       col.position.set(x, baseY + h / 2, z);
       col.rotation.z = (rng() - 0.5) * 0.5;
-      col.castShadow = true;
+      col.castShadow = false;
       this.group.add(col);
       this._decorations.push(col);
     }

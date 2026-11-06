@@ -206,3 +206,70 @@
     padding: 20px 0;
     font-size: 13px;
   }
+
+  /* ─── Тултип на карте в найме ─── */
+.recruit-modal .rm-card { position: relative; }
+.recruit-modal .rm-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(10, 6, 3, 0.98);
+  border: 1px solid var(--color-gold);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--color-text);
+  line-height: 1.4;
+  width: 240px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 50;
+  text-align: left;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.8);
+}
+.recruit-modal .rm-card:hover .rm-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.recruit-modal .rm-tt-name {
+  color: var(--color-gold-bright);
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.recruit-modal .rm-tt-meta {
+  color: #8a7a58;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.recruit-modal .rm-tt-rarity {
+  color: #b8a380;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.recruit-modal .rm-tt-abilities-title {
+  color: var(--color-gold);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 4px 0 2px;
+  font-weight: 700;
+}
+.recruit-modal .rm-tt-ability {
+  color: #d0c0a0;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.35;
+  padding: 1px 0;
+}
+.recruit-modal .rm-tt-ability b {
+  font-style: normal;
+  color: var(--color-gold-bright);
+}
+.recruit-modal .rm-tt-ability span {
+  color: #b8a380;
+  font-style: italic;
+}

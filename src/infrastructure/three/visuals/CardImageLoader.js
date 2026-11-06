@@ -18,6 +18,7 @@
      this._missing = new Set();
      this._loader = new THREE.TextureLoader();
    }
+ 
    getTexture(imageKey) {
      if (this._cache.has(imageKey)) return this._cache.get(imageKey);
      const file = CARD_IMAGES[imageKey];
@@ -28,16 +29,38 @@
      this._cache.set(imageKey, tex);
      return tex;
    }
-   /** Возвращает URL или null, если картинки нет. */
+ 
+   /** URL картинки или null. */
    getUrl(imageKey) {
      const file = CARD_IMAGES[imageKey];
      return imgUrl(file);
    }
-   /** CSS-фон с фоллбэком, если картинки нет. */
+ 
+   /**
+    * Inline-style для `style="..."` (без trailing `;` и без вложенных `"`).
+    * Если картинки нет — линейный градиент.
+    * ВАЖНО: возвращает `background-image:url('/images/x.png')` (БЕЗ завершающей ;),
+    * чтобы безопасно вставить в `style="${...}"`.
+    */
    getCssBackground(imageKey, cardType = 'warrior') {
      const url = this.getUrl(imageKey);
-     if (url) return `background-image:url("${url}");`;
+     if (url) return `background-image:url('${url}')`;
      const [a, b] = FALLBACK_COLORS[cardType] || FALLBACK_COLORS.warrior;
-     return `background:linear-gradient(135deg, ${a}, ${b});`;
+     return `background:linear-gradient(135deg, ${a}, ${b})`;
+   }
+ 
+   /** Установить фон напрямую на DOM-элемент (безопаснее, чем шаблон). */
+   applyBackground(el, imageKey, cardType = 'warrior') {
+     if (!el) return;
+     const url = this.getUrl(imageKey);
+     if (url) {
+       el.style.backgroundImage = `url('${url}')`;
+       el.style.backgroundSize = 'cover';
+       el.style.backgroundPosition = 'center top';
+       el.style.backgroundRepeat = 'no-repeat';
+     } else {
+       const [a, b] = FALLBACK_COLORS[cardType] || FALLBACK_COLORS.warrior;
+       el.style.backgroundImage = `linear-gradient(135deg, ${a}, ${b})`;
+     }
    }
  }
