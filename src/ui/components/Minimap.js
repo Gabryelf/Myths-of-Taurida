@@ -12,7 +12,7 @@ export class Minimap {
     this.onCenter = onCenter;
 
     this.el = document.createElement('div');
-    this.el.className = 'minimap';
+    this.el.className = 'qj-minimap-inner';
     this.canvas = document.createElement('canvas');
     this.canvas.width = 200;
     this.canvas.height = 200;

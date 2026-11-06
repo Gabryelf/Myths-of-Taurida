@@ -1,6 +1,5 @@
 import { TileFactory } from '../hex/TileFactory.js';
 import { HexMap } from '../hex/HexMap.js';
-import { Hex } from '../hex/Hex.js';
 import { CityFactory } from '../city/CityFactory.js';
 import { TILE_TYPES } from '../hex/Tile.js';
 import { generateTauridaTiles, TAURIDA_CITIES } from './TauridaMap.js';
@@ -16,15 +15,11 @@ export class WorldGenerator {
   generate() {
     const map = new HexMap();
 
-    // ─── 1. Фиксированные гексы Крыма ───
     const fixedTiles = generateTauridaTiles();
     for (const t of fixedTiles) {
       map.add(TileFactory.createLand({ q: t.q, r: t.r, terrain: t.terrain }));
     }
-    // Остальное (что не попало в маску) — не создаём. Гекс-карта —
-    // это только суша; море — плоскость SeaVisual.
 
-    // ─── 2. Города ───
     const cities = CityFactory.createAll();
     for (let i = 0; i < cities.length; i++) {
       const def = TAURIDA_CITIES[i];
@@ -32,20 +27,18 @@ export class WorldGenerator {
       const tile = this._findNearestLand(map, def.q, def.r);
       if (tile && !tile.cityId) {
         tile.isCity = def.isCity;
-        tile.isVillage = !def.isCity;
+        tile.isVillage = !def.isCity && !def.settlement;
+        tile.isSettlement = !!def.settlement;
         tile.cityId = cities[i].id;
         tile.terrain = def.isCity ? TILE_TYPES.CITY : TILE_TYPES.PLAINS;
         cities[i].tileKey = tile.key;
       }
     }
 
-    // ─── 3. Дороги ───
     this._buildRoads(map, cities);
-
     return { tiles: map, radius: this.radius, seed: this.seed, cities };
   }
 
-  /** Поиск ближайшего сухого гекса от точки. */
   _findNearestLand(map, q, r, maxDist = 8) {
     const visited = new Set();
     let queue = [{ q, r, d: 0 }];

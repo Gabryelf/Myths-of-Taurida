@@ -30,6 +30,13 @@ export const GENERAL_PRESETS = {
     { name: 'Аларих',     move: 4, lives: 3, desc: 'Агрессивный' },
     { name: 'Теодорих',   move: 3, lives: 4, desc: 'Стойкий' },
   ],
+  // ─── Нейтральные: защитники поселений ───
+  tauri: [
+    { name: 'Тавр-вождь',   move: 3, lives: 3, desc: 'Защитник поселения' },
+  ],
+  cimmerians: [
+    { name: 'Киммериец-старейшина',    move: 3, lives: 3, desc: 'Защитник поселения' },
+  ],
 };
 
 let _nextId = 1;

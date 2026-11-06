@@ -90,20 +90,23 @@ export function generateTauridaTiles() {
  * Координаты подобраны по конфигу карты (см. A, B, CX, CY).
  */
 export const TAURIDA_CITIES = [
-    // Города
-    { name: 'Неаполь Скифский', q: 0, r: 3, isCity: true },
-    { name: 'Пантикапей', q: 14, r: 0, isCity: true },
-    { name: 'Херсонес', q: -10, r: 8, isCity: true },
-    { name: 'Феодосия', q: 10, r: 6, isCity: true },
-    { name: 'Керкинитида', q: -6, r: 7, isCity: true },
-    { name: 'Сурож', q: 8, r: 9, isCity: true },
-    // Деревни
-    { name: 'Симболон', q: -4, r: 9, isCity: false },
+    // ─── Города (6) ───
+    { name: 'Неаполь Скифский', q: 0, r: 3, isCity: true, factionHint: 'scythians' },
+    { name: 'Пантикапей', q: 14, r: 0, isCity: true, factionHint: 'bosporus' },
+    { name: 'Херсонес', q: -10, r: 8, isCity: true, factionHint: 'chersonesos' },
+    { name: 'Феодосия', q: 10, r: 6, isCity: true, factionHint: 'bosporus' },
+    { name: 'Керкинитида', q: -6, r: 7, isCity: true, factionHint: 'chersonesos' },
+    { name: 'Сурож', q: 8, r: 9, isCity: true, factionHint: 'goths' },
+    // ─── Деревни (2) ───
     { name: 'Танаис', q: 12, r: -5, isCity: false },
     { name: 'Ольвия', q: -12, r: 3, isCity: false },
-    { name: 'Боспор Киммерийский', q: 16, r: 2, isCity: false },
-    { name: 'Калос-Лимен', q: -8, r: 6, isCity: false },
-    { name: 'Парфенион', q: 6, r: 5, isCity: false },
+    // ─── Поселения (6): нейтральные, охраняются таврами/киммерийцами ───
+    { name: 'Симболон', q: -4, r: 9, isCity: false, settlement: true, neutralFaction: 'tauri' },
+    { name: 'Калос-Лимен', q: -8, r: 6, isCity: false, settlement: true, neutralFaction: 'tauri' },
+    { name: 'Парфенион', q: 6, r: 5, isCity: false, settlement: true, neutralFaction: 'tauri' },
+    { name: 'Боспор Киммерийский', q: 16, r: 2, isCity: false, settlement: true, neutralFaction: 'cimmerians' },
+    { name: 'Киммерик', q: 12, r: 3, isCity: false, settlement: true, neutralFaction: 'cimmerians' },
+    { name: 'Акра', q: 10, r: 8, isCity: false, settlement: true, neutralFaction: 'cimmerians' },
 ];
 
 /** Детерминированный хеш (не зависит от порядка вызовов). */

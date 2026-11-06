@@ -55,19 +55,29 @@ export class VillageVisual {
       this.group.add(roof);
     }
 
-    // ─── Флаг ───
-    if (city.factionId) {
-      const color = Theme.faction[city.factionId] || 0xd4a94c;
+    // ─── Флаг: у своего поселения — фракция; у нейтрального — цвет нейтрала ───
+    const flagFaction = city.factionId || city.neutralFaction;
+    if (flagFaction) {
+      const color = Theme.faction[flagFaction] || 0xd4a94c;
+      // Полюшко
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, size * 0.18, 4),
+        new THREE.MeshStandardMaterial({ color: 0x3a2a15 }),
+      );
+      pole.position.set(0, PLATE_H + size * 0.09, 0);
+      this.group.add(pole);
+      // Полотно
       const flag = new THREE.Mesh(
         new THREE.PlaneGeometry(size * 0.1, size * 0.06),
         new THREE.MeshStandardMaterial({
           color, emissive: color, emissiveIntensity: 0.4, side: THREE.DoubleSide,
         }),
       );
-      flag.position.set(size * 0.1, PLATE_H + size * 0.15, 0);
+      flag.position.set(size * 0.06, PLATE_H + size * 0.16, 0);
       this.group.add(flag);
     }
 
+    // ─── userData: city + hoverable ───
     this.group.traverse((c) => {
       if (c.isMesh || c.isSprite) {
         c.userData = c.userData || {};

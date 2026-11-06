@@ -4,31 +4,35 @@ import { GeneralFactory } from '../general/GeneralFactory.js';
 
 export class BattleFactory {
   static create({ attackerGen, targetTile, defenderFactionId, world, playerSide = 'attacker' }) {
-    const defenderGen = world.generals.find((g) => g.factionId === defenderFactionId)
-      || {
+    // ─── Если защита поселения — защитник генерируется на лету ───
+    const targetCity = targetTile?.cityId ? world.getCity(targetTile.cityId) : null;
+    let defenderGen = null;
+
+    if (targetCity?.settlement) {
+      defenderGen = world.getSettlementDefender(targetCity);
+    } else {
+      defenderGen = world.generals.find((g) => g.factionId === defenderFactionId);
+    }
+
+    if (!defenderGen) {
+      defenderGen = {
         id: 'def_' + Date.now(),
-        name: defenderFactionId === 'neutral' ? 'Вождь' : GeneralFactory.nameForFaction(defenderFactionId),
+        name: GeneralFactory.nameForFaction(defenderFactionId) || 'Вождь',
         factionId: defenderFactionId,
         lives: 3, maxLives: 3,
         deck: { cards: [] },
       };
+    }
 
-    // Гарантированная колода атакующего
     const attackerCards = attackerGen.deck?.cards || [];
     const attackerDeck = attackerCards.length > 0
       ? attackerCards.slice()
       : BattleFactory._fallbackDeck(attackerGen.factionId);
 
-    // Гарантированная колода защитника
     const defenderCards = defenderGen.deck?.cards || [];
     const defenderDeck = defenderCards.length > 0
       ? defenderCards.slice()
       : BattleFactory._aiDeck(defenderFactionId);
-
-    console.log('[BattleFactory]',
-      'attackerDeck=', attackerDeck.length,
-      'defenderDeck=', defenderDeck.length,
-      'playerSide=', playerSide);
 
     return new Battle({
       attackerGen, defenderGen,

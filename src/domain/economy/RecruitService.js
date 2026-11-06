@@ -15,25 +15,29 @@ export class RecruitService {
     if (!city || city.factionId !== factionId) {
       return { ok: false, reason: 'Найм только в своих городах и деревнях' };
     }
-    // Забираем из накопительного пула
-    const pool = this.world.recruitPools.get(factionId);
-    if (!pool) return { ok: false, reason: 'Нет пула найма' };
-    const available = pool.available.find((c) => c.key === cardKey);
-    if (!available) {
-      return { ok: false, reason: 'Этой карты нет в пуле найма' };
-    }
+    // Ограничения по редкости в поселениях
+    const restr = city.recruitRestrictions;
     const def = CardFactory.defForKey(cardKey);
     if (!def) return { ok: false, reason: 'Неизвестная карта' };
-    const card = CardFactory.create(cardKey);
+    const rarityOrder = { common: 0, rare: 1, epic: 2, legendary: 3 };
+    if (rarityOrder[def.rarity] > rarityOrder[restr.maxRarity]) {
+      return { ok: false, reason: `В поселении нельзя нанимать ${restr.maxRarity}` };
+    }
 
-    // Ограничение по золоту/оружию/очкам найма
+    const pool = this.world.recruitPools.get(factionId);
+    if (!pool) return { ok: false, reason: 'Нет пула найма' };
+    if (!pool.available.find((c) => c.key === cardKey)) {
+      return { ok: false, reason: 'Этой карты нет в пуле найма' };
+    }
+
+    const card = CardFactory.create(cardKey);
     const usedPoints = this.world.recruitPointsUsed(factionId);
     const needPoints = this.economy.recruitPointsFor(card);
     const totalPoints = this.economy.recruitPointsForFaction(this.world, factionId);
     if (usedPoints + needPoints > totalPoints) {
       return { ok: false, reason: `Недостаточно очков найма (${usedPoints}/${totalPoints})` };
     }
-    const cost = this.economy.recruitCost(card);
+    const cost = this.economy.recruitCost(card, city);
     const poolRes = this.world.resourcePools.get(factionId);
     if (!poolRes.canAfford(cost)) {
       return { ok: false, reason: 'Не хватает оружия/золота' };
@@ -44,7 +48,7 @@ export class RecruitService {
     poolRes.spend(cost);
     general.deck.add(card);
     this.world.markRecruitPointsUsed(factionId, needPoints);
-    pool.take(cardKey);   // ← убираем из пула
+    pool.take(cardKey);
     return { ok: true, card, cost, points: needPoints };
   }
 

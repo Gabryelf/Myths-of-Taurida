@@ -149,3 +149,59 @@
   flex: 1;
   min-width: 0;
 }
+
+/* ─── Ограничения найма (поселения) ─── */
+.city-panel .cp-restr {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: rgba(212, 169, 76, 0.08);
+  border: 1px dashed rgba(212, 169, 76, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #d0b880;
+  text-align: center;
+  font-style: italic;
+}
+.city-panel .cp-restr b {
+  color: var(--color-gold-bright);
+  font-style: normal;
+}
+
+/* ─── Оборона поселения ─── */
+.city-panel .cp-defense-info {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: rgba(163, 44, 44, 0.15);
+  border: 1px solid rgba(163, 44, 44, 0.5);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #f0b0b0;
+  text-align: center;
+}
+.city-panel .cp-defense-info b {
+  color: #ff8a8a;
+}
+
+/* ─── Кнопка покупки поселения ─── */
+.city-panel .cp-buy-settlement {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  padding: 12px;
+  background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+  border: 1px solid #8a7aff;
+  color: #d0c8ff;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.city-panel .cp-buy-settlement:hover {
+  border-color: #b0a0ff;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(138, 122, 255, 0.5);
+}

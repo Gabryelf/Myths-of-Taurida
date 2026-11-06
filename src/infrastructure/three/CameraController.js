@@ -21,16 +21,15 @@ export class CameraController {
   }
 
   pan(dx, dy) {
-    this.angle -= dx * 0.005;
-    this.pitch = Math.max(0.25, Math.min(1.4, this.pitch + dy * 0.005));
+    this.angle -= dx * 0.008;
+    this.pitch = Math.max(0.3, Math.min(1.2, this.pitch + dy * 0.006));
     this._update();
   }
-
   zoom(delta) {
-    this.distance = Math.max(40, Math.min(320, this.distance + delta * 0.1));
+    this.distance = Math.max(40, Math.min(260, this.distance + delta * 0.1));
     this._update();
   }
-
+  
   _update() {
     const cx = this.target.x + Math.sin(this.angle) * this.distance * Math.cos(this.pitch);
     const cy = Math.sin(this.pitch) * this.distance;

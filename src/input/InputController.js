@@ -12,20 +12,12 @@ export class InputController {
     this._isDragging = false;
     this._dragMoved = false;
     this._prev = { x: 0, y: 0 };
+    this._dragButton = -1;
     this._cameraController = null;
     this._lastHoverKey = null;
-
-    // ─── Клавиатура ───
     this._keys = new Set();
-
-    // ─── Edge-scroll ───
-    this._mousePos = { x: 0, y: 0 };
-    this._edgeSize = 40;        // пикселей от края
-    this._edgeSpeed = 1.6;      // скорость edge-scroll
-    this._edgeRafId = null;
-
     this._bind();
-    this._startEdgeLoop();
+    this._startUpdateLoop();
   }
 
   setPickables(objs) { this._pickables = objs; }
@@ -34,9 +26,7 @@ export class InputController {
   _bind() {
     const c = this.canvas;
 
-    // ─── Мышь ───
     c.addEventListener('mousedown', (e) => {
-      // ЛКМ или ПКМ — обе начинают drag
       if (e.button !== 0 && e.button !== 2) return;
       this._isDragging = true;
       this._dragMoved = false;
@@ -53,20 +43,18 @@ export class InputController {
     });
 
     window.addEventListener('mousemove', (e) => {
-      this._mousePos = { x: e.clientX, y: e.clientY };
       if (this._isDragging && this._cameraController) {
         const dx = e.clientX - this._prev.x;
         const dy = e.clientY - this._prev.y;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this._dragMoved = true;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) this._dragMoved = true;
         this._prev = { x: e.clientX, y: e.clientY };
-        this._cameraController.pan(dx, dy);
+        this._cameraController.pan(dx * 0.6, dy * 0.6);
         return;
       }
       this._handleHover(e);
     });
 
     c.addEventListener('click', (e) => {
-      // Только ЛКМ и только если не двигали
       if (e.button !== 0) return;
       if (this._dragMoved) { this._dragMoved = false; return; }
       this._handleClick(e);
@@ -77,13 +65,10 @@ export class InputController {
       this._cameraController?.zoom(e.deltaY);
     }, { passive: false });
 
-    // ─── Тач ───
     let touchStart = null;
-    let touchId = null;
     c.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         const t = e.touches[0];
-        touchId = t.identifier;
         touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
         this._isDragging = true;
         this._dragMoved = false;
@@ -96,7 +81,7 @@ export class InputController {
         const t = e.touches[0];
         const dx = t.clientX - this._prev.x;
         const dy = t.clientY - this._prev.y;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this._dragMoved = true;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) this._dragMoved = true;
         this._prev = { x: t.clientX, y: t.clientY };
         this._cameraController.pan(dx, dy);
       }
@@ -110,12 +95,9 @@ export class InputController {
         this._handleClick({ clientX: last.clientX, clientY: last.clientY });
       }
       touchStart = null;
-      touchId = null;
     }, { passive: true });
 
-    // ─── Клавиатура ───
     window.addEventListener('keydown', (e) => {
-      // Не перехватываем, если фокус в input/textarea
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       const key = e.key.toLowerCase();
@@ -128,48 +110,25 @@ export class InputController {
     window.addEventListener('keyup', (e) => {
       this._keys.delete(e.key.toLowerCase());
     });
-
-    // ─── Основной игровой цикл для клавиш и edge-scroll ───
-    this._startUpdateLoop();
   }
 
   _startUpdateLoop() {
     const tick = () => {
-      if (!this._cameraController) { requestAnimationFrame(tick); return; }
-      const k = this._keys;
-      let dx = 0, dy = 0;
-      const speed = 4;
-      if (k.has('w') || k.has('arrowup'))    dy -= speed;
-      if (k.has('s') || k.has('arrowdown'))  dy += speed;
-      if (k.has('a') || k.has('arrowleft'))  dx -= speed;
-      if (k.has('d') || k.has('arrowright')) dx += speed;
-      if (dx !== 0 || dy !== 0) this._cameraController.pan(dx * 2, dy * 2);
-
-      // Зум с клавиатуры
-      if (k.has('+') || k.has('=')) this._cameraController.zoom(-60);
-      if (k.has('-') || k.has('_')) this._cameraController.zoom(60);
-
+      if (this._cameraController) {
+        const k = this._keys;
+        let dx = 0, dy = 0;
+        const speed = 3;
+        if (k.has('w') || k.has('arrowup'))    dy -= speed;
+        if (k.has('s') || k.has('arrowdown'))  dy += speed;
+        if (k.has('a') || k.has('arrowleft'))  dx -= speed;
+        if (k.has('d') || k.has('arrowright')) dx += speed;
+        if (dx !== 0 || dy !== 0) this._cameraController.pan(dx * 2, dy * 2);
+        if (k.has('+') || k.has('=')) this._cameraController.zoom(-60);
+        if (k.has('-') || k.has('_')) this._cameraController.zoom(60);
+      }
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
-  }
-
-  _startEdgeLoop() {
-    const tick = () => {
-      if (this._cameraController && this._mousePos) {
-        const { x, y } = this._mousePos;
-        const W = window.innerWidth;
-        const H = window.innerHeight;
-        let dx = 0, dy = 0;
-        if (x < this._edgeSize)            dx = -this._edgeSpeed;
-        else if (x > W - this._edgeSize)   dx = this._edgeSpeed;
-        if (y < this._edgeSize)            dy = -this._edgeSpeed;
-        else if (y > H - this._edgeSize)   dy = this._edgeSpeed;
-        if (dx !== 0 || dy !== 0) this._cameraController.pan(dx, dy);
-      }
-      this._edgeRafId = requestAnimationFrame(tick);
-    };
-    this._edgeRafId = requestAnimationFrame(tick);
   }
 
   _pick(clientX, clientY) {
@@ -181,10 +140,7 @@ export class InputController {
       return { tile: null, general: null, city: null, hoverType: null };
     }
     const hits = this.raycaster.intersectObjects(this._pickables, true);
-    let tile = null;
-    let general = null;
-    let city = null;
-    let hoverType = null;
+    let tile = null, general = null, city = null, hoverType = null;
     for (const h of hits) {
       let cur = h.object;
       while (cur) {

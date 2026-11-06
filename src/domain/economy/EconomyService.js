@@ -24,12 +24,13 @@ export class EconomyService {
   }
 
   /** Стоимость найма карты: оружие + редкость, + провизия после найма. */
-  recruitCost(card) {
+  recruitCost(card, city = null) {
     const rarityBonus = { common: 0, rare: 1, epic: 2, legendary: 3 }[card.rarity] || 0;
+    const mult = city?.recruitRestrictions?.priceMultiplier ?? 1;
     return {
-      gold: rarityBonus,
-      prov: card.str,
-      weapons: card.str,
+      gold: Math.round(rarityBonus * mult),
+      prov: Math.round(card.str * mult),
+      weapons: Math.round(card.str * mult),
     };
   }
 

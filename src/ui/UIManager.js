@@ -12,7 +12,6 @@ import { TurnIndicator } from './components/TurnIndicator.js';
 import { MarketPanel } from './components/MarketPanel.js';
 import { FactionsPanel } from './components/FactionsPanel.js';
 import { GlossaryModal } from './components/GlossaryModal.js';
-import { Minimap } from './components/Minimap.js';
 import { QuickJump } from './components/QuickJump.js';
 
 export class UIManager {
@@ -28,6 +27,7 @@ export class UIManager {
     this.onHire = null;
     this.onMarket = null;
     this.onRecruit = onRecruit;
+    this.onBuySettlement = null;   // (cityId) => void — устанавливается из Game
     this.battleController = battleController;
     this.marketController = marketController;
 
@@ -46,14 +46,14 @@ export class UIManager {
       onEndTurn?.();
     });
 
-    // ─── Быстрые прыжки по карте ───
+    // ─── Быстрые прыжки + мини-карта (левый верхний угол) ───
     this.quickJump = new QuickJump(this.root, {
       world: this.world,
-      cameraController: null,   // подставим в initMinimap
-      theme: { hexSize: 24 },   // будет обновлено через setTheme
+      cameraController: null,
+      theme: { hexSize: 18 },
     });
 
-    // ─── Модалки (battleController/marketController могут быть null до старта) ───
+    // ─── Модалки ───
     this.recruitModal = new RecruitModal(root, { bus });
     this.cityPanel = new CityPanel(root, { bus });
     this.battleModal = new BattleModal(root, {
@@ -73,28 +73,30 @@ export class UIManager {
     // Глоссарий
     this.glossary = new GlossaryModal(root);
 
-    // Мини-карта создаётся после game.start
+    // Мини-карта теперь внутри QuickJump — отдельного поля нет
     this.minimap = null;
 
     this._subscribe();
   }
 
-  // ─── Смена мира (при старте партии) ───
+  // ═══════════════════════════════════════════
+  //  Смена мира (при старте партии)
+  // ═══════════════════════════════════════════
   setWorld(world) {
     this.world = world;
     if (this.marketPanel) this.marketPanel.world = world;
     if (this.factionsPanel) this.factionsPanel.world = world;
-    if (this.minimap) {
-      this.minimap.world = world;
-      this.minimap.refresh();
-    }
+    if (this.quickJump) this.quickJump.setWorld(world);
   }
 
+  // ═══════════════════════════════════════════
+  //  HUD
+  // ═══════════════════════════════════════════
   _buildHud() {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.1.2</div>
+      <div class="hud-title">ТАВРИДА · v0.1.3</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
         <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
@@ -146,28 +148,34 @@ export class UIManager {
     btn.style.opacity = enabled ? '1' : '0.4';
   }
 
+  // ═══════════════════════════════════════════
+  //  Мини-карта (внутри QuickJump)
+  // ═══════════════════════════════════════════
   initMinimap({ cameraController, onCenter }) {
-    if (this.minimap) { this.minimap.refresh(); return; }
-    this.minimap = new Minimap(this.root, {
+    if (!this.quickJump) return;
+    this.quickJump.initMinimap({
       world: this.world,
       cameraController,
       onCenter,
     });
-    if (this.quickJump) {
-      this.quickJump.cameraController = cameraController;
-      // theme подтянем из SceneBuilder/ThemeConfig в Game, но проще — из глобалки
-      this.quickJump.theme = { hexSize: this.hexSize || 24 };
-    }
-    this.bus.on('general:moved', () => this.minimap?.refresh());
-    this.bus.on('turn:ended', () => this.minimap?.refresh());
-    this.bus.on('battle:finished', () => this.minimap?.refresh());
+    this.bus.on('general:moved', () => this.quickJump?.refreshMinimap());
+    this.bus.on('turn:ended', () => this.quickJump?.refreshMinimap());
+    this.bus.on('battle:finished', () => this.quickJump?.refreshMinimap());
+    this.minimap = null;
   }
 
+  // ═══════════════════════════════════════════
+  //  Модалки
+  // ═══════════════════════════════════════════
   openRecruitModal({ factionId, general, world }) {
     this.recruitModal.open({ factionId, general, world });
   }
 
   openCityPanel({ tile, city, world }) {
+    // Прокидываем колбэк покупки поселения
+    this.cityPanel.onBuySettlement = (cityId) => {
+      this.onBuySettlement?.(cityId);
+    };
     this.cityPanel.open({ tile, city, world });
   }
 
@@ -183,10 +191,13 @@ export class UIManager {
     this.tutorial.open();
   }
 
+  // ═══════════════════════════════════════════
+  //  Подписки шины
+  // ═══════════════════════════════════════════
   _subscribe() {
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
-      if (tile) this.tooltip.show(tile, screenPos);
-      else this.tooltip.hide();
+      // Гекс-инфо скрыто до выбора — не показываем тултип
+      this.tooltip.hide();
     });
     this.bus.on('general:selected', ({ general }) => {
       if (general) {
@@ -215,16 +226,5 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
-  }
-
-  setWorld(world) {
-    this.world = world;
-    if (this.marketPanel) this.marketPanel.world = world;
-    if (this.factionsPanel) this.factionsPanel.world = world;
-    if (this.minimap) {
-      this.minimap.world = world;
-      this.minimap.refresh();
-    }
-    if (this.quickJump) this.quickJump.setWorld(world);
   }
 }

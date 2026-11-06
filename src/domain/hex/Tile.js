@@ -1,7 +1,4 @@
-/**
- * Клетка карты. Чистые данные + минимальное поведение.
- */
- export const TILE_TYPES = {
+export const TILE_TYPES = {
   PLAINS: 'plain', FOREST: 'forest', MOUNTAIN: 'mountain',
   WATER: 'sea', COAST: 'coast', CITY: 'city', RUINS: 'ruins',
   RIVER: 'river', STEPPE: 'steppe',
@@ -13,18 +10,15 @@ export class Tile {
     this.terrain = terrain;
     this.isLand = isLand;
     this.factionId = null;
-
-    this.isVisible = false;      // ← видно сейчас (в радиусе обзора)
-    this.isExplored = false;     // ← видели раньше
-
+    this.isVisible = false;
+    this.isExplored = false;
     this.hasRoad = false;
-    this.cityId = null;          // ← ссылка на City, если это город/деревня
-    this.isCity = false;         // ← полноценный город
-    this.isVillage = false;      // ← деревня
-
+    this.cityId = null;
+    this.isCity = false;
+    this.isVillage = false;
+    this.isSettlement = false;
     this.meta = {};
   }
-
   setFaction(id) { this.factionId = id; }
   setTerrain(t) { this.terrain = t; }
   get key() { return this.hex.key; }

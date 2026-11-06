@@ -23,7 +23,6 @@ export class SceneBuilder {
 
   rebuild(world) {
     this._clearAll();
-    // 1) Гексы
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const v = new HexVisual(tile, Theme.hexSize);
@@ -33,7 +32,6 @@ export class SceneBuilder {
       this._tileVisuals.set(tile.key, v);
     }
     this.highlight.bindVisuals(this._tileVisuals);
-    // 2) Дороги (на смежных парах с hasRoad)
     const drawn = new Set();
     for (const tile of world.map.all()) {
       if (!tile.hasRoad) continue;
@@ -48,7 +46,6 @@ export class SceneBuilder {
         this._roadVisuals.push(road);
       }
     }
-    // 3) Города и деревни
     for (const city of world.cities) {
       if (!city.tileKey) continue;
       const tile = world.map.getByKey(city.tileKey);
@@ -61,9 +58,7 @@ export class SceneBuilder {
       v.addTo(this.scene);
       this._cityVisuals.set(city.id, v);
     }
-    // 4) Полководцы
     this._renderGenerals(world);
-    // 5) Туман
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const visual = this._tileVisuals.get(tile.key);
@@ -84,10 +79,8 @@ export class SceneBuilder {
   }
 
   updateCityFaction(world) {
-    for (const city of world.cities) {
-      const v = this._cityVisuals.get(city.id);
-      if (v) v.removeFrom(this.scene);
-    }
+    // Полностью пересоздать визуалы городов — флаг фракции и цвет зависят от city.factionId
+    for (const v of this._cityVisuals.values()) v.removeFrom(this.scene);
     this._cityVisuals.clear();
     for (const city of world.cities) {
       if (!city.tileKey) continue;
@@ -197,11 +190,10 @@ export class SceneBuilder {
     const v = this._generalVisuals.get(generalId);
     if (v) v.setHovered(isHovered);
   }
-  
+
   setCityHovered(cityId, isHovered) {
     const v = this._cityVisuals.get(cityId);
     if (!v) return;
-    // Лёгкая подсветка города: поднимаем группу
     v.group.position.y = isHovered ? 0.3 : 0;
   }
 }
