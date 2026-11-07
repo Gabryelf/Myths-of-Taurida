@@ -30,6 +30,8 @@ export class UIManager {
     this.onBuySettlement = null;   // (cityId) => void — устанавливается из Game
     this.battleController = battleController;
     this.marketController = marketController;
+    this.onBuySettlement = null;
+    this.onAttackCity = null;
 
     // ─── Базовые элементы ───
     this.toast = new Toast(toastRoot);
@@ -172,9 +174,15 @@ export class UIManager {
   }
 
   openCityPanel({ tile, city, world }) {
-    // Прокидываем колбэк покупки поселения
+    // Гарантируем, что world.selectedGeneralId установлен, чтобы CityPanel знал радиус
+    if (this.world && world) {
+      // ничего не делаем — selectedGeneralId уже в world
+    }
     this.cityPanel.onBuySettlement = (cityId) => {
       this.onBuySettlement?.(cityId);
+    };
+    this.cityPanel.onAttackCity = (cityId, defenderFactionId) => {
+      this.onAttackCity?.(cityId, defenderFactionId);
     };
     this.cityPanel.open({ tile, city, world });
   }

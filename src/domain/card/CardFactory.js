@@ -15,7 +15,7 @@
    scyth_horse_archer: { name: 'Конный лучник', str: 2, type: 'archer', prov: 2, ability: 'Залп + Месть', abilityKeys: ['volley', 'vengeance'], rarity: 'rare' },
    scyth_axe:          { name: 'Секироносец',   str: 2, type: 'warrior', prov: 2, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'rare' },
    scyth_priestess:    { name: 'Жрица',         str: 1, type: 'support', prov: 1, ability: 'Вдохновение + Яд', abilityKeys: ['inspire', 'poison'], rarity: 'epic' },
-   scyth_bear:         { name: 'Скифский медведь', str: 3, type: 'warrior', prov: 3, ability: 'Шипы', abilityKeys: ['thorns'], rarity: 'epic' },
+   scyth_bear:         { name: 'Воительница', str: 3, type: 'warrior', prov: 3, ability: 'Шипы', abilityKeys: ['thorns'], rarity: 'epic' },
    scyth_king:         { name: 'Скифский царь',  str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
  
    // ═══════════════ БОСПОР ═══════════════

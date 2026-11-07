@@ -153,6 +153,7 @@ export class Game {
     this.ui.battleController = this.battleController;
     this.ui.marketController = this.marketController;
     this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
+    this.ui.onAttackCity = (cityId, defenderFactionId) => this._attackCityById(cityId, defenderFactionId);
 
     if (this.ui.battleModal) {
       this.ui.battleModal.controller = this.battleController;
@@ -170,6 +171,26 @@ export class Game {
     }
 
     this._startWorld(factionId);
+  }
+
+  _attackCityById(cityId, defenderFactionId) {
+    const city = this.world.getCity(cityId);
+    if (!city || !city.tileKey) return;
+    const tile = this.world.map.getByKey(city.tileKey);
+    if (!tile) return;
+    const general = this.selectedGeneralId
+      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
+      : null;
+    if (!general) {
+      this.bus.emit('toast:show', { text: 'Сначала выберите полководца' });
+      return;
+    }
+    if (!this.world.movement.canAttack(general, tile)) {
+      this.bus.emit('toast:show', { text: 'Слишком далеко' });
+      return;
+    }
+    const cost = this.world.movement.attackCostTo(general, tile);
+    this._executeBattle(general, tile, cost, defenderFactionId);
   }
 
   _startWorld(factionId) {
@@ -236,25 +257,7 @@ export class Game {
 
     // 2) Город / деревня / поселение
     if (hitCity && tile?.cityId) {
-      const city = this.world.getCity(tile.cityId);
-      const isForeignSettlement = city
-        && city.settlement
-        && city.factionId !== playerFactionId;
-
-      // Если выбран полководец и поселение нейтральное — предложить атаку
-      if (isForeignSettlement && this.selectedGeneralId) {
-        const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
-        if (general && this.world.movement.canAttack(general, tile)) {
-          const dist = this.world.movement.attackCostTo(general, tile);
-          this._confirmSettlementAttack(general, tile, city, dist);
-          return;
-        }
-        this.bus.emit('toast:show', { text: 'Слишком далеко — не дойти до поселения' });
-        return;
-      }
-
-      // Иначе — просто открыть панель
-      this._openCity(tile, hitCity);
+      this._handleCityClick(tile, hitCity);
       return;
     }
 
@@ -337,8 +340,58 @@ export class Game {
       confirmText: 'Атаковать',
       cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost),
-      onCancel: () => {},
+      onCancel: () => { },
     });
+  }
+
+  _handleCityClick(tile, city) {
+    const playerFactionId = this.world.playerFactionId;
+    const isMine = city.factionId === playerFactionId;
+
+    // Своя деревня/город — просто открыть панель
+    if (isMine) {
+      this._openCity(tile, city);
+      return;
+    }
+
+    // Чужой/нейтральный — если выбран полководец и достаёт — диалог
+    if (this.selectedGeneralId) {
+      const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
+      if (general && this.world.movement.canAttack(general, tile)) {
+        const cost = this.world.movement.attackCostTo(general, tile);
+        const defenderFactionId = city.settlement
+          ? (city.neutralFaction || 'tauri')
+          : (city.factionId || 'goths');
+        const kind = city.settlement ? 'поселение' : city.isCity ? 'город' : 'деревню';
+        const canBuy = city.settlement;
+
+        new ConfirmDialog(document.getElementById('ui-root'), {
+          title: `Атаковать ${kind}?`,
+          text: `${general.name} может атаковать ${city.name}. `
+              + `Потратится ${cost} очка движения.`
+              + (canBuy ? ` Или купить за 40 💰 (только для поселения).` : ''),
+          confirmText: 'Атаковать',
+          cancelText: canBuy ? 'Купить / Отмена' : 'Отмена',
+          onConfirm: () => this._executeBattle(general, tile, cost, defenderFactionId),
+          onCancel: () => {
+            if (canBuy) {
+              new ConfirmDialog(document.getElementById('ui-root'), {
+                title: `Купить ${city.name}?`,
+                text: `Купить поселение за 40 золота? Генерал-защитник исчезнет.`,
+                confirmText: 'Купить',
+                cancelText: 'Отмена',
+                onConfirm: () => this.buySettlement(city.id),
+                onCancel: () => {},
+              });
+            }
+          },
+        });
+        return;
+      }
+    }
+
+    // Не достаёт / не выбран — открыть панель (информация)
+    this._openCity(tile, city);
   }
 
   _confirmSettlementAttack(general, tile, city, cost) {
@@ -349,7 +402,7 @@ export class Game {
       confirmText: 'Напасть',
       cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost, city.neutralFaction || 'tauri'),
-      onCancel: () => {},
+      onCancel: () => { },
     });
   }
 
@@ -532,6 +585,7 @@ export class Game {
   //  ГОРОДА / НАЙМ / РЫНОК
   // ═══════════════════════════════════════════
   _openCity(tile, city) {
+    if (this.world) this.world.selectedGeneralId = this.selectedGeneralId;
     this.ui.openCityPanel({ tile, city, world: this.world });
   }
 

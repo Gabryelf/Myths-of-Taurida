@@ -158,6 +158,18 @@ export class InputController {
       }
       if (general && tile && city) break;
     }
+    // ─── Fallback: если нашли город, но не нашли его tile (перекрытие) ───
+    if (city && !tile && city.tileKey) {
+      // Найдём tile по city.tileKey через world? Нет — InputController не знает о world.
+      // Решение: искать по всем pickables userData.tile с совпадающим cityId.
+      for (const obj of this._pickables) {
+        const ud = obj.userData;
+        if (ud?.tile && ud.tile.cityId === city.id) {
+          tile = ud.tile;
+          break;
+        }
+      }
+    }
     return { tile, general, city, hoverType };
   }
 

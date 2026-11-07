@@ -3,17 +3,17 @@ export const IMAGE_BASE = '/images/';
 
 export const CARD_IMAGES = {
   // ═══════════════ СКИФЫ ═══════════════
-  scyth_archer:       'skithian_001.png',
-  scyth_warrior:      'skithian_002.png',
-  scyth_rider:        'skithian_004.png',
-  scyth_shaman:       'skithian_005.png',
-  scyth_noble:        'skithian_006.png',
+  scyth_archer:       'skithian/004.png',
+  scyth_warrior:      'skithian/005.png',
+  scyth_rider:        'skithian/006.png',
+  scyth_shaman:       'skithian/007.png',
+  scyth_noble:        'skithian/008.png',
   // новые
-  scyth_horse_archer: 'skithian_007.png',
-  scyth_axe:          'skithian_008.png',
-  scyth_priestess:    'skithian_009.png',
-  scyth_bear:         'skithian_010.png',
-  scyth_king:         'skithian_011.png',
+  scyth_horse_archer: 'skithian/003.png',
+  scyth_axe:          'skithian/009.png',
+  scyth_priestess:    'skithian/010.png',
+  scyth_bear:         'skithian/002.png',
+  scyth_king:         'skithian/001.png',
 
   // ═══════════════ БОСПОР ═══════════════
   bosp_hoplite:       'bosporian_001.png',
@@ -30,7 +30,7 @@ export const CARD_IMAGES = {
 
   // ═══════════════ ХЕРСОНЕС ═══════════════
   cher_hoplite:       'hersones_001.png',
-  cher_archer:        'hersones_004.png',
+  cher_archer:        'chersoness/001.png',
   cher_priest:        'hersones_003.png',
   cher_mercenary:     'hersones_002.png',
   cher_archon:        'hersones_005.png',

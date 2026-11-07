@@ -2,16 +2,11 @@ import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoa
 import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
 import { iconImg } from '../../config/icons.js';
 
-/**
- * Модалка города / деревни / поселения.
- * - Город: список полководцев, найм нового полководца (30💰).
- * - Деревня: статистика.
- * - Поселение (нейтралов): «Купить за 40💰» (если не наше).
- */
 export class CityPanel {
   constructor(root, { bus }) {
     this.bus = bus;
-    this.onBuySettlement = null;   // (cityId) => void
+    this.onBuySettlement = null;
+    this.onAttackCity = null;   // (cityId, defenderFactionId) => void
 
     this.el = document.createElement('div');
     this.el.className = 'city-panel-overlay';
@@ -25,18 +20,25 @@ export class CityPanel {
 
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) { this.hide(); return; }
-
       const close = e.target.getAttribute?.('data-close');
       if (close !== null) { this.hide(); return; }
-
       const hireGen = e.target.getAttribute?.('data-hire-general');
       if (hireGen !== null) { this._tryHireGeneral(); return; }
-
       const buySett = e.target.getAttribute?.('data-buy-settlement');
       if (buySett !== null) {
-        // Сохраняем id ДО возможного изменения _city внутри колбэка
         const cityId = this._city?.id;
         if (cityId) this.onBuySettlement?.(cityId);
+        this.hide();
+        return;
+      }
+      const atk = e.target.getAttribute?.('data-attack-city');
+      if (atk !== null) {
+        const city = this._city;
+        if (!city) return;
+        const defenderFactionId = city.settlement
+          ? (city.neutralFaction || 'tauri')
+          : (city.factionId || 'goths');
+        this.onAttackCity?.(city.id, defenderFactionId);
         this.hide();
         return;
       }
@@ -44,7 +46,7 @@ export class CityPanel {
   }
 
   open({ tile, city, world }) {
-    if (!city || !world || !tile) return;   // защита от null
+    if (!city || !world || !tile) return;
     this._tile = tile;
     this._city = city;
     this._world = world;
@@ -79,9 +81,7 @@ export class CityPanel {
   _render() {
     const world = this._world;
     const city = this._city;
-    // ─── Защита от null — без этого падало ───
     if (!world || !city) return;
-
     const factionId = world.playerFactionId;
     if (!factionId) return;
 
@@ -94,10 +94,8 @@ export class CityPanel {
     const isMine = city.factionId === factionId;
     const maxGenerals = Math.max(1, myCities + 1);
     const canHireGeneral = isMine && city.isCity && generals.length < maxGenerals;
-    // cityGeneral — только для своего города
     const cityGeneral = world.getGeneralAt(this._tile.hex);
 
-    // ─── Тип ───
     const typeLabel = city.isCity
       ? 'Город'
       : city.settlement
@@ -111,6 +109,17 @@ export class CityPanel {
         : city.factionId
           ? factionLabel(city.factionId)
           : 'Ничейное';
+
+    // Может ли текущий выбранный полководец атаковать эту цель?
+    let canAttackHere = false;
+    let attackCost = null;
+    if (!isMine && world.selectedGeneralId) {
+      const g = world.generals.find((x) => x.id === world.selectedGeneralId);
+      if (g && world.movement.canAttack(g, this._tile)) {
+        canAttackHere = true;
+        attackCost = world.movement.attackCostTo(g, this._tile);
+      }
+    }
 
     // ─── Полководцы ───
     const generalsHtml = generals.map((g) => {
@@ -131,19 +140,24 @@ export class CityPanel {
       `;
     }).join('') || '<div class="cp-empty">Нет полководцев</div>';
 
-    // ─── Ограничения найма ───
     const restrHtml = city.settlement
       ? `<div class="cp-restr">${iconImg('ui_help', { size: 11 })} В поселении: только <b>common</b> / <b>rare</b>, цена ×1.5</div>`
       : '';
 
-    // ─── Покупка поселения ───
     const buySettlementHtml = (!isMine && city.settlement)
       ? `<button class="btn primary cp-buy-settlement" data-buy-settlement="1">
            🏛 Купить поселение · 40${iconImg('res_gold', { size: 12 })}
          </button>`
       : '';
 
-    // ─── Оборона поселения ───
+    const attackHtml = (canAttackHere)
+      ? `<button class="btn primary cp-attack-btn" data-attack-city="1">
+           ⚔ Атаковать · ${attackCost}${iconImg('action_move', { size: 12 })}
+         </button>`
+      : (!isMine
+          ? `<div class="cp-hint">Выберите полководца в радиусе, чтобы атаковать</div>`
+          : '');
+
     const defenseHtml = (!isMine && city.settlement)
       ? `<div class="cp-defense-info">
            ${iconImg('ui_shield', { size: 12 })} Охраняется: <b>${factionLabel(city.neutralFaction)}</b>
@@ -190,6 +204,7 @@ export class CityPanel {
       ` : ''}
 
       ${defenseHtml}
+      ${attackHtml}
       ${buySettlementHtml}
 
       <button class="btn cp-close" data-close="1">Закрыть</button>
