@@ -1,0 +1,90 @@
+/* ═══════════════════════════════════════════════════════════
+   ФИЛЬТРЫ В КОЛЛЕКЦИИ ЛОББИ
+   ═══════════════════════════════════════════════════════════ */
+
+.lobby-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: rgba(10, 6, 3, 0.5);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: var(--radius-sm);
+    align-items: center;
+}
+
+.lobby-filters .lf-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 10px;
+    border-right: 1px solid rgba(212, 169, 76, 0.2);
+}
+
+.lobby-filters .lf-group:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.lobby-filters .lf-label {
+    font-size: 10px;
+    color: #8a7a58;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+    font-weight: 700;
+}
+
+.lobby-filters .lf-btn {
+    padding: 4px 8px;
+    background: rgba(30, 20, 10, 0.8);
+    border: 1px solid var(--color-gold-dark);
+    border-radius: 3px;
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.lobby-filters .lf-btn:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold-bright);
+}
+
+.lobby-filters .lf-btn.active {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-weight: 700;
+}
+
+.lobby-filters .lf-reset {
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--color-gold-dark);
+    border-radius: 3px;
+    color: #8a7a58;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    cursor: pointer;
+    margin-left: auto;
+    font-style: italic;
+}
+
+.lobby-filters .lf-reset:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold-bright);
+}
+
+.lobby-filters .lf-count {
+    font-size: 10px;
+    color: #8a7a58;
+    font-style: italic;
+    margin-left: auto;
+    padding-right: 8px;
+}

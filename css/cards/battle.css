@@ -1,0 +1,117 @@
+/* ═══════════════════════════════════════════════════════════
+   КАРТА В БОЮ (в руке и на поле)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Карта в руке ─── */
+.battle-hand {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+    overflow-y: auto;
+    max-height: 100%;
+    min-height: 120px;
+    padding: 4px;
+    width: 100%;
+}
+
+.battle-hand::-webkit-scrollbar {
+    width: 4px;
+}
+
+.battle-hand::-webkit-scrollbar-thumb {
+    background: var(--color-gold-dark);
+    border-radius: 2px;
+}
+
+.bh-empty {
+    color: #8a7a58;
+    font-style: italic;
+    padding: 12px;
+    font-size: 11px;
+    text-align: center;
+}
+
+.battle-hand-card {
+    position: relative;
+    width: 100%;
+    max-width: 160px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.battle-hand-card:hover {
+    transform: translateX(-4px);
+}
+
+.battle-hand-card:hover .card-detail {
+    box-shadow: 0 4px 24px rgba(245, 213, 122, 0.5);
+}
+
+.battle-hand-card.selected {
+    transform: translateX(-6px) scale(1.02);
+}
+
+.battle-hand-card.selected .card-detail {
+    box-shadow: 0 0 20px rgba(245, 213, 122, 0.9);
+}
+
+.battle-hand-card.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+}
+
+.battle-hand-card.disabled:hover {
+    transform: none;
+}
+
+/* ─── Карта на доске (маленькая, компактная) ─── */
+.battle-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #1a1208;
+    animation: cardPlay 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    cursor: help;
+}
+
+/* ─── Значок обилки (звёздочка) на карте в руке и на поле ─── */
+.bhc-ability-badge,
+.bc-ability-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #f5d57a, #a07a20);
+    color: #1a1208;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4;
+    border: 1px solid #fff3d0;
+    box-shadow: 0 0 8px rgba(245, 213, 122, 0.9);
+}
+
+/* ─── Стоимость на карте в руке ─── */
+.bhc-cost {
+    position: absolute;
+    bottom: 26px;
+    left: 4px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    color: #e0d8ff;
+    font-size: 11px;
+    font-weight: 900;
+    z-index: 4;
+    border: 1px solid #8a7aff;
+}

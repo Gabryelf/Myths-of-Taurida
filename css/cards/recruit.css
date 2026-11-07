@@ -1,0 +1,60 @@
+/* ═══════════════════════════════════════════════════════════
+   КАРТА В НАЙМЕ
+   ═══════════════════════════════════════════════════════════ */
+
+   .recruit-modal .rm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .recruit-modal .rm-card-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+  }
+  .recruit-modal .rm-card-wrap:hover:not(.disabled) {
+    transform: translateY(-3px);
+  }
+  .recruit-modal .rm-card-wrap:hover:not(.disabled) .card-detail {
+    box-shadow: 0 6px 24px rgba(245, 213, 122, 0.5);
+  }
+  .recruit-modal .rm-card-wrap.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
+  }
+  .recruit-modal .rm-card-wrap.disabled:hover {
+    transform: none;
+  }
+  .recruit-modal .rm-card-wrap .card-detail {
+    width: 100%;
+  }
+  
+  /* Строка цены под картой */
+  .recruit-modal .rm-card-cost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(10, 6, 3, 0.7);
+    border: 1px solid rgba(212, 169, 76, 0.3);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    color: var(--color-gold);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .recruit-modal .rm-card-wrap:hover:not(.disabled) .rm-card-cost {
+    border-color: var(--color-gold);
+    color: var(--color-gold-bright);
+  }
+  .recruit-modal .rm-card-cost .icon {
+    vertical-align: middle;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  }

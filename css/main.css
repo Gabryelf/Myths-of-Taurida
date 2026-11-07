@@ -14,6 +14,7 @@
 @import './components/battle-board.css';
 @import './components/battle-hand.css';
 @import './components/battle-animations.css';
+@import './components/battle-preview-panel.css';
 @import './components/battle-result.css';
 @import './components/tutorial-modal.css';
 @import './components/turn-indicator.css';
@@ -25,8 +26,9 @@
 @import './components/lobby.css';
 @import './components/icons.css';
 @import './components/quick-jump.css';
-@import './components/battle-preview-panel.css';
-@import './components/card-detail.css';
+/* ─── Карты: вынесены в отдельную папку ─── */
+@import './cards/card.css';
+@import './cards/filters.css';
 
 #app { position: relative; width: 100%; height: 100%; }
 #game-canvas { position: absolute; inset: 0; display: block; }

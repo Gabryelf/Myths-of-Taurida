@@ -1,10 +1,6 @@
 import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardDetailView } from '../CardDetailView.js';
 
-/**
- * Карточка в лобби. Внутри — полноразмерный CardDetailView
- * + кнопки «+» / «−» для колоды.
- */
 export class LobbyCard {
   static render(cardKey, def, count, imgLoader, mode = null) {
     const card = CardFactory.create(cardKey);
@@ -25,7 +21,6 @@ export class LobbyCard {
     `;
   }
 
-  /** Пост-обработка: применить картинки во всех вложенных CardDetailView. */
   static applyImages(container, imgLoader) {
     CardDetailView.applyImages(container, imgLoader);
   }

@@ -1,0 +1,69 @@
+/* ═══════════════════════════════════════════════════════════
+   КАРТА В ЛОББИ
+   ═══════════════════════════════════════════════════════════ */
+
+.lobby-card-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+}
+
+.lobby-card-wrap .card-detail {
+    width: 100%;
+}
+
+/* Кнопки +/− под картой */
+.lobby-card-btn {
+    padding: 6px;
+    border: 1px solid var(--color-gold);
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.lobby-card-btn.add:hover {
+    background: #2a5a2c;
+    color: #a0e8b0;
+    border-color: #90d8a0;
+}
+
+.lobby-card-btn.remove:hover {
+    background: #5a1a1a;
+    color: #f0b0b0;
+    border-color: #ff8a8a;
+}
+
+/* Счётчик ×N — если >1 */
+.lobby-card-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-gold-bright);
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Сетка лобби */
+.lobby-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+}

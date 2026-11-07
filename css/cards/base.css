@@ -1,0 +1,231 @@
+/* ═══════════════════════════════════════════════════════════
+   БАЗОВЫЕ СТИЛИ КАРТ
+   Общие размеры, контейнеры, типографика.
+   ═══════════════════════════════════════════════════════════ */
+
+   :root {
+    --card-w: 180px;
+    --card-art-h: 140px;
+    --card-name-h: 44px;         /* фиксированная высота блока с названием */
+    --card-abilities-h: 130px;   /* фиксированная высота контейнера с обилками */
+    --card-icon-size: 20px;      /* размер значков обилок */
+    --card-pad: 6px;
+    --card-radius: 6px;
+  }
+  
+  /* ─── Сама карта ─── */
+  .card-detail {
+    position: relative;
+    width: var(--card-w);
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, #1a1208, #0a0603);
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    color: var(--color-text);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  }
+  
+  /* ─── Арт ─── */
+  .card-detail .cd-art {
+    position: relative;
+    width: 100%;
+    height: var(--card-art-h);
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+  }
+  
+  /* ─── Редкость: значок в углу арта (клик/ховер → тултип) ─── */
+  .card-detail .cd-rarity-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 0, 0, 0.7);
+    z-index: 4;
+    cursor: help;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  }
+  .card-detail .cd-rarity-badge.rarity-common    { background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e); }
+  .card-detail .cd-rarity-badge.rarity-rare      { background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9); }
+  .card-detail .cd-rarity-badge.rarity-epic      { background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0); }
+  .card-detail .cd-rarity-badge.rarity-legendary { background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706); box-shadow: 0 0 10px rgba(255, 180, 50, 0.9); }
+  
+  /* ─── Блок названия ─── */
+  .card-detail .cd-name-box {
+    position: relative;
+    height: var(--card-name-h);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(30, 20, 10, 0.95), rgba(15, 10, 5, 0.95));
+    flex-shrink: 0;
+  }
+  .card-detail .cd-name {
+    color: var(--color-gold-bright);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1.15;
+    word-break: break-word;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* ─── Контейнер обилок ─── */
+  .card-detail .cd-abilities-box {
+    position: relative;
+    height: var(--card-abilities-h);
+    padding: var(--card-pad);
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 6, 3, 0.6);
+    flex-shrink: 0;
+    gap: 4px;
+    overflow: hidden;
+  }
+  
+  /* ─── Количество (верх контейнера обилок) ─── */
+  .card-detail .cd-count-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--color-text);
+    flex-shrink: 0;
+  }
+  .card-detail .cd-count-row .icon {
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+  }
+  
+  /* ─── Список обилок ─── */
+  .card-detail .cd-abilities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  /* ─── Одна обилка ─── */
+  .card-detail .cd-ability {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 3px;
+    border-left: 2px solid var(--color-gold);
+    min-height: 22px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .card-detail .cd-ability .cd-ability-icon {
+    width: var(--card-icon-size);
+    height: var(--card-icon-size);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-detail .cd-ability .cd-ability-icon .icon {
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.6));
+  }
+  .card-detail .cd-ability .cd-ability-name {
+    color: var(--color-gold-bright);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: help;
+    flex: 1;
+  }
+  
+  /* ─── Тултип обилки при ховере на название ─── */
+  .card-detail .cd-ability .cd-ability-tip {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    background: rgba(10, 6, 3, 0.98);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    font-size: 10px;
+    color: #d0c0a0;
+    font-style: italic;
+    line-height: 1.3;
+    width: 200px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+  }
+  .card-detail .cd-ability .cd-ability-name:hover ~ .cd-ability-tip,
+  .card-detail .cd-ability:hover .cd-ability-tip {
+    opacity: 1;
+  }
+  
+  /* ─── «Нет способностей» ─── */
+  .card-detail .cd-ability-empty {
+    color: #6e7681;
+    font-size: 10px;
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+  }
+  
+  /* ─── Стоимость (низ контейнера обилок) ─── */
+  .card-detail .cd-cost-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c0b090;
+    flex-shrink: 0;
+    padding-top: 2px;
+    border-top: 1px solid rgba(212, 169, 76, 0.2);
+  }
+  
+  /* ─── Тултип редкости ─── */
+  .card-detail .cd-rarity-badge .cd-rarity-tip {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: rgba(10, 6, 3, 0.98);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 3px 6px;
+    font-size: 10px;
+    color: var(--color-gold-bright);
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  .card-detail .cd-rarity-badge:hover .cd-rarity-tip {
+    opacity: 1;
+  }
+  
+  /* ─── Размеры в разных местах (одинаковая высота внутри места) ─── */
+  .card-detail.size-large { --card-w: 200px; --card-art-h: 160px; }
+  .card-detail.size-medium { --card-w: 170px; --card-art-h: 130px; }
+  .card-detail.size-small { --card-w: 130px; --card-art-h: 100px; --card-name-h: 36px; --card-abilities-h: 100px; }
