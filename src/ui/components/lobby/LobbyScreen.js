@@ -2,8 +2,9 @@ import { LobbyCard } from './LobbyCard.js';
 import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../../infrastructure/three/visuals/CardImageLoader.js';
 import { Theme } from '../../../infrastructure/config/ThemeConfig.js';
-import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
 import { iconImg } from '../../../config/icons.js';
+import { GENERAL_PORTRAITS, imgUrl } from '../../../config.js';
+import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
 
 const TYPE_FILTERS = [
   { id: 'warrior', label: 'Воин',   icon: 'type_warrior' },
@@ -35,11 +36,10 @@ export class LobbyScreen {
     this._tab = 'collection';
     this._activeFaction = profile.lastPlayedFaction || 'scythians';
 
-    // ─── Фильтры (persist в сессии) ───
     this._filters = {
-      types: new Set(),     // пусто = все
-      rarities: new Set(),  // пусто = все
-      counts: new Set(),    // пусто = все
+      types: new Set(),
+      rarities: new Set(),
+      counts: new Set(),
     };
 
     this.el = document.createElement('div');
@@ -116,25 +116,15 @@ export class LobbyScreen {
       return;
     }
 
-    // ─── Фильтры ───
     const ft = e.target.closest?.('[data-filter-type]')?.getAttribute('data-filter-type');
-    if (ft !== undefined && ft !== null) {
-      this._toggle(this._filters.types, ft);
-      this._render();
-      return;
-    }
+    if (ft !== undefined && ft !== null) { this._toggle(this._filters.types, ft); this._render(); return; }
+
     const fr = e.target.closest?.('[data-filter-rarity]')?.getAttribute('data-filter-rarity');
-    if (fr !== undefined && fr !== null) {
-      this._toggle(this._filters.rarities, fr);
-      this._render();
-      return;
-    }
+    if (fr !== undefined && fr !== null) { this._toggle(this._filters.rarities, fr); this._render(); return; }
+
     const fc = e.target.closest?.('[data-filter-count]')?.getAttribute('data-filter-count');
-    if (fc !== undefined && fc !== null) {
-      this._toggle(this._filters.counts, fc);
-      this._render();
-      return;
-    }
+    if (fc !== undefined && fc !== null) { this._toggle(this._filters.counts, fc); this._render(); return; }
+
     if (e.target.closest?.('[data-filter-reset]')) {
       this._filters.types.clear();
       this._filters.rarities.clear();
@@ -150,9 +140,7 @@ export class LobbyScreen {
   }
 
   _passesFilter(card, count) {
-    const types = this._filters.types;
-    const rarities = this._filters.rarities;
-    const counts = this._filters.counts;
+    const { types, rarities, counts } = this._filters;
     if (types.size > 0 && !types.has(card.type)) return false;
     if (rarities.size > 0 && !rarities.has(card.rarity)) return false;
     if (counts.size > 0) {
@@ -175,29 +163,22 @@ export class LobbyScreen {
     `).join('');
     const rarBtns = RARITY_FILTERS.map((r) => `
       <button class="lf-btn ${this._filters.rarities.has(r.id) ? 'active' : ''}"
-              data-filter-rarity="${r.id}">
-        ${r.label}
-      </button>
+              data-filter-rarity="${r.id}">${r.label}</button>
     `).join('');
     const cntBtns = COUNT_FILTERS.map((c) => `
       <button class="lf-btn ${this._filters.counts.has(c.id) ? 'active' : ''}"
-              data-filter-count="${c.id}">
-        ×${c.label}
-      </button>
+              data-filter-count="${c.id}">×${c.label}</button>
     `).join('');
     return `
       <div class="lobby-filters">
         <div class="lf-group">
-          <span class="lf-label">Тип:</span>
-          ${typeBtns}
+          <span class="lf-label">Тип:</span>${typeBtns}
         </div>
         <div class="lf-group">
-          <span class="lf-label">Редкость:</span>
-          ${rarBtns}
+          <span class="lf-label">Редкость:</span>${rarBtns}
         </div>
         <div class="lf-group">
-          <span class="lf-label">Кол-во:</span>
-          ${cntBtns}
+          <span class="lf-label">Кол-во:</span>${cntBtns}
         </div>
         <span class="lf-count">${shown} / ${total}</span>
         <button class="lf-reset" data-filter-reset="1">Сбросить</button>
@@ -205,55 +186,80 @@ export class LobbyScreen {
     `;
   }
 
-  _render() {
+  // ─── Левая панель фракций ───
+  _factionsSidebarHtml() {
     const factions = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
-    const facTabs = factions.map((fid) => {
-      const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
-      return `<button class="lobby-fac-tab ${fid === this._activeFaction ? 'active' : ''}"
-        data-faction="${fid}" style="border-color:${color}">
-        <span class="lfc-dot" style="background:${color}"></span>
-        ${Theme.factionName[fid] || fid}
-      </button>`;
-    }).join('');
-
-    const header = `
-      <div class="lobby-header">
-        <div class="lobby-title">ТАВРИДА</div>
-        <div class="lobby-coins">💰 ${this.profile.coins}</div>
-      </div>
-      <div class="lobby-factions">${facTabs}</div>
+    return `
+      <aside class="lobby-sidebar lobby-sidebar-left">
+        ${factions.map((fid) => {
+          const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
+          return `
+            <button class="sidebar-faction ${fid === this._activeFaction ? 'active' : ''}"
+                    data-faction="${fid}"
+                    style="--faction-color:${color}">
+              <div class="faction-emblem" style="border-color:${color};box-shadow:0 0 12px ${color}">
+                <span style="color:${color}">${(Theme.factionName[fid] || fid).slice(0, 2)}</span>
+              </div>
+              <div class="faction-label">${Theme.factionName[fid] || fid}</div>
+            </button>
+          `;
+        }).join('')}
+      </aside>
     `;
+  }
 
+  // ─── Правая панель полководцев ───
+  _generalsSidebarHtml() {
     const presets = GENERAL_PRESETS[this._activeFaction] || [];
-    const currentPreset = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
-    const generalPicker = presets.length > 0 ? `
-      <div class="lobby-generals">
-        <div class="lobby-gen-title">Полководец:</div>
-        ${presets.map((p, i) => `
-          <button class="lobby-gen-opt ${i === currentPreset ? 'active' : ''}"
-                  data-preset="${i}">
-            <b>${p.name}</b>
-            <span>${p.desc}</span>
-            <em>${p.move}⛊ · ${p.lives}❤</em>
-          </button>
-        `).join('')}
-      </div>
-    ` : '';
+    const current = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
+    const active = presets[current] || null;
+    const portraitUrl = imgUrl(GENERAL_PORTRAITS[this._activeFaction]);
 
+    const listHtml = presets.map((p, i) => `
+      <button class="sidebar-general-btn ${i === current ? 'active' : ''}"
+              data-preset="${i}" title="${p.desc}">
+        ${p.name}
+      </button>
+    `).join('');
+
+    return `
+      <aside class="lobby-sidebar lobby-sidebar-right">
+        <div class="general-portrait-box">
+          <div class="general-portrait-circle"
+               style="background-image:url('${portraitUrl || ''}')">
+          </div>
+          <div class="general-name">${active?.name || '—'}</div>
+        </div>
+        <div class="general-stats">
+          <div class="stat-row">
+            <span class="stat-icon-circle">❤</span>
+            <span class="stat-value">${active?.lives ?? 3}</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-icon-diamond">⛊</span>
+            <span class="stat-value">${active?.move ?? 3}</span>
+          </div>
+        </div>
+        <div class="general-picker">
+          ${listHtml}
+        </div>
+      </aside>
+    `;
+  }
+
+  _render() {
     const tabs = `
       <div class="lobby-tabs">
         <button class="lobby-tab ${this._tab === 'collection' ? 'active' : ''}"
           data-tab="collection">Коллекция</button>
-        <button class="lobby-tab ${this._tab === 'decks' ? 'active' : ''}"
-          data-tab="decks">Колода</button>
+        <button class="lobby-tab ${this._tab === 'deck' ? 'active' : ''}"
+          data-tab="deck">Колода</button>
         <button class="lobby-summon" data-summon="1">🎴 Призыв (100💰)</button>
       </div>
     `;
-
     const content = this._tab === 'collection'
       ? this._collectionHtml()
       : this._deckHtml();
-
     const footer = `
       <div class="lobby-footer">
         <button class="lobby-play" data-play="1">▶ Начать партию</button>
@@ -262,11 +268,21 @@ export class LobbyScreen {
 
     this.el.innerHTML = `
       <div class="lobby-panel">
-        ${header}
-        ${generalPicker}
-        ${tabs}
-        <div class="lobby-content">${content}</div>
-        ${footer}
+        <div class="lobby-logo">
+          <img src="/promo/logo.png" alt="TAVRIDA" />
+        </div>
+        <div class="lobby-coins-bar">
+          <span class="lobby-coins">💰 ${this.profile.coins}</span>
+        </div>
+        <div class="lobby-body">
+          ${this._factionsSidebarHtml()}
+          <main class="lobby-content-main">
+            ${tabs}
+            <div class="lobby-content">${content}</div>
+            ${footer}
+          </main>
+          ${this._generalsSidebarHtml()}
+        </div>
       </div>
     `;
 

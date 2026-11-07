@@ -1,19 +1,17 @@
 /* ═══════════════════════════════════════════════════════════
    БАЗОВЫЕ СТИЛИ КАРТ
-   Общие размеры, контейнеры, типографика.
    ═══════════════════════════════════════════════════════════ */
 
    :root {
-    --card-w: 180px;
-    --card-art-h: 140px;
-    --card-name-h: 44px;         /* фиксированная высота блока с названием */
-    --card-abilities-h: 130px;   /* фиксированная высота контейнера с обилками */
-    --card-icon-size: 20px;      /* размер значков обилок */
+    --card-w: 200px;
+    --card-art-h: 200px;         /* было 140 — теперь ×1.5 длиннее, картинка не режется */
+    --card-name-h: 44px;
+    --card-abilities-h: 100px;   /* было 130 */
+    --card-icon-size: 20px;
     --card-pad: 6px;
     --card-radius: 6px;
   }
   
-  /* ─── Сама карта ─── */
   .card-detail {
     position: relative;
     width: var(--card-w);
@@ -26,19 +24,18 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
   }
   
-  /* ─── Арт ─── */
   .card-detail .cd-art {
     position: relative;
     width: 100%;
     height: var(--card-art-h);
     background-color: #2a1d0f;
-    background-size: cover;
-    background-position: center top;
+    background-size: contain;            /* ← не обрезать, а вмещать */
+    background-position: center center;
     background-repeat: no-repeat;
     flex-shrink: 0;
   }
   
-  /* ─── Редкость: значок в углу арта (клик/ховер → тултип) ─── */
+  /* ─── Редкость — значок в углу арта ─── */
   .card-detail .cd-rarity-badge {
     position: absolute;
     top: 6px;
@@ -92,10 +89,9 @@
     background: rgba(10, 6, 3, 0.6);
     flex-shrink: 0;
     gap: 4px;
-    overflow: hidden;
+    overflow: visible;                 /* ← даём тултипу выйти за пределы */
   }
   
-  /* ─── Количество (верх контейнера обилок) ─── */
   .card-detail .cd-count-row {
     display: flex;
     justify-content: center;
@@ -110,7 +106,6 @@
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
   }
   
-  /* ─── Список обилок ─── */
   .card-detail .cd-abilities-list {
     display: flex;
     flex-direction: column;
@@ -155,28 +150,36 @@
     flex: 1;
   }
   
-  /* ─── Тултип обилки при ховере на название ─── */
-  .card-detail .cd-ability .cd-ability-tip {
+  /* ─── Тултип обилки (общий, спозиционируем в .cd-abilities-box) ─── */
+  .card-detail .cd-ability-tip-layer {
     position: absolute;
-    bottom: calc(100% + 4px);
-    left: 0;
-    z-index: 100;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .card-detail .cd-ability-tip {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 12px);          /* не выходит за контейнер обилок */
+    max-height: calc(100% - 12px);
     background: rgba(10, 6, 3, 0.98);
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-sm);
-    padding: 6px 8px;
-    font-size: 10px;
-    color: #d0c0a0;
-    font-style: italic;
-    line-height: 1.3;
-    width: 200px;
+    padding: 8px 10px;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--color-text);
+    line-height: 1.4;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.9);
+    overflow: auto;
+    z-index: 51;
   }
-  .card-detail .cd-ability .cd-ability-name:hover ~ .cd-ability-tip,
-  .card-detail .cd-ability:hover .cd-ability-tip {
+  .card-detail .cd-ability-tip.visible {
     opacity: 1;
   }
   
@@ -189,7 +192,7 @@
     padding: 8px 0;
   }
   
-  /* ─── Стоимость (низ контейнера обилок) ─── */
+  /* ─── Стоимость ─── */
   .card-detail .cd-cost-row {
     display: flex;
     justify-content: center;
@@ -225,7 +228,20 @@
     opacity: 1;
   }
   
-  /* ─── Размеры в разных местах (одинаковая высота внутри места) ─── */
-  .card-detail.size-large { --card-w: 200px; --card-art-h: 160px; }
-  .card-detail.size-medium { --card-w: 170px; --card-art-h: 130px; }
-  .card-detail.size-small { --card-w: 130px; --card-art-h: 100px; --card-name-h: 36px; --card-abilities-h: 100px; }
+  /* ─── Размеры (для разных мест) ─── */
+  .card-detail.size-large  { --card-w: 200px; --card-art-h: 240px; --card-name-h: 46px; --card-abilities-h: 160px; }
+  .card-detail.size-medium { --card-w: 170px; --card-art-h: 200px; --card-name-h: 40px; --card-abilities-h: 140px; }
+  .card-detail.size-small  { --card-w: 130px; --card-art-h: 140px; --card-name-h: 36px; --card-abilities-h: 110px; --card-icon-size: 16px; }
+
+  /* ═══════════════════════════════════════════════════════════
+   ЦВЕТОВАЯ РАСКРАСКА ТЕКСТА В ТУЛТИПАХ
+   Цифры — зелёным, типы/параметры — синим, имена — золотым.
+   ═══════════════════════════════════════════════════════════ */
+.txt-green { color: #5ec37a; font-weight: 700; }
+.txt-blue  { color: #7aa0c8; font-weight: 700; }
+.txt-gold  { color: var(--color-gold-bright); font-weight: 700; }
+
+/* Тултип обилки — раскрасить обычный текст */
+.card-detail .cd-ability-tip {
+  color: #c0b090;
+}

@@ -1,21 +1,273 @@
 /* ═══════════════════════════════════════════════════════════
-   КАРТА В ЛОББИ
+   ЛОББИ — КАРКАС
+   Слева — фракции (1/8), центр — карты, справа — генералы (1/8).
+   Сверху — логотип по центру.
    ═══════════════════════════════════════════════════════════ */
 
-.lobby-card-wrap {
-    position: relative;
+   .lobby-panel {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-}
-
-.lobby-card-wrap .card-detail {
     width: 100%;
-}
-
-/* Кнопки +/− под картой */
-.lobby-card-btn {
+    height: 100%;
+    padding: 14px 18px;
+    gap: 10px;
+  }
+  
+  /* ─── Логотип ─── */
+  .lobby-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .lobby-logo img {
+    max-height: 80px;
+    max-width: 260px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(245, 213, 122, 0.4));
+  }
+  
+  /* ─── Монеты — отдельная полоска под логотипом ─── */
+  .lobby-coins-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 8px;
+  }
+  .lobby-coins {
+    background: linear-gradient(180deg, #4a3418, #1a1008);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    color: var(--color-gold-bright);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  
+  /* ─── Основная область ─── */
+  .lobby-body {
+    display: grid;
+    grid-template-columns: 1fr 6fr 1fr;   /* 1/8 слева, 6/8 центр, 1/8 справа */
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+  }
+  
+  /* ─── Боковая панель ─── */
+  .lobby-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 6px;
+    background: rgba(10, 6, 3, 0.55);
+    border: 1px solid rgba(212, 169, 76, 0.25);
+    border-radius: var(--radius-md);
+    overflow-y: auto;
+  }
+  .lobby-sidebar::-webkit-scrollbar { width: 4px; }
+  .lobby-sidebar::-webkit-scrollbar-thumb { background: var(--color-gold-dark); border-radius: 2px; }
+  
+  /* ─── Фракции слева ─── */
+  .sidebar-faction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    background: rgba(20, 12, 6, 0.6);
+    border: 1px solid rgba(212, 169, 76, 0.15);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .sidebar-faction:hover {
+    background: rgba(40, 26, 14, 0.7);
+    border-color: var(--color-gold);
+  }
+  .sidebar-faction.active {
+    border-color: var(--faction-color, var(--color-gold-bright));
+    background: rgba(30, 20, 10, 0.9);
+    box-shadow: 0 0 12px var(--faction-color, rgba(245, 213, 122, 0.4));
+  }
+  .faction-emblem {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--color-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 14px;
+    background: #1a1208;
+  }
+  .faction-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    color: var(--color-text);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  
+  /* ─── Генералы справа ─── */
+  .lobby-sidebar-right {
+    align-items: center;
+    gap: 8px;
+  }
+  .general-portrait-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .general-portrait-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 3px solid var(--color-gold);
+    background-color: #1a1208;
+    background-size: cover;
+    background-position: center top;
+    box-shadow: 0 0 16px rgba(245, 213, 122, 0.4);
+  }
+  .general-name {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .general-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .general-stats .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .general-stats .stat-icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff8a8a, #6b1410);
+    color: #fff;
+    font-size: 12px;
+    border: 1px solid var(--color-gold);
+  }
+  .general-stats .stat-icon-diamond {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    transform: rotate(45deg);
+    background: linear-gradient(180deg, #7aa0c8, #2c4a6a);
+    color: #fff;
+    font-size: 11px;
+    border: 1px solid var(--color-gold);
+  }
+  .general-stats .stat-icon-diamond > * { transform: rotate(-45deg); }
+  .general-stats .stat-value {
+    color: var(--color-text);
+    font-weight: 900;
+    font-size: 12px;
+  }
+  
+  .general-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .sidebar-general-btn {
+    padding: 5px 6px;
+    background: rgba(20, 12, 6, 0.6);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: 3px;
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all var(--transition-fast);
+  }
+  .sidebar-general-btn:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold-bright);
+  }
+  .sidebar-general-btn.active {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-weight: 700;
+  }
+  
+  /* ─── Центральная область ─── */
+  .lobby-content-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    gap: 8px;
+  }
+  .lobby-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  
+  /* ─── Табы ─── */
+  .lobby-tabs {
+    display: flex;
+    gap: 6px;
+  }
+  .lobby-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(10, 6, 3, 0.6);
+    border: 1px solid var(--color-gold-dark);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .lobby-tab.active {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+  }
+  .lobby-summon {
+    padding: 8px 14px;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    border: 1px solid #8a7aff;
+    color: #d0c8ff;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+  
+  /* ─── Кнопки под картами (лобби) ─── */
+  .lobby-card-btn {
     padding: 6px;
     border: 1px solid var(--color-gold);
     background: linear-gradient(180deg, #4a3418, #1a1008);
@@ -26,22 +278,20 @@
     cursor: pointer;
     border-radius: var(--radius-sm);
     transition: all var(--transition-fast);
-}
-
-.lobby-card-btn.add:hover {
+  }
+  .lobby-card-btn.add:hover {
     background: #2a5a2c;
     color: #a0e8b0;
     border-color: #90d8a0;
-}
-
-.lobby-card-btn.remove:hover {
+  }
+  .lobby-card-btn.remove:hover {
     background: #5a1a1a;
     color: #f0b0b0;
     border-color: #ff8a8a;
-}
-
-/* Счётчик ×N — если >1 */
-.lobby-card-count {
+  }
+  
+  /* ─── Счётчик ×N ─── */
+  .lobby-card-count {
     position: absolute;
     top: 4px;
     right: 4px;
@@ -59,11 +309,113 @@
     border: 1.5px solid var(--color-gold-bright);
     z-index: 5;
     pointer-events: none;
-}
-
-/* Сетка лобби */
-.lobby-grid {
+  }
+  
+  /* ─── Сетка ─── */
+  .lobby-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 14px;
-}
+  }
+  
+  /* ─── Футер ─── */
+  .lobby-footer {
+    text-align: center;
+    padding-top: 4px;
+  }
+  .lobby-play {
+    padding: 12px 42px;
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border: 2px solid var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 24px rgba(245, 213, 122, 0.3);
+    transition: all var(--transition-fast);
+  }
+  .lobby-play:hover {
+    background: linear-gradient(180deg, #a07c3a, #5a4020);
+    box-shadow: 0 0 40px rgba(245, 213, 122, 0.6);
+  }
+  
+  /* ─── Пусто ─── */
+  .lobby-empty {
+    color: #8a7a58;
+    font-style: italic;
+    text-align: center;
+    padding: 30px;
+    font-size: 13px;
+  }
+  
+  /* ─── Автосборка ─── */
+  .lobby-deck-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(10, 6, 3, 0.5);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .lobby-deck-count { font-size: 13px; font-weight: 700; }
+  .lobby-deck-count.ok { color: #90d8a0; }
+  .lobby-deck-count.bad { color: #f0a0a0; }
+  .lobby-autofill {
+    padding: 6px 12px;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    border: 1px solid #8a7aff;
+    color: #d0c8ff;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+  }
+  
+  /* ─── Заголовок секции ─── */
+  .lobby-section-title {
+    font-size: 11px;
+    color: var(--color-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 12px 0 8px;
+    font-weight: 700;
+  }
+  
+  /* ─── Адаптив ─── */
+  @media (max-width: 1200px) {
+    .lobby-body { grid-template-columns: 90px 1fr 90px; }
+    .general-portrait-circle { width: 56px; height: 56px; }
+    .faction-emblem { width: 34px; height: 34px; font-size: 12px; }
+  }
+  @media (max-width: 900px) {
+    .lobby-body { grid-template-columns: 70px 1fr 70px; gap: 6px; }
+    .lobby-panel { padding: 8px 10px; }
+    .lobby-logo img { max-height: 56px; }
+    .sidebar-general-btn { font-size: 9px; padding: 3px 4px; }
+  }
+  @media (max-width: 700px) {
+    .lobby-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 6px;
+    }
+    .lobby-sidebar {
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-height: 80px;
+      padding: 6px;
+    }
+    .lobby-sidebar-left .sidebar-faction { min-width: 60px; }
+    .lobby-sidebar-right { order: -1; }
+    .general-portrait-circle { width: 40px; height: 40px; }
+    .general-picker { flex-direction: row; flex-wrap: wrap; }
+    .sidebar-general-btn { flex: 1; min-width: 60px; }
+  }
