@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════════════════════════
+   Красивый скроллбар для контейнеров карт и списков.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Базовые правила (Chrome, Edge, Safari) ─── */
+.lobby-content::-webkit-scrollbar,
+.battle-hand-root::-webkit-scrollbar,
+.recruit-modal::-webkit-scrollbar,
+.battle-log-side::-webkit-scrollbar,
+.lobby-sidebar::-webkit-scrollbar,
+.deck-panel::-webkit-scrollbar,
+.market-panel::-webkit-scrollbar,
+.city-panel::-webkit-scrollbar,
+.glossary-modal::-webkit-scrollbar,
+.factions-panel::-webkit-scrollbar,
+.summon-modal::-webkit-scrollbar,
+.tutorial-modal::-webkit-scrollbar,
+.recruit-modal .rm-grid::-webkit-scrollbar,
+.lobby-sidebar-left::-webkit-scrollbar,
+.lobby-sidebar-right::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.lobby-content::-webkit-scrollbar-track,
+.battle-hand-root::-webkit-scrollbar-track,
+.recruit-modal::-webkit-scrollbar-track,
+.battle-log-side::-webkit-scrollbar-track,
+.lobby-sidebar::-webkit-scrollbar-track,
+.deck-panel::-webkit-scrollbar-track,
+.market-panel::-webkit-scrollbar-track,
+.city-panel::-webkit-scrollbar-track,
+.glossary-modal::-webkit-scrollbar-track,
+.factions-panel::-webkit-scrollbar-track,
+.summon-modal::-webkit-scrollbar-track,
+.tutorial-modal::-webkit-scrollbar-track,
+.recruit-modal .rm-grid::-webkit-scrollbar-track,
+.lobby-sidebar-left::-webkit-scrollbar-track,
+.lobby-sidebar-right::-webkit-scrollbar-track {
+  background: rgba(10, 6, 3, 0.4);
+  border-radius: 4px;
+  border: 1px solid rgba(212, 169, 76, 0.1);
+}
+
+.lobby-content::-webkit-scrollbar-thumb,
+.battle-hand-root::-webkit-scrollbar-thumb,
+.recruit-modal::-webkit-scrollbar-thumb,
+.battle-log-side::-webkit-scrollbar-thumb,
+.lobby-sidebar::-webkit-scrollbar-thumb,
+.deck-panel::-webkit-scrollbar-thumb,
+.market-panel::-webkit-scrollbar-thumb,
+.city-panel::-webkit-scrollbar-thumb,
+.glossary-modal::-webkit-scrollbar-thumb,
+.factions-panel::-webkit-scrollbar-thumb,
+.summon-modal::-webkit-scrollbar-thumb,
+.tutorial-modal::-webkit-scrollbar-thumb,
+.recruit-modal .rm-grid::-webkit-scrollbar-thumb,
+.lobby-sidebar-left::-webkit-scrollbar-thumb,
+.lobby-sidebar-right::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #d4a94c, #8a6a30);
+  border-radius: 4px;
+  border: 1px solid rgba(245, 213, 122, 0.3);
+  box-shadow: inset 0 1px 0 rgba(245, 213, 122, 0.3);
+}
+
+.lobby-content::-webkit-scrollbar-thumb:hover,
+.battle-hand-root::-webkit-scrollbar-thumb:hover,
+.recruit-modal::-webkit-scrollbar-thumb:hover,
+.battle-log-side::-webkit-scrollbar-thumb:hover,
+.lobby-sidebar::-webkit-scrollbar-thumb:hover,
+.deck-panel::-webkit-scrollbar-thumb:hover,
+.market-panel::-webkit-scrollbar-thumb:hover,
+.city-panel::-webkit-scrollbar-thumb:hover,
+.glossary-modal::-webkit-scrollbar-thumb:hover,
+.factions-panel::-webkit-scrollbar-thumb:hover,
+.summon-modal::-webkit-scrollbar-thumb:hover,
+.tutorial-modal::-webkit-scrollbar-thumb:hover,
+.recruit-modal .rm-grid::-webkit-scrollbar-thumb:hover,
+.lobby-sidebar-left::-webkit-scrollbar-thumb:hover,
+.lobby-sidebar-right::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #f5d57a, #d4a94c);
+  box-shadow: 0 0 8px rgba(245, 213, 122, 0.6), inset 0 1px 0 rgba(255, 243, 208, 0.5);
+}
+
+.lobby-content::-webkit-scrollbar-corner,
+.battle-hand-root::-webkit-scrollbar-corner,
+.recruit-modal::-webkit-scrollbar-corner,
+.lobby-sidebar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ─── Firefox ─── */
+.lobby-content,
+.battle-hand-root,
+.recruit-modal,
+.battle-log-side,
+.lobby-sidebar,
+.deck-panel,
+.market-panel,
+.city-panel,
+.glossary-modal,
+.factions-panel,
+.summon-modal,
+.tutorial-modal {
+  scrollbar-width: thin;
+  scrollbar-color: #d4a94c rgba(10, 6, 3, 0.4);
+}

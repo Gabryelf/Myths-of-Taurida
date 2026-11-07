@@ -2,9 +2,14 @@ import { LobbyCard } from './LobbyCard.js';
 import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../../infrastructure/three/visuals/CardImageLoader.js';
 import { Theme } from '../../../infrastructure/config/ThemeConfig.js';
-import { iconImg } from '../../../config/icons.js';
-import { GENERAL_PORTRAITS, imgUrl } from '../../../config.js';
+import {
+  GENERAL_PORTRAITS,
+  imgUrl,
+  factionEmblemUrl,
+  generalPortraitUrl,
+} from '../../../config.js';
 import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
+import { iconImg } from '../../../config/icons.js';
 
 const TYPE_FILTERS = [
   { id: 'warrior', label: 'Воин',   icon: 'type_warrior' },
@@ -193,12 +198,15 @@ export class LobbyScreen {
       <aside class="lobby-sidebar lobby-sidebar-left">
         ${factions.map((fid) => {
           const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
+          const emblem = factionEmblemUrl(fid);
           return `
             <button class="sidebar-faction ${fid === this._activeFaction ? 'active' : ''}"
                     data-faction="${fid}"
                     style="--faction-color:${color}">
-              <div class="faction-emblem" style="border-color:${color};box-shadow:0 0 12px ${color}">
-                <span style="color:${color}">${(Theme.factionName[fid] || fid).slice(0, 2)}</span>
+              <div class="faction-emblem"
+                   style="border-color:${color};
+                          box-shadow:0 0 12px ${color};
+                          background-image:url('${emblem || ''}')">
               </div>
               <div class="faction-label">${Theme.factionName[fid] || fid}</div>
             </button>
@@ -208,19 +216,23 @@ export class LobbyScreen {
     `;
   }
 
-  // ─── Правая панель полководцев ───
+  // ─── Правая панель: генералы + кнопка «Начать партию» внизу ───
   _generalsSidebarHtml() {
     const presets = GENERAL_PRESETS[this._activeFaction] || [];
     const current = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
     const active = presets[current] || null;
-    const portraitUrl = imgUrl(GENERAL_PORTRAITS[this._activeFaction]);
+    const portraitUrl = generalPortraitUrl(this._activeFaction, current);
 
-    const listHtml = presets.map((p, i) => `
-      <button class="sidebar-general-btn ${i === current ? 'active' : ''}"
-              data-preset="${i}" title="${p.desc}">
-        ${p.name}
-      </button>
-    `).join('');
+    const listHtml = presets.map((p, i) => {
+      const pUrl = generalPortraitUrl(this._activeFaction, i);
+      return `
+        <button class="sidebar-general-btn ${i === current ? 'active' : ''}"
+                data-preset="${i}" title="${p.desc}">
+          <span class="sgb-portrait" style="background-image:url('${pUrl || ''}')"></span>
+          <span class="sgb-name">${p.name}</span>
+        </button>
+      `;
+    }).join('');
 
     return `
       <aside class="lobby-sidebar lobby-sidebar-right">
@@ -243,6 +255,7 @@ export class LobbyScreen {
         <div class="general-picker">
           ${listHtml}
         </div>
+        <button class="lobby-play-sidebar" data-play="1">▶ Начать партию</button>
       </aside>
     `;
   }
@@ -260,26 +273,20 @@ export class LobbyScreen {
     const content = this._tab === 'collection'
       ? this._collectionHtml()
       : this._deckHtml();
-    const footer = `
-      <div class="lobby-footer">
-        <button class="lobby-play" data-play="1">▶ Начать партию</button>
-      </div>
-    `;
 
     this.el.innerHTML = `
       <div class="lobby-panel">
-        <div class="lobby-logo">
-          <img src="/promo/logo.png" alt="TAVRIDA" />
-        </div>
-        <div class="lobby-coins-bar">
-          <span class="lobby-coins">💰 ${this.profile.coins}</span>
+        <div class="lobby-top-bar">
+          <div class="lobby-logo">
+            <img src="/promo/logo.gif" alt="TAVRIDA" />
+          </div>
+          <div class="lobby-coins">💰 ${this.profile.coins}</div>
         </div>
         <div class="lobby-body">
           ${this._factionsSidebarHtml()}
           <main class="lobby-content-main">
             ${tabs}
             <div class="lobby-content">${content}</div>
-            ${footer}
           </main>
           ${this._generalsSidebarHtml()}
         </div>

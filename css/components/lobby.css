@@ -1,111 +1,317 @@
+/* ═══════════════════════════════════════════════════════════
+   ЛОББИ — КАРКАС (без рамки, на весь экран)
+   Слева — фракции (узкая панель), центр — карты,
+   справа — генералы + кнопка «Начать партию».
+   Сверху — GIF-логотип по центру.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Оверлей ─── */
 .lobby-overlay {
     position: fixed;
     inset: 0;
     background: radial-gradient(ellipse at center, rgba(20, 12, 6, 0.97), rgba(0, 0, 0, 0.99));
     z-index: 400;
     display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
+    align-items: stretch;
+    justify-content: stretch;
     backdrop-filter: blur(6px);
-}
-
-.lobby-overlay.visible {
-    display: flex;
-}
-
-.lobby-panel {
-    width: 100%;
-    max-width: 1100px;
-    height: 94vh;
+  }
+  .lobby-overlay.visible { display: flex; }
+  
+  /* ─── Главный контейнер — без рамки, на всё лобби ─── */
+  .lobby-panel {
     display: flex;
     flex-direction: column;
-    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.5), transparent 60%),
-        linear-gradient(160deg, #221610, #0a0603);
-    border: 2px solid var(--color-gold);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    box-shadow: 0 0 120px rgba(212, 169, 76, 0.3), 0 24px 80px rgba(0, 0, 0, 0.95);
-    overflow: hidden;
-}
-
-.lobby-header {
+    width: 100%;
+    height: 100%;
+    padding: 10px 14px;
+    gap: 8px;
+    min-width: 0;
+  }
+  
+  /* ─── Верхняя полоса: логотип по центру, монеты справа ─── */
+  .lobby-top-bar {
+    position: relative;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(212, 169, 76, 0.25);
-    margin-bottom: 12px;
-}
-
-.lobby-title {
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--color-gold-bright);
-    letter-spacing: 0.2em;
-    text-shadow: 0 0 20px rgba(245, 213, 122, 0.4);
-}
-
-.lobby-coins {
+    justify-content: center;
+    padding: 4px 0 8px;
+    min-height: 80px;
+  }
+  
+  .lobby-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+  }
+  .lobby-logo img {
+    max-height: 76px;
+    max-width: 280px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(245, 213, 122, 0.45));
+    image-rendering: auto;
+  }
+  
+  .lobby-coins {
+    position: absolute;
+    right: 4px;
+    top: 8px;
     background: linear-gradient(180deg, #4a3418, #1a1008);
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-sm);
-    padding: 6px 14px;
+    padding: 4px 12px;
     color: var(--color-gold-bright);
     font-weight: 700;
-    font-size: 15px;
-}
-
-.lobby-factions {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-
-.lobby-fac-tab {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  
+  /* ─── Основная область: слева | центр | справа ─── */
+  .lobby-body {
+    display: grid;
+    grid-template-columns: 100px 1fr 200px;
+    gap: 10px;
     flex: 1;
-    min-width: 100px;
-    padding: 8px 12px;
-    background: rgba(10, 6, 3, 0.6);
-    border: 2px solid var(--color-gold-dark);
+    min-height: 0;
+  }
+  
+  /* ─── Боковые панели ─── */
+  .lobby-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 6px;
+    background: rgba(10, 6, 3, 0.55);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: var(--radius-md);
+    overflow-y: auto;
+  }
+  .lobby-sidebar::-webkit-scrollbar { width: 3px; }
+  .lobby-sidebar::-webkit-scrollbar-thumb { background: var(--color-gold-dark); border-radius: 2px; }
+  
+  /* ─── Левая панель: фракции ─── */
+  .lobby-sidebar-left {
+    align-items: stretch;
+  }
+  .sidebar-faction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    background: rgba(20, 12, 6, 0.6);
+    border: 1px solid rgba(212, 169, 76, 0.15);
     border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .sidebar-faction:hover {
+    background: rgba(40, 26, 14, 0.7);
+    border-color: var(--color-gold);
+  }
+  .sidebar-faction.active {
+    border-color: var(--faction-color, var(--color-gold-bright));
+    background: rgba(30, 20, 10, 0.9);
+    box-shadow: 0 0 10px var(--faction-color, rgba(245, 213, 122, 0.4));
+  }
+  .faction-emblem {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--color-gold);
+    background-color: #1a1208;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+  }
+  .faction-label {
+    font-family: var(--font-ui);
+    font-size: 10px;
     color: var(--color-text);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+  }
+  
+  /* ─── Правая панель: генералы + кнопка старта ─── */
+  .lobby-sidebar-right {
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  
+  .general-portrait-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+  }
+  .general-portrait-circle {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    border: 3px solid var(--color-gold);
+    background-color: #1a1208;
+    background-size: cover;
+    background-position: center top;
+    box-shadow: 0 0 16px rgba(245, 213, 122, 0.5);
+    flex-shrink: 0;
+    transition: background-image 0.25s ease;
+  }
+  .general-name {
     font-family: var(--font-ui);
     font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
+    color: var(--color-gold-bright);
+    text-align: center;
+    line-height: 1.2;
+  }
+  
+  .general-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .general-stats .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .general-stats .stat-icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff8a8a, #6b1410);
+    color: #fff;
+    font-size: 12px;
+    border: 1px solid var(--color-gold);
+  }
+  .general-stats .stat-icon-diamond {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    transform: rotate(45deg);
+    background: linear-gradient(180deg, #7aa0c8, #2c4a6a);
+    color: #fff;
+    font-size: 11px;
+    border: 1px solid var(--color-gold);
+  }
+  .general-stats .stat-icon-diamond > * { transform: rotate(-45deg); }
+  .general-stats .stat-value {
+    color: var(--color-text);
+    font-weight: 900;
+    font-size: 12px;
+  }
+  
+  /* ─── Список генералов ─── */
+  .general-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+  .sidebar-general-btn {
     display: flex;
     align-items: center;
     gap: 6px;
+    padding: 4px 6px;
+    background: rgba(20, 12, 6, 0.6);
+    border: 1px solid rgba(212, 169, 76, 0.2);
+    border-radius: 3px;
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    font-size: 10px;
+    text-align: left;
+    cursor: pointer;
     transition: all var(--transition-fast);
-}
-
-.lobby-fac-tab:hover {
-    background: rgba(40, 26, 14, 0.6);
-}
-
-.lobby-fac-tab.active {
-    background: linear-gradient(180deg, rgba(212, 169, 76, 0.25), rgba(80, 60, 20, 0.15));
+    min-width: 0;
+  }
+  .sidebar-general-btn:hover {
+    border-color: var(--color-gold);
     color: var(--color-gold-bright);
-    box-shadow: 0 0 12px rgba(245, 213, 122, 0.4);
-}
-
-.lfc-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
+  }
+  .sidebar-general-btn.active {
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border-color: var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-weight: 700;
+  }
+  .sidebar-general-btn .sgb-portrait {
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    box-shadow: 0 0 6px currentColor;
-}
-
-.lobby-tabs {
+    border: 1px solid var(--color-gold);
+    background-color: #1a1208;
+    background-size: cover;
+    background-position: center top;
+    flex-shrink: 0;
+  }
+  .sidebar-general-btn .sgb-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  
+  /* ─── Кнопка «Начать партию» внизу правой панели ─── */
+  .lobby-play-sidebar {
+    margin-top: auto;
+    padding: 12px 8px;
+    width: 100%;
+    background: linear-gradient(180deg, #a07c3a, #4a3418);
+    border: 2px solid var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 20px rgba(245, 213, 122, 0.4);
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+  .lobby-play-sidebar:hover {
+    background: linear-gradient(180deg, #c09440, #5a4020);
+    box-shadow: 0 0 40px rgba(245, 213, 122, 0.8);
+    color: #fff3d0;
+  }
+  .lobby-play-sidebar:active {
+    transform: translateY(1px);
+  }
+  
+  /* ─── Центральная область ─── */
+  .lobby-content-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    gap: 8px;
+  }
+  .lobby-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+    min-height: 0;
+  }
+  
+  /* ─── Табы ─── */
+  .lobby-tabs {
     display: flex;
     gap: 6px;
-    margin-bottom: 12px;
-}
-
-.lobby-tab {
+  }
+  .lobby-tab {
     flex: 1;
     padding: 8px 12px;
     background: rgba(10, 6, 3, 0.6);
@@ -118,15 +324,13 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
-}
-
-.lobby-tab.active {
+  }
+  .lobby-tab.active {
     background: linear-gradient(180deg, #8a6a30, #4a3418);
     border-color: var(--color-gold-bright);
     color: var(--color-gold-bright);
-}
-
-.lobby-summon {
+  }
+  .lobby-summon {
     padding: 8px 14px;
     background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
     border: 1px solid #8a7aff;
@@ -138,89 +342,25 @@
     text-transform: uppercase;
     cursor: pointer;
     border-radius: var(--radius-sm);
-}
-
-.lobby-content {
-    flex: 1;
-    overflow-y: auto;
-    margin-bottom: 12px;
-    padding: 8px;
-}
-
-.lobby-grid {
+    white-space: nowrap;
+  }
+  
+  /* ─── Карточки и сетка ─── */
+  .lobby-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px;
-}
-
-.lobby-empty {
-    color: #8a7a58;
-    font-style: italic;
-    text-align: center;
-    padding: 30px;
-    font-size: 13px;
-}
-
-.lobby-section-title {
-    font-size: 11px;
-    color: var(--color-gold);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin: 12px 0 8px;
-    font-weight: 700;
-}
-
-.lobby-deck-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: rgba(10, 6, 3, 0.5);
-    border: 1px solid rgba(212, 169, 76, 0.2);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-}
-
-.lobby-deck-count {
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.lobby-deck-count.ok {
-    color: #90d8a0;
-}
-
-.lobby-deck-count.bad {
-    color: #f0a0a0;
-}
-
-.lobby-autofill {
-    padding: 6px 12px;
-    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
-    border: 1px solid #8a7aff;
-    color: #d0c8ff;
-    font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    text-transform: uppercase;
-}
-
-/* ─── Карточка в лобби: CardDetailView + кнопка ─── */
-.lobby-card-wrap {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+  }
+  .lobby-card-wrap {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
     gap: 4px;
-}
-
-.lobby-card-wrap .card-detail {
-    width: 200px;
-}
-
-.lobby-card-count {
+  }
+  .lobby-card-wrap .card-detail {
+    width: 100%;
+  }
+  .lobby-card-count {
     position: absolute;
     top: 4px;
     right: 4px;
@@ -238,9 +378,8 @@
     border: 1.5px solid var(--color-gold-bright);
     z-index: 5;
     pointer-events: none;
-}
-
-.lobby-card-btn {
+  }
+  .lobby-card-btn {
     padding: 6px;
     border: 1px solid var(--color-gold);
     background: linear-gradient(180deg, #4a3418, #1a1008);
@@ -251,415 +390,115 @@
     cursor: pointer;
     border-radius: var(--radius-sm);
     transition: all var(--transition-fast);
-}
-
-.lobby-card-btn.add:hover {
+  }
+  .lobby-card-btn.add:hover {
     background: #2a5a2c;
     color: #a0e8b0;
     border-color: #90d8a0;
-}
-
-.lobby-card-btn.remove:hover {
+  }
+  .lobby-card-btn.remove:hover {
     background: #5a1a1a;
     color: #f0b0b0;
     border-color: #ff8a8a;
-}
-
-/* ─── Сетка лобби — крупные карточки ─── */
-.lobby-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: 14px;
-}
-
-.lobby-card-rarity-common {
-    background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e);
-}
-
-.lobby-card-rarity-rare {
-    background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9);
-}
-
-.lobby-card-rarity-epic {
-    background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0);
-}
-
-.lobby-card-rarity-legendary {
-    background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706);
-    box-shadow: 0 0 8px rgba(255, 180, 50, 0.8);
-}
-
-.lobby-card-name {
-    font-size: 10px;
-    color: var(--color-text);
-    text-align: center;
-    padding: 4px;
-}
-
-
-.lobby-footer {
-    padding-top: 12px;
-    border-top: 1px solid rgba(212, 169, 76, 0.25);
-    text-align: center;
-}
-
-.lobby-play {
-    padding: 14px 48px;
-    background: linear-gradient(180deg, #8a6a30, #4a3418);
-    border: 2px solid var(--color-gold-bright);
-    color: var(--color-gold-bright);
-    font-family: var(--font-ui);
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-    box-shadow: 0 0 24px rgba(245, 213, 122, 0.3);
-}
-
-.lobby-play:hover {
-    background: linear-gradient(180deg, #a07c3a, #5a4020);
-    box-shadow: 0 0 40px rgba(245, 213, 122, 0.6);
-}
-
-/* ─── Призыв ─── */
-.summon-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 450;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-.summon-overlay.visible {
-    display: flex;
-}
-
-.summon-modal {
-    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.6), transparent 60%),
-        linear-gradient(160deg, #221610, #0a0603);
-    border: 2px solid var(--color-gold);
-    border-radius: var(--radius-md);
-    padding: 24px;
-    max-width: 480px;
-    width: 100%;
-    text-align: center;
-}
-
-.summon-modal h2 {
-    color: var(--color-gold-bright);
-    font-size: 22px;
-    margin-bottom: 4px;
-}
-
-.summon-sub {
+  }
+  
+  /* ─── Пусто ─── */
+  .lobby-empty {
     color: #8a7a58;
-    font-size: 12px;
-    margin-bottom: 12px;
     font-style: italic;
-}
-
-.summon-coins {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--color-gold-bright);
-    margin-bottom: 16px;
-}
-
-.summon-error {
-    color: #f0a0a0;
-    font-size: 12px;
-    margin-bottom: 8px;
-}
-
-.summon-reveal {
-    min-height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 16px;
-}
-
-.summon-placeholder {
-    color: #6e7681;
-    font-style: italic;
+    text-align: center;
+    padding: 30px;
     font-size: 13px;
-}
-
-.summon-card {
-    width: 140px;
-    background: rgba(10, 6, 3, 0.5);
-    border: 2px solid var(--color-gold-bright);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    animation: summonPop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-    box-shadow: 0 0 40px rgba(245, 213, 122, 0.6);
-}
-
-@keyframes summonPop {
-    0% {
-        transform: scale(0.3) rotate(-15deg);
-        opacity: 0;
-    }
-
-    60% {
-        transform: scale(1.1) rotate(3deg);
-    }
-
-    100% {
-        transform: scale(1) rotate(0);
-        opacity: 1;
-    }
-}
-
-.summon-art {
-    height: 160px;
-    background-color: #2a1d0f;
-    background-size: cover;
-    background-position: center top;
-    position: relative;
-}
-
-.summon-count {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 900;
+  }
+  
+  /* ─── Колода ─── */
+  .lobby-deck-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    border: 1.5px solid var(--color-gold-bright);
-}
-
-.summon-rarity {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-}
-
-.summon-rarity-common {
-    background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e);
-}
-
-.summon-rarity-rare {
-    background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9);
-}
-
-.summon-rarity-epic {
-    background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0);
-}
-
-.summon-rarity-legendary {
-    background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706);
-    box-shadow: 0 0 12px rgba(255, 180, 50, 1);
-}
-
-.summon-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--color-gold-bright);
-    text-align: center;
-    padding: 6px;
-}
-
-.summon-faction {
-    font-size: 10px;
-    color: #8a7a58;
-    text-align: center;
-    padding-bottom: 6px;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-.summon-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.summon-roll {
-    padding: 12px;
-    background: linear-gradient(180deg, #8a6a30, #4a3418);
-    border: 1px solid var(--color-gold-bright);
-    color: var(--color-gold-bright);
-    font-family: var(--font-ui);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.summon-roll:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.summon-close {
-    padding: 8px;
-    background: transparent;
-    border: 1px solid var(--color-gold-dark);
-    color: var(--color-gold-bright);
-    font-family: var(--font-ui);
-    font-size: 12px;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-}
-
-.lobby-card {
-    position: relative;
-}
-
-.lc-tooltip {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    background: rgba(10, 6, 3, 0.98);
-    border: 1px solid var(--color-gold);
-    border-radius: var(--radius-sm);
-    padding: 8px 10px;
-    font-family: var(--font-ui);
-    font-size: 11px;
-    color: var(--color-text);
-    line-height: 1.4;
-    width: 240px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s, transform 0.15s;
-    z-index: 50;
-    text-align: left;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
-}
-
-.lobby-card:hover .lc-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-.lc-tt-name {
-    color: var(--color-gold-bright);
-    font-weight: 700;
-    font-size: 12px;
-    margin-bottom: 3px;
-}
-
-.lc-tt-meta {
-    color: #8a7a58;
-    font-size: 10px;
-    margin-bottom: 4px;
-}
-
-.lc-tt-rarity {
-    color: #b8a380;
-    font-size: 10px;
-    margin-bottom: 4px;
-}
-
-.lc-tt-ability {
-    color: #d0c0a0;
-    font-size: 11px;
-    font-style: italic;
-    line-height: 1.35;
-    padding: 2px 0;
-}
-
-.lc-tt-abilities-title {
-    color: var(--color-gold);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin: 4px 0 2px;
-    font-weight: 700;
-}
-
-.lc-tt-ability {
-    color: #d0c0a0;
-    font-size: 11px;
-    font-style: italic;
-    line-height: 1.35;
-    padding: 1px 0;
-}
-
-.lc-tt-ability b {
-    font-style: normal;
-    color: var(--color-gold-bright);
-}
-
-.lc-tt-ability-desc {
-    color: #b8a380;
-    font-style: italic;
-}
-
-.lobby-generals {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    align-items: stretch;
-}
-
-.lobby-gen-title {
-    color: #8a7a58;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    align-self: center;
-    padding: 0 8px;
-}
-
-.lobby-gen-opt {
-    flex: 1;
-    min-width: 140px;
     padding: 8px 12px;
-    background: rgba(10, 6, 3, 0.6);
-    border: 1px solid var(--color-gold-dark);
+    background: rgba(10, 6, 3, 0.5);
+    border: 1px solid rgba(212, 169, 76, 0.2);
     border-radius: var(--radius-sm);
-    color: var(--color-text);
+    margin-bottom: 8px;
+  }
+  .lobby-deck-count { font-size: 13px; font-weight: 700; }
+  .lobby-deck-count.ok { color: #90d8a0; }
+  .lobby-deck-count.bad { color: #f0a0a0; }
+  .lobby-autofill {
+    padding: 6px 12px;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    border: 1px solid #8a7aff;
+    color: #d0c8ff;
     font-family: var(--font-ui);
     font-size: 11px;
-    text-align: left;
+    font-weight: 700;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.lobby-gen-opt b {
-    color: var(--color-gold-bright);
-    font-size: 12px;
-}
-
-.lobby-gen-opt span {
-    color: #8a7a58;
-    font-style: italic;
-    font-size: 10px;
-}
-
-.lobby-gen-opt em {
-    color: #b8a380;
-    font-size: 10px;
-    font-style: normal;
-}
-
-.lobby-gen-opt.active {
-    background: linear-gradient(180deg, rgba(212, 169, 76, 0.2), rgba(80, 60, 20, 0.15));
-    border-color: var(--color-gold-bright);
-    box-shadow: 0 0 12px rgba(245, 213, 122, 0.4);
-}
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+  }
+  .lobby-section-title {
+    font-size: 11px;
+    color: var(--color-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 12px 0 8px;
+    font-weight: 700;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════
+     АДАПТИВ
+     ═══════════════════════════════════════════════════════════ */
+  @media (max-width: 1200px) {
+    .lobby-body { grid-template-columns: 90px 1fr 170px; gap: 8px; }
+    .general-portrait-circle { width: 60px; height: 60px; }
+    .faction-emblem { width: 38px; height: 38px; }
+    .lobby-play-sidebar { font-size: 12px; padding: 10px 6px; }
+  }
+  @media (max-width: 900px) {
+    .lobby-panel { padding: 6px 8px; gap: 6px; }
+    .lobby-body { grid-template-columns: 70px 1fr 150px; gap: 6px; }
+    .lobby-logo img { max-height: 56px; }
+    .faction-emblem { width: 32px; height: 32px; }
+    .sidebar-faction { padding: 4px 2px; }
+    .faction-label { font-size: 9px; }
+    .general-portrait-circle { width: 50px; height: 50px; }
+    .general-name { font-size: 11px; }
+    .sidebar-general-btn { font-size: 9px; padding: 3px 4px; }
+    .sidebar-general-btn .sgb-portrait { width: 18px; height: 18px; }
+    .lobby-play-sidebar { font-size: 11px; padding: 8px 4px; }
+  }
+  @media (max-width: 700px) {
+    .lobby-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
+      gap: 6px;
+    }
+    .lobby-sidebar {
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-height: 76px;
+      padding: 4px;
+      align-items: center;
+    }
+    .lobby-sidebar-left .sidebar-faction { min-width: 56px; flex: 0 0 auto; }
+    .lobby-sidebar-right {
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-height: none;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .general-portrait-box { flex-direction: row; gap: 8px; }
+    .general-portrait-circle { width: 40px; height: 40px; }
+    .general-picker { flex: 1; flex-direction: row; overflow-x: auto; }
+    .sidebar-general-btn { min-width: 70px; }
+    .lobby-play-sidebar {
+      margin-top: 0;
+      width: auto;
+      padding: 8px 14px;
+      font-size: 11px;
+    }
+    .lobby-top-bar { min-height: 50px; }
+    .lobby-logo img { max-height: 42px; }
+  }

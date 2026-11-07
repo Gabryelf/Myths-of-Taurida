@@ -419,3 +419,161 @@
     .general-picker { flex-direction: row; flex-wrap: wrap; }
     .sidebar-general-btn { flex: 1; min-width: 60px; }
   }
+
+  .summon-overlay.visible { display: flex; }
+
+  /* ─── Призыв ─── */
+.summon-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 450;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+.summon-overlay.visible { display: flex; }
+.summon-modal {
+    background: radial-gradient(ellipse at top, rgba(70, 48, 24, 0.6), transparent 60%),
+        linear-gradient(160deg, #221610, #0a0603);
+    border: 2px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+}
+.summon-modal h2 {
+    color: var(--color-gold-bright);
+    font-size: 22px;
+    margin-bottom: 4px;
+}
+.summon-sub {
+    color: #8a7a58;
+    font-size: 12px;
+    margin-bottom: 12px;
+    font-style: italic;
+}
+.summon-coins {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    margin-bottom: 16px;
+}
+.summon-error {
+    color: #f0a0a0;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+.summon-reveal {
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+.summon-placeholder {
+    color: #6e7681;
+    font-style: italic;
+    font-size: 13px;
+}
+.summon-card {
+    width: 140px;
+    background: rgba(10, 6, 3, 0.5);
+    border: 2px solid var(--color-gold-bright);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    animation: summonPop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 0 40px rgba(245, 213, 122, 0.6);
+}
+@keyframes summonPop {
+    0%   { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+    60%  { transform: scale(1.1) rotate(3deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.summon-art {
+    height: 160px;
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+    position: relative;
+}
+.summon-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--color-gold-bright);
+}
+.summon-rarity {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+.summon-rarity-common    { background: radial-gradient(circle at 30% 30%, #c0c0c0, #6e6e6e); }
+.summon-rarity-rare      { background: radial-gradient(circle at 30% 30%, #8ad0ff, #2980b9); }
+.summon-rarity-epic      { background: radial-gradient(circle at 30% 30%, #d0a0ff, #7a3ab0); }
+.summon-rarity-legendary { background: radial-gradient(circle at 30% 30%, #ffd57a, #d97706); box-shadow: 0 0 12px rgba(255, 180, 50, 1); }
+.summon-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    text-align: center;
+    padding: 6px;
+}
+.summon-faction {
+    font-size: 10px;
+    color: #8a7a58;
+    text-align: center;
+    padding-bottom: 6px;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.summon-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.summon-roll {
+    padding: 12px;
+    background: linear-gradient(180deg, #8a6a30, #4a3418);
+    border: 1px solid var(--color-gold-bright);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+.summon-roll:disabled { opacity: 0.4; cursor: not-allowed; }
+.summon-roll:hover:not(:disabled) {
+    border-color: #fff3d0;
+    box-shadow: 0 0 24px rgba(245, 213, 122, 0.5);
+}
+.summon-close {
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--color-gold-dark);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}

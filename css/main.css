@@ -23,12 +23,21 @@
 @import './components/factions-panel.css';
 @import './components/minimap.css';
 @import './components/glossary-modal.css';
-@import './components/lobby.css';
 @import './components/icons.css';
 @import './components/quick-jump.css';
-/* ─── Карты: вынесены в отдельную папку ─── */
-@import './cards/card.css';
+@import './components/scrollbar.css';
+
+/* Карты — напрямую, без вложенных @import */
+@import './cards/base.css';
+@import './cards/frames.css';
+@import './cards/lobby.css';
+@import './cards/battle.css';
+@import './cards/recruit.css';
 @import './cards/filters.css';
+
+/* Старые стили карт в components/ — оставляем, но они перекрываются новыми */
+@import './components/card-detail.css';
+@import './components/lobby.css';
 
 #app { position: relative; width: 100%; height: 100%; }
 #game-canvas { position: absolute; inset: 0; display: block; }
