@@ -3,6 +3,7 @@
 <div align="center">
 
 ![Демо игры](./docs/Myths-of-Taurida-logo.gif)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.6.png)
 
 </div>
 
@@ -49,6 +50,10 @@
 [![v0.0.8](https://img.shields.io/badge/v0.0.8-Тактический%20бой%20и%20баланс-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/8)
 [![v0.0.9](https://img.shields.io/badge/v0.0.9-Стратегический%20слой%20и%20экономика-orange?style=for-the-badge&logo=progress&logoColor=white)](../../issues/9)
 [![v0.1.0](https://img.shields.io/badge/v0.1.0-Тактический%20слой-ff69b4?style=for-the-badge&logo=progress&logoColor=white)](../../issues/10)
+[![v0.1.1](https://img.shields.io/badge/v0.1.1-Лобби,%20коллекцияff69b4?style=for-the-badge&logo=progress&logoColor=white)](../../issues/11)
+[![v0.1.2](https://img.shields.io/badge/v0.1.2-Колоды,%20генеративная_картаff69b4?style=for-the-badge&logo=progress&logoColor=white)](../../issues/12)
+[![v0.1.3](https://img.shields.io/badge/v0.1.3-Фракции,%20поселенияff69b4?style=for-the-badge&logo=progress&logoColor=white)](../../issues/13)
+
 
 
 </div>
@@ -69,6 +74,14 @@
 ![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.5.png)
 ![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.6.png)
 ![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.7.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.8.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.1.9.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.0.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.1.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.2.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.3.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.4.png)
+![скрин](https://github.com/Gabryelf/Myths-of-Taurida/blob/main/docs/screens/0.2.5.png)
 
 
 ---
