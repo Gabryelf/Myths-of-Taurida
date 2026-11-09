@@ -22,6 +22,7 @@ export class Battle {
     this.targetTile = targetTile;
     this.playerSide = playerSide;
     this.maxIdleTurns = maxIdleTurns;
+    this._aiInstance = null;
 
     // Террейн-модификатор (стоимость карт, штрафы города)
     this.terrain = new TerrainBattleModifier(targetTile?.terrain || 'plain');
@@ -196,16 +197,20 @@ export class Battle {
 
   aiTurn() {
     if (this.turn === this.playerSide || this.finished) return;
-    const side = this.turn;
     try {
+      const { BattleAI } = require('./BattleAI.js'); // нет, ES-импорт
+    } catch (_) {}
+    // Прямой вызов через глобальный экземпляр (создаётся в BattleController)
+    if (this._aiInstance) {
+      try { this._aiInstance.run(); } catch (e) { console.error('[aiTurn]', e); }
+    } else {
+      // fallback — старая логика
+      const side = this.turn;
       this._refreshTactic(side);
       this._aiPlayType(side, 'support', 'support');
       this._aiPlayType(side, 'warrior', 'defense');
       this._aiPlayType(side, ['archer', 'special'], 'attack');
       this._endTurn(side);
-    } catch (e) {
-      console.error('[aiTurn]', e);
-      try { this._endTurn(side); } catch (_) {}
     }
   }
 

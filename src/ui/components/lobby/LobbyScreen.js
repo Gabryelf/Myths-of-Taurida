@@ -12,10 +12,10 @@ import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
 import { iconImg } from '../../../config/icons.js';
 
 const TYPE_FILTERS = [
-  { id: 'warrior', label: 'Воин',   icon: 'type_warrior' },
-  { id: 'archer',  label: 'Стрелок', icon: 'type_archer' },
+  { id: 'warrior', label: 'Воин',      icon: 'type_warrior' },
+  { id: 'archer',  label: 'Стрелок',   icon: 'type_archer' },
   { id: 'support', label: 'Поддержка', icon: 'type_support' },
-  { id: 'special', label: 'Особый', icon: 'type_special' },
+  { id: 'special', label: 'Особый',    icon: 'type_special' },
 ];
 const RARITY_FILTERS = [
   { id: 'common',    label: 'Обычная' },
@@ -28,6 +28,8 @@ const COUNT_FILTERS = [
   { id: '2',  label: '2' },
   { id: '3+', label: '3+' },
 ];
+const FACTION_IDS = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
+const MODE_LABELS = { ai: 'vs AI', hotseat: 'Hot-seat' };
 
 export class LobbyScreen {
   constructor(root, { profile, decks, onPlay, onSummon, onSave }) {
@@ -40,12 +42,16 @@ export class LobbyScreen {
     this._imgLoader = new CardImageLoader();
     this._tab = 'collection';
     this._activeFaction = profile.lastPlayedFaction || 'scythians';
-
     this._filters = {
       types: new Set(),
       rarities: new Set(),
       counts: new Set(),
     };
+
+    // Убеждаемся, что matchConfig есть
+    if (!this.profile.matchConfig) {
+      this.profile.matchConfig = { mode: 'ai', playerCount: 5 };
+    }
 
     this.el = document.createElement('div');
     this.el.className = 'lobby-overlay';
@@ -59,33 +65,62 @@ export class LobbyScreen {
   }
   hide() { this.el.classList.remove('visible'); }
 
+  // ═══════════════════════════════════════════
+  //  ОБРАБОТКА КЛИКОВ
+  // ═══════════════════════════════════════════
   _onClick(e) {
+    // Табы
     const tab = e.target.closest?.('[data-tab]')?.getAttribute('data-tab');
     if (tab) { this._tab = tab; this._render(); return; }
 
+    // Выбор фракции
     const fac = e.target.closest?.('[data-faction]')?.getAttribute('data-faction');
     if (fac) {
       this._activeFaction = fac;
       this.profile.lastPlayedFaction = fac;
+      this.profile.matchConfig.playerFaction = fac;
       this._render();
       return;
     }
 
+    // Режим партии
+    const modeBtn = e.target.closest?.('[data-match-mode]')?.getAttribute('data-match-mode');
+    if (modeBtn) {
+      this.profile.matchConfig.mode = modeBtn === 'hotseat' ? 'hotseat' : 'ai';
+      this.onSave?.({});
+      this._render();
+      return;
+    }
+
+    // Количество игроков
+    const countBtn = e.target.closest?.('[data-match-count]')?.getAttribute('data-match-count');
+    if (countBtn) {
+      const n = parseInt(countBtn, 10);
+      this.profile.matchConfig.playerCount = Math.max(2, Math.min(5, n || 5));
+      this.onSave?.({});
+      this._render();
+      return;
+    }
+
+    // Играть
     if (e.target.closest?.('[data-play]')) {
       const v = this.decks.validate(this._activeFaction);
       if (!v.ok) {
         this.onSave?.({ error: v.errors.join('; ') });
         return;
       }
+      this.profile.matchConfig.playerFaction = this._activeFaction;
       this.onPlay?.(this._activeFaction);
       return;
     }
 
+    // Призыв
     if (e.target.closest?.('[data-summon]')) {
       this.onSummon?.();
       return;
     }
 
+    // Автосборка
     if (e.target.closest?.('[data-autofill]')) {
       this.decks.autoFill(this._activeFaction);
       this.onSave?.({});
@@ -93,6 +128,7 @@ export class LobbyScreen {
       return;
     }
 
+    // Убрать карту
     const rmv = e.target.closest?.('[data-remove]')?.getAttribute('data-remove');
     if (rmv) {
       const deck = this.decks.getDeck(this._activeFaction);
@@ -102,6 +138,7 @@ export class LobbyScreen {
       return;
     }
 
+    // Добавить карту
     const add = e.target.closest?.('[data-add]')?.getAttribute('data-add');
     if (add) {
       const deck = this.decks.getDeck(this._activeFaction);
@@ -111,6 +148,7 @@ export class LobbyScreen {
       return;
     }
 
+    // Полководец
     const presetBtn = e.target.closest?.('[data-preset]');
     if (presetBtn) {
       const idx = parseInt(presetBtn.getAttribute('data-preset'), 10);
@@ -121,6 +159,7 @@ export class LobbyScreen {
       return;
     }
 
+    // Фильтры
     const ft = e.target.closest?.('[data-filter-type]')?.getAttribute('data-filter-type');
     if (ft !== undefined && ft !== null) { this._toggle(this._filters.types, ft); this._render(); return; }
 
@@ -191,12 +230,58 @@ export class LobbyScreen {
     `;
   }
 
-  // ─── Левая панель фракций ───
+  // ═══════════════════════════════════════════
+  //  ВЕРХНЯЯ ПОЛОСА: конфиг + логотип + монеты/слава
+  // ═══════════════════════════════════════════
+  _matchConfigHtml() {
+    const cfg = this.profile.matchConfig || { mode: 'ai', playerCount: 5 };
+    const modeButtons = ['ai', 'hotseat'].map((mode) => `
+      <button class="lmc-btn ${cfg.mode === mode ? 'active' : ''}"
+              data-match-mode="${mode}">${MODE_LABELS[mode]}</button>
+    `).join('');
+    const countButtons = [2, 3, 4, 5].map((n) => `
+      <button class="lmc-btn ${cfg.playerCount === n ? 'active' : ''}"
+              data-match-count="${n}">${n}</button>
+    `).join('');
+    return `
+      <div class="lobby-match-config">
+        <div class="lmc-block">
+          <div class="lmc-label">Режим:</div>
+          ${modeButtons}
+        </div>
+        <div class="lmc-block">
+          <div class="lmc-label">Игроков:</div>
+          ${countButtons}
+        </div>
+      </div>
+    `;
+  }
+
+  _topBarHtml() {
+    const cfg = this.profile.matchConfig || { mode: 'ai' };
+    return `
+      <div class="lobby-top-bar">
+        <div class="lobby-top-left">
+          ${this._matchConfigHtml()}
+        </div>
+        <div class="lobby-logo">
+          <img src="/promo/logo.gif" alt="TAVRIDA" />
+        </div>
+        <div class="lobby-top-right">
+          <div class="lobby-coins">💰 ${this.profile.coins}</div>
+          <div class="lobby-glory">⭐ ${this.profile.totalGlory ? this.profile.totalGlory() : 0}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ═══════════════════════════════════════════
+  //  ЛЕВАЯ ПАНЕЛЬ ФРАКЦИЙ
+  // ═══════════════════════════════════════════
   _factionsSidebarHtml() {
-    const factions = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
     return `
       <aside class="lobby-sidebar lobby-sidebar-left">
-        ${factions.map((fid) => {
+        ${FACTION_IDS.map((fid) => {
           const color = '#' + (Theme.faction[fid] || 0x888888).toString(16).padStart(6, '0');
           const emblem = factionEmblemUrl(fid);
           return `
@@ -216,7 +301,9 @@ export class LobbyScreen {
     `;
   }
 
-  // ─── Правая панель: генералы + кнопка «Начать партию» внизу ───
+  // ═══════════════════════════════════════════
+  //  ПРАВАЯ ПАНЕЛЬ ГЕНЕРАЛОВ
+  // ═══════════════════════════════════════════
   _generalsSidebarHtml() {
     const presets = GENERAL_PRESETS[this._activeFaction] || [];
     const current = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
@@ -260,6 +347,9 @@ export class LobbyScreen {
     `;
   }
 
+  // ═══════════════════════════════════════════
+  //  ОСНОВНОЙ РЕНДЕР
+  // ═══════════════════════════════════════════
   _render() {
     const tabs = `
       <div class="lobby-tabs">
@@ -276,12 +366,7 @@ export class LobbyScreen {
 
     this.el.innerHTML = `
       <div class="lobby-panel">
-        <div class="lobby-top-bar">
-          <div class="lobby-logo">
-            <img src="/promo/logo.gif" alt="TAVRIDA" />
-          </div>
-          <div class="lobby-coins">💰 ${this.profile.coins}</div>
-        </div>
+        ${this._topBarHtml()}
         <div class="lobby-body">
           ${this._factionsSidebarHtml()}
           <main class="lobby-content-main">

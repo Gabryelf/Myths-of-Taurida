@@ -5,22 +5,24 @@ export class BattleController {
     this.battle = null;
     this._aiScheduled = false;
   }
+
   open({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     const battle = this.world.startBattle({
       attackerGen, targetTile, defenderFactionId, playerSide,
     });
     this.battle = battle;
+    battle._aiInstance = new BattleAI(battle);
     this.bus.emit('battle:started', { battle });
-    if (battle.turn !== battle.playerSide) {
-      this._scheduleAI();
-    }
+    if (battle.turn !== battle.playerSide) this._scheduleAI();
     return battle;
   }
+
   selectCard(card) {
     if (!this.battle) return;
     this.battle.selectCard(card);
     this.bus.emit('battle:updated', { battle: this.battle });
   }
+
   playCard(card, lane, index) {
     if (!this.battle) return false;
     const ok = this.battle.playCard(card, lane, index);
@@ -30,18 +32,21 @@ export class BattleController {
     }
     return ok;
   }
+
   endTurn() {
     if (!this.battle) return;
     this.battle.endPlayerTurn();
     this.bus.emit('battle:updated', { battle: this.battle });
     this._scheduleAI();
   }
+
   skipTurn() {
     if (!this.battle) return;
     this.battle.skipTurn();
     this.bus.emit('battle:updated', { battle: this.battle });
     this._scheduleAI();
   }
+
   _scheduleAI() {
     if (!this.battle) return;
     if (this.battle.finished) return;
@@ -59,6 +64,7 @@ export class BattleController {
       }
     }, 700);
   }
+
   finish() {
     if (!this.battle) return;
     const b = this.battle;
@@ -75,6 +81,7 @@ export class BattleController {
     this.battle = null;
     this.bus.emit('battle:finished', result);
   }
+  
   retreat() {
     if (!this.battle) return;
     // Отступление = игрок проигрывает бой. Но не наносим урон полководцу дважды.

@@ -12,7 +12,7 @@ import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
 
 export class World {
-  constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0 } = {}) {
+  constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0, activeFactions = null } = {}) {
     this.seed = seed;
     this.radius = radius;
     const data = new WorldGenerator({ seed, radius }).generate();
@@ -23,6 +23,7 @@ export class World {
     this.factions = FactionFactory.createAll();
     this.generals = [];
     this.playerFactionId = null;
+    this.activeFactions = activeFactions || null;
     this.playerGeneralPreset = playerGeneralPreset;
     this.turn = 1;
     this.movement = new MovementService(this);
@@ -97,6 +98,7 @@ export class World {
     for (const f of this.factions) {
       if (f.neutral) continue;
       if (!f.startHex) continue;
+      if (this.activeFactions && !this.activeFactions.includes(f.id)) continue;
       const presetIndex = f.isPlayer ? (this.playerGeneralPreset || 0) : 0;
       const gen = GeneralFactory.createForFaction({
         factionId: f.id,
