@@ -1,3 +1,5 @@
+import { BattleAI } from '../domain/battle/BattleAI.js';
+
 export class BattleController {
   constructor({ world, bus }) {
     this.world = world;
@@ -11,7 +13,7 @@ export class BattleController {
       attackerGen, targetTile, defenderFactionId, playerSide,
     });
     this.battle = battle;
-    battle._aiInstance = new BattleAI(battle);
+    battle._aiInstance = new BattleAI(battle);   // ← теперь BattleAI определён
     this.bus.emit('battle:started', { battle });
     if (battle.turn !== battle.playerSide) this._scheduleAI();
     return battle;
@@ -81,14 +83,12 @@ export class BattleController {
     this.battle = null;
     this.bus.emit('battle:finished', result);
   }
-  
+
   retreat() {
     if (!this.battle) return;
-    // Отступление = игрок проигрывает бой. Но не наносим урон полководцу дважды.
     this.battle.finished = true;
     this.battle.winner = this.battle.playerSide === 'attacker' ? 'defender' : 'attacker';
     this.battle._log('Вы отступили');
-    // Показываем экран результата — finish() вызовется по кнопке «Продолжить»
     this.bus.emit('battle:updated', { battle: this.battle });
   }
 }

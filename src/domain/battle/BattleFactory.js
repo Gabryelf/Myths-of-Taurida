@@ -4,22 +4,35 @@ import { GeneralFactory } from '../general/GeneralFactory.js';
 
 export class BattleFactory {
   static create({ attackerGen, targetTile, defenderFactionId, world, playerSide = 'attacker' }) {
-    // ─── Если защита поселения — защитник генерируется на лету ───
     const targetCity = targetTile?.cityId ? world.getCity(targetTile.cityId) : null;
-    let defenderGen = null;
 
+    let defenderGen = null;
     if (targetCity?.settlement) {
       defenderGen = world.getSettlementDefender(targetCity);
     } else {
-      defenderGen = world.generals.find((g) => g.factionId === defenderFactionId);
+      // ─── Ищем ЖИВОГО генерала фракции-защитника ───
+      defenderGen = world.generals.find(
+        (g) => g.factionId === defenderFactionId && g.alive
+      );
+      // ─── Если генерала нет — генерируем временного ───
+      if (!defenderGen) {
+        defenderGen = {
+          id: 'def_' + Date.now(),
+          name: GeneralFactory.nameForFaction(defenderFactionId) || 'Вождь',
+          factionId: defenderFactionId,
+          lives: 3,
+          maxLives: 3,
+          deck: { cards: [] },
+        };
+      }
     }
-
     if (!defenderGen) {
       defenderGen = {
         id: 'def_' + Date.now(),
         name: GeneralFactory.nameForFaction(defenderFactionId) || 'Вождь',
         factionId: defenderFactionId,
-        lives: 3, maxLives: 3,
+        lives: 3,
+        maxLives: 3,
         deck: { cards: [] },
       };
     }

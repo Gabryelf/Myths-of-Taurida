@@ -52,6 +52,24 @@ export class World {
     return f;
   }
 
+  // ─── сменить активную (человеческую) фракцию в hot-seat ───
+  switchToFaction(factionId) {
+    const f = this.factions.find((x) => x.id === factionId);
+    if (!f) return false;
+    this.factions.forEach((x) => (x.isPlayer = x.id === factionId));
+    this.playerFactionId = factionId;
+    this.visibility.recompute();
+    return true;
+  }
+
+  // ─── следующий игрок среди humanFactionIds (по кругу) ───
+  nextHumanFaction(humanFactionIds) {
+    if (!humanFactionIds?.length) return this.playerFactionId;
+    const idx = humanFactionIds.indexOf(this.playerFactionId);
+    const nextIdx = (idx + 1) % humanFactionIds.length;
+    return humanFactionIds[nextIdx];
+  }
+
   _assignCitiesToFactions() {
     for (const city of this.cities) {
       city.factionId = null;

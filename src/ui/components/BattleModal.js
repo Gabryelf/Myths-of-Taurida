@@ -52,7 +52,11 @@ export class BattleModal {
     this.bus.on('battle:started', ({ battle }) => {
       this._battle = battle;
       this._autoPlayActive = false;
-      this._resultScreen = null;
+    
+      // ─── Принудительно сносим прошлый экран результата, если он застрял ───
+      this._closeResult();
+      this.overlay.querySelectorAll('.battle-result-overlay').forEach((e) => e.remove());
+    
       this._background?.destroy();
       this._background = new BattleBackground(this.overlay, battle.targetTile?.terrain || 'plain');
       this.overlay.classList.add('visible');

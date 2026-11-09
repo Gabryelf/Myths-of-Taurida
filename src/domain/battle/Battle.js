@@ -197,21 +197,17 @@ export class Battle {
 
   aiTurn() {
     if (this.turn === this.playerSide || this.finished) return;
-    try {
-      const { BattleAI } = require('./BattleAI.js'); // нет, ES-импорт
-    } catch (_) {}
-    // Прямой вызов через глобальный экземпляр (создаётся в BattleController)
     if (this._aiInstance) {
       try { this._aiInstance.run(); } catch (e) { console.error('[aiTurn]', e); }
-    } else {
-      // fallback — старая логика
-      const side = this.turn;
-      this._refreshTactic(side);
-      this._aiPlayType(side, 'support', 'support');
-      this._aiPlayType(side, 'warrior', 'defense');
-      this._aiPlayType(side, ['archer', 'special'], 'attack');
-      this._endTurn(side);
+      return;
     }
+    // fallback — простая логика, если BattleAI не привязан
+    const side = this.turn;
+    this._refreshTactic(side);
+    this._aiPlayType(side, 'support', 'support');
+    this._aiPlayType(side, 'warrior', 'defense');
+    this._aiPlayType(side, ['archer', 'special'], 'attack');
+    this._endTurn(side);
   }
 
   _aiPlayType(side, types, lane) {
@@ -446,6 +442,8 @@ export class Battle {
   }
 
   _checkVictory() {
+    // Бой с самого начала некорректен — не считаем это победой
+    if (!this.attacker?.gen?.alive && !this.defender?.gen?.alive) return;
     if (this.attacker.lives <= 0) { this.finished = true; this.winner = 'defender'; }
     else if (this.defender.lives <= 0) { this.finished = true; this.winner = 'attacker'; }
     if (this.finished) {

@@ -622,26 +622,27 @@
   font-weight: 700;
 }
 
+/* ─── Верхняя полоса: логотип по центру, валюта справа ─── */
 .lobby-top-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
   padding: 4px 0 8px;
   min-height: 80px;
-  position: relative;
+  gap: 12px;
 }
 .lobby-top-left {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
+  flex: 0 0 auto;
 }
 .lobby-top-right {
+  flex: 0 0 auto;
   display: flex;
-  gap: 6px;
   align-items: center;
-  flex-shrink: 0;
+  gap: 8px;
+  margin-left: auto;
 }
+.lobby-coins,
 .lobby-glory {
   background: linear-gradient(180deg, #4a3418, #1a1008);
   border: 1px solid var(--color-gold);
@@ -651,9 +652,10 @@
   font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
+  position: static;
 }
 .lobby-logo {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -665,8 +667,16 @@
   object-fit: contain;
   filter: drop-shadow(0 0 20px rgba(245, 213, 122, 0.45));
 }
+
 @media (max-width: 900px) {
-  .lobby-top-bar { flex-wrap: wrap; min-height: auto; }
-  .lobby-logo { order: -1; flex-basis: 100%; }
+  .lobby-top-bar {
+    flex-wrap: wrap;
+    min-height: auto;
+  }
+  .lobby-logo {
+    order: -1;
+    flex-basis: 100%;
+  }
   .lobby-logo img { max-height: 50px; }
+  .lobby-top-right { margin-left: 0; }
 }

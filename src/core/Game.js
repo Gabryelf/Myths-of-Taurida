@@ -544,8 +544,21 @@ export class Game {
           } else {
             targetTile.setFaction(attackerGen.factionId);
           }
-          const def = this.world.generals.find((g) => g.hex.key === targetTile.key);
-          if (def && def !== attackerGen) def.lives = 0;
+          if (playerSide === 'attacker' && playerWon && targetTile) {
+            const capturedCity = targetTile.cityId ? this.world.getCity(targetTile.cityId) : null;
+            if (capturedCity) {
+              this.world.captureCity(capturedCity.id, attackerGen.factionId);
+              this.bus.emit('toast:show', { text: `🏛 Захвачен ${capturedCity.name}` });
+            } else {
+              targetTile.setFaction(attackerGen.factionId);
+            }
+            // ─── Обнуляем жизни ТОЛЬКО побеждённого защитника ───
+            if (defenderGen && defenderGen.id !== attackerGen.id) {
+              defenderGen.lives = 0;
+            }
+            attackerGen.spendMove(cost);
+            attackerGen.moveTo(targetTile.hex);
+          }
         }
         attackerGen.spendMove(cost);
         attackerGen.moveTo(targetTile.hex);
@@ -685,10 +698,19 @@ export class Game {
   }
 
   // ═══════════════════════════════════════════
-  //  КОНЕЦ ХОДА + ИИ
+  //  КОНЕЦ ХОДА + ИИ + HOT-SEAT
   // ═══════════════════════════════════════════
   endTurn() {
     if (this._aiBusy || !this.world) return;
+    const cfg = this.profile.matchConfig || { mode: 'ai' };
+
+    // ─── Hot-seat: меняем активного человека, но НЕ крутим глобальный ход ───
+    if (cfg.mode === 'hotseat') {
+      this._endTurnForHotseat();
+      return;
+    }
+
+    // ─── vs AI: глобальный ход + ИИ ───
     this.world.endTurn();
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);
@@ -704,27 +726,16 @@ export class Game {
     const aiFactionIds = this.world.factions
       .filter((f) => !f.neutral && !f.eliminated && !humanFactions.includes(f.id))
       .map((f) => f.id);
-
     if (aiFactionIds.length === 0) {
-      // Hot-seat: все фракции людские — AI нет
-      this.world.recomputeVisibility();
-      this.sceneBuilder.rebuild(this.world);
-      this.sceneBuilder.updateFog(this.world);
-      this.input.setPickables(this.sceneBuilder.getPickables());
-      this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-      this.ui.quickJump?.refreshMinimap();
-      this._updateHireButton();
+      this._afterAITurns();
       return;
     }
-
     this._aiBusy = true;
     this.ui.turnIndicator.show('Ход противника…');
     this.sound.play('turn');
-
     const battleAction = await this.turnManager.runAITurns(aiFactionIds, {
       onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
     });
-
     if (battleAction) {
       this.ui.turnIndicator.hide();
       this.battleController.open({
@@ -740,8 +751,76 @@ export class Game {
     this._aiBusy = false;
   }
 
+
+  _endTurnForHotseat() {
+    const humans = this._humanFactions || [];
+    if (humans.length < 2) {
+      // На всякий случай — fallback на обычный ход
+      this.world.endTurn();
+      this._runAITurns();
+      return;
+    }
+    this._selectGeneral(null);
+
+    const nextId = this.world.nextHumanFaction(humans);
+
+    // Если вернулись к первому игроку — завершаем глобальный ход и даём ход ИИ
+    const isFirstHuman = humans[0] === nextId && this.world.playerFactionId === humans[humans.length - 1];
+
+    this.world.switchToFaction(nextId);
+    this._playerFactionId = nextId;
+    this.profile.lastPlayedFaction = nextId;
+
+    if (isFirstHuman) {
+      // Глобальный ход прошёл — сбрасываем движение, начисляем доход, ИИ
+      this.world.turn += 1;
+      for (const g of this.world.generals) g.resetTurn();
+      this.recruitPointsUsedMapClear();
+      for (const f of this.world.factions) {
+        if (f.eliminated || f.neutral) continue;
+        const pool = this.world.resourcePools.get(f.id);
+        const income = this.world.economy.computeIncome(this.world, f.id);
+        pool.add(income);
+        this.world.recruitPools.get(f.id)?.addTurnIncome(this.world);
+      }
+      this.world._aiMarketTurn();
+      this.world._checkElimination();
+      this.bus.emit('turn:ended', { turn: this.world.turn });
+    }
+
+    // Пересчёт видимости и рендера под нового игрока
+    this.world.recomputeVisibility();
+    this.sceneBuilder.rebuild(this.world);
+    this.sceneBuilder.updateFog(this.world);
+    this.sceneBuilder.updateCityFaction(this.world);
+    this.input.setPickables(this.sceneBuilder.getPickables());
+    this.bus.emit('resources:changed', { factionId: nextId });
+    this.ui.quickJump?.setWorld(this.world);
+    this.ui.quickJump?.refreshMinimap();
+    this._updateHireButton();
+
+    const f = this.world.factions.find((x) => x.id === nextId);
+    this.bus.emit('toast:show', { text: `Ход: ${f?.name || nextId}` });
+    this.sound.play('turn');
+    this.ui.turnIndicator.show(`Ход: ${f?.name || nextId}`);
+    setTimeout(() => this.ui.turnIndicator.hide(), 1500);
+
+    // Если после горячего стула нужно запустить ИИ (например, последний человек завершил круг)
+    if (isFirstHuman) this._runAITurns();
+  }
+
+  recruitPointsUsedMapClear() {
+    this.world.recruitPointsUsedMap.clear();
+  }
+
   _afterAITurns() {
     if (!this.world) return;
+    // Возвращаем управление первому человеческому игроку
+    const humans = this._humanFactions || [];
+    if (humans.length > 0) {
+      this.world.switchToFaction(humans[0]);
+      this._playerFactionId = humans[0];
+    }
     this.world.recomputeVisibility();
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.rebuild(this.world);
