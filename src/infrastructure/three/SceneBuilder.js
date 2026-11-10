@@ -5,12 +5,15 @@ import { FogVisual } from './visuals/FogVisual.js';
 import { CityVisual } from './visuals/CityVisual.js';
 import { VillageVisual } from './visuals/VillageVisual.js';
 import { RoadVisual } from './visuals/RoadVisual.js';
+import { BorderVisual } from './visuals/BorderVisual.js';
+import { HaloVisual } from './visuals/HaloVisual.js';
 import { HighlightService } from './HighlightService.js';
 import { Theme } from '../config/ThemeConfig.js';
 
 export class SceneBuilder {
   constructor(scene) {
     this.scene = scene;
+    this.world = null;
     this._tileVisuals = new Map();
     this._generalVisuals = new Map();
     this._cityVisuals = new Map();
@@ -18,11 +21,16 @@ export class SceneBuilder {
     this._movementOverlays = new Map();
     this._attackOverlays = new Map();
     this._fogVisuals = new Map();
+    this._borderVisual = null;
+    this._haloVisual = null;
+    this._lensState = { borders: false, halos: false };
     this.highlight = new HighlightService(Theme.hexSize);
   }
 
   rebuild(world) {
+    this.world = world;
     this._clearAll();
+
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const v = new HexVisual(tile, Theme.hexSize);
@@ -32,6 +40,7 @@ export class SceneBuilder {
       this._tileVisuals.set(tile.key, v);
     }
     this.highlight.bindVisuals(this._tileVisuals);
+
     const drawn = new Set();
     for (const tile of world.map.all()) {
       if (!tile.hasRoad) continue;
@@ -46,6 +55,7 @@ export class SceneBuilder {
         this._roadVisuals.push(road);
       }
     }
+
     for (const city of world.cities) {
       if (!city.tileKey) continue;
       const tile = world.map.getByKey(city.tileKey);
@@ -58,7 +68,9 @@ export class SceneBuilder {
       v.addTo(this.scene);
       this._cityVisuals.set(city.id, v);
     }
+
     this._renderGenerals(world);
+
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const visual = this._tileVisuals.get(tile.key);
@@ -68,6 +80,26 @@ export class SceneBuilder {
       this._fogVisuals.set(tile.key, fog);
     }
     this.updateFog(world);
+
+    // ─── Линзы ───
+    this._borderVisual = new BorderVisual(world, Theme.hexSize).addTo(this.scene);
+    this._borderVisual.setVisible(this._lensState.borders);
+    this._haloVisual = new HaloVisual(world, Theme.hexSize).addTo(this.scene);
+    this._haloVisual.setVisible(this._lensState.halos);
+  }
+
+  setLens(kind, enabled) {
+    this._lensState[kind] = enabled;
+    if (kind === 'borders') this._borderVisual?.setVisible(enabled);
+    if (kind === 'halos') this._haloVisual?.setVisible(enabled);
+  }
+
+  isLensOn(kind) { return !!this._lensState[kind]; }
+
+  refreshBorders() {
+    if (!this._borderVisual) return;
+    this._borderVisual.refresh();
+    this._borderVisual.setVisible(this._lensState.borders);
   }
 
   updateFog(world) {
@@ -79,7 +111,6 @@ export class SceneBuilder {
   }
 
   updateCityFaction(world) {
-    // Полностью пересоздать визуалы городов — флаг фракции и цвет зависят от city.factionId
     for (const v of this._cityVisuals.values()) v.removeFrom(this.scene);
     this._cityVisuals.clear();
     for (const city of world.cities) {
@@ -184,6 +215,14 @@ export class SceneBuilder {
     }
     this._attackOverlays.clear();
     this._fogVisuals.clear();
+    if (this._borderVisual) {
+      this._borderVisual.removeFrom(this.scene);
+      this._borderVisual = null;
+    }
+    if (this._haloVisual) {
+      this._haloVisual.removeFrom(this.scene);
+      this._haloVisual = null;
+    }
   }
 
   setGeneralHovered(generalId, isHovered) {

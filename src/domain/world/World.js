@@ -10,14 +10,17 @@ import { Market } from '../economy/Market.js';
 import { CardFactory } from '../card/CardFactory.js';
 import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
+import { HaloGenerator } from './HaloGenerator.js';
 
 export class World {
   constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0, activeFactions = null } = {}) {
     this.seed = seed;
     this.radius = radius;
+
     const data = new WorldGenerator({ seed, radius }).generate();
     this.map = data.tiles;
     this.cities = data.cities || [];
+
     this.playerDeck = playerDeck;
     this.recruitPools = new Map();
     this.factions = FactionFactory.createAll();
@@ -26,14 +29,23 @@ export class World {
     this.activeFactions = activeFactions || null;
     this.playerGeneralPreset = playerGeneralPreset;
     this.turn = 1;
+
     this.movement = new MovementService(this);
     this.economy = new EconomyService();
     this.visibility = new VisibilityService({ world: this });
+
     this.resourcePools = new Map();
     for (const f of this.factions) this.resourcePools.set(f.id, new ResourcePool());
+
     this.recruitPointsUsedMap = new Map();
     this.recruit = new RecruitService({ economy: this.economy, world: this });
     this.market = new Market({ world: this });
+
+    // ─── Ореолы ───
+    this.halos = [];
+    this.haloByCell = new Map();   // tileKey → halo.id
+    this.haloById = new Map();     // halo.id → halo
+
     this.onFactionEliminated = null;
     this.winner = null;
   }
@@ -43,16 +55,18 @@ export class World {
     if (!f) throw new Error(`Unknown faction: ${id}`);
     this.factions.forEach((x) => (x.isPlayer = x.id === id));
     this.playerFactionId = id;
+
     this._assignCitiesToFactions();
     this._placeFactionStarts();
     this._spawnGenerals();
     this._seedStartingDecks();
     this._initRecruitPools();
+    this._initHalos();               // ← до visibility, чтобы доход был корректным
     this.visibility.recompute();
     return f;
   }
 
-  // ─── сменить активную (человеческую) фракцию в hot-seat ───
+  // ─── Hot-seat: смена активной фракции без пересоздания мира ───
   switchToFaction(factionId) {
     const f = this.factions.find((x) => x.id === factionId);
     if (!f) return false;
@@ -62,7 +76,6 @@ export class World {
     return true;
   }
 
-  // ─── следующий игрок среди humanFactionIds (по кругу) ───
   nextHumanFaction(humanFactionIds) {
     if (!humanFactionIds?.length) return this.playerFactionId;
     const idx = humanFactionIds.indexOf(this.playerFactionId);
@@ -70,6 +83,44 @@ export class World {
     return humanFactionIds[nextIdx];
   }
 
+  // ─── Ореолы ───
+  _initHalos() {
+    if (this.halos.length > 0) return;
+    const gen = new HaloGenerator({ world: this, seed: this.seed });
+    this.halos = gen.generate();
+    for (const h of this.halos) {
+      this.haloById.set(h.id, h);
+      for (const key of h.cells) this.haloByCell.set(key, h.id);
+    }
+    // Гексы ореолов на старте принадлежат тому, кто владеет городом-якорем
+    for (const h of this.halos) {
+      const city = this.getCity(h.anchorCityId);
+      if (!city || !city.factionId) continue;
+      for (const key of h.cells) {
+        const tile = this.map.getByKey(key);
+        if (tile && !tile.cityId) tile.setFaction(city.factionId);
+      }
+    }
+  }
+
+  haloAt(tile) {
+    if (!tile) return null;
+    return this.haloById.get(this.haloByCell.get(tile.key)) || null;
+  }
+
+  haloTiles(halo) {
+    if (!halo) return [];
+    return halo.cells.map((k) => this.map.getByKey(k)).filter(Boolean);
+  }
+
+  isHaloMonopoly(halo, factionId) {
+    if (!halo || !factionId) return false;
+    const tiles = this.haloTiles(halo);
+    if (tiles.length === 0) return false;
+    return tiles.every((t) => t.factionId === factionId);
+  }
+
+  // ─── Остальное (как было) ───
   _assignCitiesToFactions() {
     for (const city of this.cities) {
       city.factionId = null;
@@ -92,7 +143,6 @@ export class World {
       .sort((a, b) => a.tile.hex.distance({ q: 0, r: 0, s: 0 }) - b.tile.hex.distance({ q: 0, r: 0, s: 0 }));
 
     const used = new Set();
-
     const assign = (faction, candidates) => {
       for (const { city, tile } of candidates) {
         if (used.has(tile.key)) continue;
@@ -106,9 +156,7 @@ export class World {
     };
 
     assign(playerFaction, startCities);
-    for (const f of others) {
-      assign(f, startCities);
-    }
+    for (const f of others) assign(f, startCities);
   }
 
   _spawnGenerals() {
@@ -158,9 +206,11 @@ export class World {
     if (!this.playerFactionId) return null;
     return this.generals.find((g) => g.factionId === this.playerFactionId) || null;
   }
+
   getGeneralAt(hex) {
     return this.generals.find((g) => g.alive && g.hex.key === hex.key) || null;
   }
+
   getCity(cityId) { return this.cities.find((c) => c.id === cityId) || null; }
   getCityAt(hex) {
     const tile = this.map.get(hex.q, hex.r);
@@ -196,6 +246,7 @@ export class World {
   }
 
   recomputeVisibility() { this.visibility.recompute(); }
+
   recruitPointsUsed(factionId) { return this.recruitPointsUsedMap.get(factionId) || 0; }
   markRecruitPointsUsed(factionId, pts) {
     this.recruitPointsUsedMap.set(factionId, this.recruitPointsUsed(factionId) + pts);
@@ -205,12 +256,22 @@ export class World {
     this.turn += 1;
     for (const g of this.generals) g.resetTurn();
     this.recruitPointsUsedMap.clear();
+
     for (const f of this.factions) {
       if (f.eliminated || f.neutral) continue;
       const pool = this.resourcePools.get(f.id);
       const income = this.economy.computeIncome(this, f.id);
       pool.add(income);
       this.recruitPools.get(f.id)?.addTurnIncome(this);
+
+      const created = this.market.autoCreateOffers(f.id);
+      for (const offer of created) {
+        const label = offer.goods === 'weapons' ? 'оружия' : 'провизии';
+        this.onMarketAutoOffer?.({
+          factionId: f.id,
+          text: `Излишки ${label} ушли на рынок: ${offer.amount} за ${offer.price}💰`,
+        });
+      }
     }
     this._aiMarketTurn();
     this._checkElimination();
@@ -220,9 +281,7 @@ export class World {
     for (const f of this.factions) {
       if (f.isPlayer || f.neutral || f.eliminated) continue;
       const pool = this.resourcePools.get(f.id);
-      if (!pool || pool.gold < 60) continue;
-      const gen = this.generals.find((g) => g.factionId === f.id && g.alive);
-      if (!gen) continue;
+      if (!pool || pool.gold < 40) continue;
       const cheap = this.market.offersFromOthers(f.id)
         .filter((o) => o.price <= 25 && o.price <= pool.gold - 30)
         .sort((a, b) => a.price - b.price);
@@ -230,7 +289,6 @@ export class World {
         const res = this.market.buyOffer({
           offerId: offer.id,
           buyerFactionId: f.id,
-          buyerGeneralId: gen.id,
         });
         if (res.ok) break;
       }
@@ -245,6 +303,7 @@ export class World {
     const pool = this.recruitPools.get(factionId);
     return pool ? pool.available : [];
   }
+
   returnCardToPool(factionId, cardKey) {
     this.recruitPools.get(factionId)?.returnCard(cardKey);
   }
@@ -284,10 +343,7 @@ export class World {
       }
     }
     const alive = this.factions.filter((f) => !f.neutral && !f.eliminated);
-    if (alive.length === 1) {
-      this.winner = alive[0].id;
-    } else if (alive.length === 0) {
-      this.winner = 'draw';
-    }
+    if (alive.length === 1) this.winner = alive[0].id;
+    else if (alive.length === 0) this.winner = 'draw';
   }
 }

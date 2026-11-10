@@ -149,3 +149,10 @@
         height: 12px;
     }
 }
+
+.hud-btn.lens-btn.active {
+    background: linear-gradient(180deg, #2a5a8b, #0a1a2a);
+    border-color: #58a6ff;
+    color: #a8d0ff;
+    box-shadow: 0 0 16px rgba(88, 166, 255, 0.6);
+  }

@@ -224,3 +224,37 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
+
+.market-panel .mp-goods-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2a1d0f, #0a0603);
+  }
+  .market-panel .mp-goods-art .mp-count {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(10, 6, 3, 0.8);
+    border: 1px solid var(--color-gold);
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--color-gold-bright);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .market-panel .mp-card.goods-weapons .mp-goods-art {
+    background: linear-gradient(135deg, #3a4a5a, #0a1018);
+  }
+  .market-panel .mp-card.goods-prov .mp-goods-art {
+    background: linear-gradient(135deg, #2a5a2c, #0a1a0a);
+  }
+  .market-panel .mp-action.mine-label {
+    color: #8a7a58;
+    font-style: italic;
+    cursor: default;
+    font-size: 10px;
+  }

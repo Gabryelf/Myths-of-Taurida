@@ -1,56 +1,27 @@
-import { CardFactory } from '../../domain/card/CardFactory.js';
-import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
+import { iconImg } from '../../config/icons.js';
+
+const GOODS_LABEL = { weapons: 'Оружие', prov: 'Провизия' };
+const GOODS_ICON = { weapons: 'res_weapons', prov: 'res_prov' };
 
 export class MarketPanel {
   constructor(root, { bus, controller, world }) {
     this.bus = bus;
     this.controller = controller;
     this.world = world;
-    this._imgLoader = new CardImageLoader();
-
+    this._tab = 'buy';   // 'buy' | 'mine'
     this.overlay = document.createElement('div');
     this.overlay.className = 'market-panel-overlay';
     this.overlay.innerHTML = `<div class="market-panel"></div>`;
     root.appendChild(this.overlay);
 
-    this._tab = 'buy';   // 'buy' | 'sell'
-    this._general = null;
-
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay) { this.hide(); return; }
       if (e.target.closest?.('[data-close]')) { this.hide(); return; }
       const tab = e.target.closest?.('[data-tab]')?.getAttribute('data-tab');
       if (tab) { this._tab = tab; this._render(); return; }
-
       const buy = e.target.closest?.('[data-buy]');
       if (buy) {
-        this.controller.tryBuy({
-          offerId: buy.getAttribute('data-buy'),
-          buyerGeneralId: this._general.id,
-        });
-        this._render();
-        return;
-      }
-      const cancel = e.target.closest?.('[data-cancel]');
-      if (cancel) {
-        this.controller.tryCancelOffer({
-          offerId: cancel.getAttribute('data-cancel'),
-          generalId: this._general.id,
-        });
-        this._render();
-        return;
-      }
-      const sell = e.target.closest?.('[data-sell]');
-      if (sell) {
-        const cardId = sell.getAttribute('data-sell');
-        const priceStr = prompt('Цена в золоте (≥1):', '10');
-        if (!priceStr) return;
-        const price = parseInt(priceStr, 10);
-        if (!Number.isFinite(price) || price < 1) {
-          this.bus.emit('toast:show', { text: 'Цена должна быть ≥ 1' });
-          return;
-        }
-        this.controller.tryAddOffer({ generalId: this._general.id, cardId, price });
+        this.controller.tryBuy({ offerId: buy.getAttribute('data-buy') });
         this._render();
       }
     });
@@ -60,30 +31,28 @@ export class MarketPanel {
     });
   }
 
-  open({ general }) {
-    this._general = general;
+  open() {
     this.overlay.classList.add('visible');
     this._render();
   }
+
   hide() { this.overlay.classList.remove('visible'); }
 
   _render() {
     const world = this.world;
     const factionId = world.playerFactionId;
-    const gen = this._general;
-    if (!gen) return;
+    if (!factionId) return;
     const pool = world.resourcePools.get(factionId);
     const myOffers = world.market.offersBy(factionId);
     const others = world.market.offersFromOthers(factionId);
-    const maxOffers = world.market.maxOffers(factionId);
 
     const tabsHtml = `
       <div class="mp-tabs">
         <button class="mp-tab ${this._tab === 'buy' ? 'active' : ''}" data-tab="buy">
           Купить (${others.length})
         </button>
-        <button class="mp-tab ${this._tab === 'sell' ? 'active' : ''}" data-tab="sell">
-          Мои ставки (${myOffers.length}/${maxOffers})
+        <button class="mp-tab ${this._tab === 'mine' ? 'active' : ''}" data-tab="mine">
+          Мои лоты (${myOffers.length})
         </button>
       </div>
     `;
@@ -91,28 +60,25 @@ export class MarketPanel {
     let contentHtml = '';
     if (this._tab === 'buy') {
       if (others.length === 0) {
-        contentHtml = '<div class="mp-empty">Никто не выставил карты. Завершите ход — ИИ может выставить.</div>';
+        contentHtml = '<div class="mp-empty">На рынке пусто. Излишки появятся после хода.</div>';
       } else {
-        contentHtml = `<div class="mp-grid">${others.map((o) => this._offerCardHtml(o, 'buy')).join('')}</div>`;
+        contentHtml = `<div class="mp-grid">${others.map((o) => this._offerHtml(o, 'buy')).join('')}</div>`;
       }
     } else {
-      const deckHtml = `
-        <div class="mp-section-title">Колода (${gen.deck.cards.length} карт)</div>
-        <div class="mp-grid">
-          ${gen.deck.cards.map((c) => this._deckCardHtml(c)).join('') || '<div class="mp-empty">Пусто</div>'}
-        </div>
-      `;
-      const offersHtml = myOffers.length > 0
-        ? `<div class="mp-section-title">Мои ставки</div>
-           <div class="mp-grid">${myOffers.map((o) => this._offerCardHtml(o, 'cancel')).join('')}</div>`
-        : `<div class="mp-empty">Нет ставок</div>`;
-      contentHtml = deckHtml + offersHtml;
+      if (myOffers.length === 0) {
+        contentHtml = '<div class="mp-empty">У вас нет лотов. Копите ресурсы — излишки уйдут на рынок автоматически.</div>';
+      } else {
+        contentHtml = `<div class="mp-grid">${myOffers.map((o) => this._offerHtml(o, 'mine')).join('')}</div>`;
+      }
     }
 
     this.overlay.querySelector('.market-panel').innerHTML = `
-      <h2>Рынок · ${gen.name}</h2>
+      <h2>Рынок излишков</h2>
       <div class="mp-subtitle">
-        💰 ${pool.gold} · Лимит ставок: ${maxOffers}
+        ${iconImg('res_gold', { size: 12 })} ${pool.gold}
+        · ${iconImg('res_prov', { size: 12 })} ${pool.prov}
+        · ${iconImg('res_weapons', { size: 12 })} ${pool.weapons}
+        <br>Лоты создаются автоматически при излишке ресурсов.
       </div>
       ${tabsHtml}
       <div class="mp-content">${contentHtml}</div>
@@ -120,36 +86,24 @@ export class MarketPanel {
     `;
   }
 
-  _offerCardHtml(offer, mode) {
-    const def = CardFactory.defForKey(offer.cardKey);
-    const card = CardFactory.create(offer.cardKey);
-    const bg = this._imgLoader.getCssBackground(offer.cardKey, card.type);
-    const actionAttr = mode === 'buy'
-      ? `data-buy="${offer.id}"`
-      : `data-cancel="${offer.id}"`;
-    const actionLabel = mode === 'buy' ? `Купить · ${offer.price}💰` : 'Снять';
+  _offerHtml(offer, mode) {
+    const label = GOODS_LABEL[offer.goods] || offer.goods;
+    const icon = GOODS_ICON[offer.goods] || 'res_gold';
+    const action = mode === 'buy'
+      ? `<button class="mp-action buy" data-buy="${offer.id}">
+           Купить · ${offer.price}${iconImg('res_gold', { size: 10 })}
+         </button>`
+      : `<div class="mp-action mine-label">
+           ${this._sellerName(offer.sellerFactionId)}
+         </div>`;
     return `
-      <div class="mp-card type-${card.type}">
-        <div class="mp-art" style="${bg}">
-          <div class="mp-count">${card.str}</div>
-          <div class="mp-rarity mp-rarity-${card.rarity}"></div>
+      <div class="mp-card goods-${offer.goods}">
+        <div class="mp-art mp-goods-art">
+          <div class="mp-count">${offer.amount}${iconImg(icon, { size: 12, cls: 'icon-inline' })}</div>
         </div>
-        <div class="mp-name">${def.name}</div>
-        <div class="mp-seller">${this._sellerName(offer.sellerFactionId)}</div>
-        <button class="mp-action ${mode}" ${actionAttr}>${actionLabel}</button>
-      </div>
-    `;
-  }
-
-  _deckCardHtml(card) {
-    const bg = this._imgLoader.getCssBackground(card.imageKey, card.type);
-    return `
-      <div class="mp-card type-${card.type}">
-        <div class="mp-art" style="${bg}">
-          <div class="mp-count">${card.str}</div>
-        </div>
-        <div class="mp-name">${card.name}</div>
-        <button class="mp-action sell" data-sell="${card.id}">Выставить</button>
+        <div class="mp-name">${label}</div>
+        <div class="mp-seller">Цена: ${offer.price}${iconImg('res_gold', { size: 10 })}</div>
+        ${action}
       </div>
     `;
   }

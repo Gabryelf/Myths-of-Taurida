@@ -27,13 +27,13 @@ export class UIManager {
     this.onHire = null;
     this.onMarket = null;
     this.onRecruit = onRecruit;
-    this.onBuySettlement = null;   // (cityId) => void — устанавливается из Game
-    this.battleController = battleController;
-    this.marketController = marketController;
     this.onBuySettlement = null;
     this.onAttackCity = null;
+    this.onLensToggle = null;   // (kind, enabled) => void
 
-    // ─── Базовые элементы ───
+    this.battleController = battleController;
+    this.marketController = marketController;
+
     this.toast = new Toast(toastRoot);
     this.tooltip = new Tooltip(root);
     this.generalPanel = new GeneralPanel(root);
@@ -41,21 +41,19 @@ export class UIManager {
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
 
-    // ─── HUD ───
     this._buildHud();
+
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
       this.sound?.play('click');
       onEndTurn?.();
     });
 
-    // ─── Быстрые прыжки + мини-карта (левый верхний угол) ───
     this.quickJump = new QuickJump(this.root, {
       world: this.world,
       cameraController: null,
       theme: { hexSize: 18 },
     });
 
-    // ─── Модалки ───
     this.recruitModal = new RecruitModal(root, { bus });
     this.cityPanel = new CityPanel(root, { bus });
     this.battleModal = new BattleModal(root, {
@@ -65,25 +63,16 @@ export class UIManager {
     this.tutorial = new TutorialModal(root, () => {
       localStorage.setItem('tavrida_tutorial_v1', '1');
     });
-
-    // Рынок
     this.marketPanel = new MarketPanel(root, {
       bus, controller: marketController, world,
     });
-    // Фракции
     this.factionsPanel = new FactionsPanel(root, { world });
-    // Глоссарий
     this.glossary = new GlossaryModal(root);
-
-    // Мини-карта теперь внутри QuickJump — отдельного поля нет
     this.minimap = null;
 
     this._subscribe();
   }
 
-  // ═══════════════════════════════════════════
-  //  Смена мира (при старте партии)
-  // ═══════════════════════════════════════════
   setWorld(world) {
     this.world = world;
     if (this.marketPanel) this.marketPanel.world = world;
@@ -91,16 +80,15 @@ export class UIManager {
     if (this.quickJump) this.quickJump.setWorld(world);
   }
 
-  // ═══════════════════════════════════════════
-  //  HUD
-  // ═══════════════════════════════════════════
   _buildHud() {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.1.3</div>
+      <div class="hud-title">ТАВРИДА · v0.1.6</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
+        <button class="hud-btn lens-btn" id="btn-lens-borders" title="Границы территорий">🗺 Границы</button>
+        <button class="hud-btn lens-btn" id="btn-lens-halos" title="Ресурсные ореолы">🌾 Ореолы</button>
         <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
         <button class="hud-btn" id="btn-market">Рынок</button>
         <button class="hud-btn" id="btn-factions">Фракции</button>
@@ -110,10 +98,19 @@ export class UIManager {
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
-
     this.resourceBar.el = hud.querySelector('#resource-bar');
     this.resourceBar.refresh();
 
+    hud.querySelector('#btn-lens-borders').addEventListener('click', (e) => {
+      const on = e.currentTarget.classList.toggle('active');
+      this.sound?.play('click');
+      this.onLensToggle?.('borders', on);
+    });
+    hud.querySelector('#btn-lens-halos').addEventListener('click', (e) => {
+      const on = e.currentTarget.classList.toggle('active');
+      this.sound?.play('click');
+      this.onLensToggle?.('halos', on);
+    });
     hud.querySelector('#btn-recruit').addEventListener('click', () => {
       this.sound?.play('click');
       if (this.onHire) this.onHire();
@@ -130,7 +127,6 @@ export class UIManager {
       this.sound?.play('click');
       this.glossary.open();
     });
-
     const muteBtn = hud.querySelector('#btn-mute');
     if (this.sound?.isMuted()) {
       muteBtn.textContent = '🔇';
@@ -150,9 +146,6 @@ export class UIManager {
     btn.style.opacity = enabled ? '1' : '0.4';
   }
 
-  // ═══════════════════════════════════════════
-  //  Мини-карта (внутри QuickJump)
-  // ═══════════════════════════════════════════
   initMinimap({ cameraController, onCenter }) {
     if (!this.quickJump) return;
     this.quickJump.initMinimap({
@@ -166,18 +159,11 @@ export class UIManager {
     this.minimap = null;
   }
 
-  // ═══════════════════════════════════════════
-  //  Модалки
-  // ═══════════════════════════════════════════
   openRecruitModal({ factionId, general, world }) {
     this.recruitModal.open({ factionId, general, world });
   }
 
   openCityPanel({ tile, city, world }) {
-    // Гарантируем, что world.selectedGeneralId установлен, чтобы CityPanel знал радиус
-    if (this.world && world) {
-      // ничего не делаем — selectedGeneralId уже в world
-    }
     this.cityPanel.onBuySettlement = (cityId) => {
       this.onBuySettlement?.(cityId);
     };
@@ -199,14 +185,8 @@ export class UIManager {
     this.tutorial.open();
   }
 
-  // ═══════════════════════════════════════════
-  //  Подписки шины
-  // ═══════════════════════════════════════════
   _subscribe() {
-    this.bus.on('tile:hovered', ({ tile, screenPos }) => {
-      // Гекс-инфо скрыто до выбора — не показываем тултип
-      this.tooltip.hide();
-    });
+    this.bus.on('tile:hovered', () => this.tooltip.hide());
     this.bus.on('general:selected', ({ general }) => {
       if (general) {
         this.generalPanel.show(general);
@@ -216,9 +196,7 @@ export class UIManager {
         this.deckPanel.hide();
       }
     });
-    this.bus.on('general:moved', () => {
-      this.generalPanel.refresh();
-    });
+    this.bus.on('general:moved', () => this.generalPanel.refresh());
     this.bus.on('resources:changed', () => {
       const factionId = this.world?.playerFactionId;
       if (!factionId) return;

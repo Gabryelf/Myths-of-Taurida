@@ -27,11 +27,11 @@ export class Game {
     this.logger = new Logger('Game');
     this.bus = new EventBus();
 
-    // ─── Профиль игрока ───
     this.profile = SaveManager.load() || createStarterProfile('scythians');
     if (!this.profile.matchConfig) {
       this.profile.matchConfig = { mode: 'ai', playerCount: 5, playerFaction: 'scythians' };
     }
+
     this.deckRepo = DeckRepository.fromJSON(
       this.profile.unlockedDecks,
       this.profile.collection,
@@ -41,21 +41,17 @@ export class Game {
       if (deck.totalCount === 0) this.deckRepo.autoFill(fid);
     }
 
-    // ─── Награды ───
     this.rewardService = new RewardService({ profile: this.profile, bus: this.bus });
 
-    // ─── Состояние партии ───
     this.world = null;
     this._humanFactions = [];
     this._playerFactionId = null;
 
-    // ─── Рендер ───
     this.renderer = new Renderer(canvas);
     this.cameraController = new CameraController(this.renderer.camera, this.renderer.renderer);
     this.sceneBuilder = new SceneBuilder(this.renderer.scene);
     this.sound = new SoundManager();
 
-    // ─── UI ───
     this.ui = new UIManager({
       root: uiRoot, toastRoot, bus: this.bus, world: null,
       onEndTurn: () => this.endTurn(),
@@ -67,8 +63,10 @@ export class Game {
     this.ui.onHire = () => this.openRecruitForSelected();
     this.ui.onMarket = () => this.openMarket();
     this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
+    this.ui.onLensToggle = (kind, enabled) => {
+      this.sceneBuilder.setLens(kind, enabled);
+    };
 
-    // ─── Ввод ───
     this.input = new InputController({
       canvas, camera: this.renderer.camera,
       onTileClick: (tile, hitGeneral, hitCity) => this._onTileClick(tile, hitGeneral, hitCity),
@@ -76,11 +74,9 @@ export class Game {
     });
     this.input.attachCameraController(this.cameraController);
 
-    // ─── Шина ───
     this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
     this.bus.on('battle:started', () => this.sound.play('play'));
 
-    // ─── Состояние ───
     this.selectedGeneralId = null;
     this.selectedTileKey = null;
     this._pendingBattleCost = 0;
@@ -88,13 +84,11 @@ export class Game {
     this._hoveredCityId = null;
     this._running = false;
     this._aiBusy = false;
+
     this.lobby = null;
     this.summonModal = null;
   }
 
-  // ═══════════════════════════════════════════
-  //  СТАРТ / ЛОББИ
-  // ═══════════════════════════════════════════
   start(_factionId = 'scythians') {
     this._showLobby();
     this._loop();
@@ -145,15 +139,11 @@ export class Game {
     const playerCount = Math.max(2, Math.min(5, cfg.playerCount || 5));
     const activeFactions = FACTION_IDS.slice(0, playerCount);
 
-    // ─── «Людские» фракции ───
-    //   vs AI: только игрок
-    //   hot-seat: все активные фракции
     this._humanFactions = cfg.mode === 'hotseat'
       ? activeFactions.slice()
       : [factionId];
     this._playerFactionId = factionId;
 
-    // ─── Мир ───
     this.world = new World({
       seed: 1337,
       radius: 14,
@@ -166,30 +156,26 @@ export class Game {
       const f = this.world.factions.find((x) => x.id === fid);
       this.bus.emit('toast:show', { text: `⚔ Фракция «${f?.name || fid}» выбыла` });
     };
+    this.world.onMarketAutoOffer = ({ text }) => {
+      this.bus.emit('toast:show', { text });
+    };
 
-    // ─── Контроллеры ───
     this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
     this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
     this.marketController = new MarketController({ world: this.world, bus: this.bus });
     this.battleController = new BattleController({ world: this.world, bus: this.bus });
 
-    // ─── UI ───
     this.ui.setWorld(this.world);
     this.ui.battleController = this.battleController;
     this.ui.marketController = this.marketController;
     this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
     this.ui.onAttackCity = (cityId, defenderFactionId) => this._attackCityById(cityId, defenderFactionId);
-
-    if (this.ui.battleModal) {
-      this.ui.battleModal.controller = this.battleController;
-    }
+    if (this.ui.battleModal) this.ui.battleModal.controller = this.battleController;
     if (this.ui.marketPanel) {
       this.ui.marketPanel.controller = this.marketController;
       this.ui.marketPanel.world = this.world;
     }
-    if (this.ui.factionsPanel) {
-      this.ui.factionsPanel.world = this.world;
-    }
+    if (this.ui.factionsPanel) this.ui.factionsPanel.world = this.world;
     if (this.ui.quickJump) {
       this.ui.quickJump.theme = { hexSize: Theme.hexSize };
       this.ui.quickJump.cameraController = this.cameraController;
@@ -202,7 +188,6 @@ export class Game {
     this.world.selectPlayerFaction(factionId);
     const pool = this.world.resourcePools.get(this.world.playerFactionId);
     this.ui.bindResources(pool);
-
     this.world.recomputeVisibility();
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
@@ -233,14 +218,10 @@ export class Game {
       'playerCount=', this.profile.matchConfig.playerCount);
   }
 
-  // ═══════════════════════════════════════════
-  //  ВВОД
-  // ═══════════════════════════════════════════
   _onTileClick(tile, hitGeneral, hitCity) {
     if (!this.world) return;
     const playerFactionId = this.world.playerFactionId;
 
-    // 1) Полководец
     if (hitGeneral) {
       if (hitGeneral.factionId !== playerFactionId) {
         if (this.selectedGeneralId) {
@@ -262,13 +243,11 @@ export class Game {
       return;
     }
 
-    // 2) Город / деревня / поселение
     if (hitCity && tile?.cityId) {
       this._handleCityClick(tile, hitCity);
       return;
     }
 
-    // 3) Ход/атака
     if (this.selectedGeneralId && tile) {
       const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
       if (!general) return;
@@ -283,7 +262,6 @@ export class Game {
         return;
       }
       if (this.world.movement.canMove(general, tile)) {
-        // Нельзя «войти» в чужое/нейтральное поселение или чужой город без боя
         if (tile.cityId) {
           const city = this.world.getCity(tile.cityId);
           if (city && city.factionId !== general.factionId && city.factionId !== null) {
@@ -423,9 +401,6 @@ export class Game {
     this._executeBattle(general, tile, cost, defenderFactionId);
   }
 
-  // ═══════════════════════════════════════════
-  //  ВЫБОР
-  // ═══════════════════════════════════════════
   _selectGeneral(general) {
     if (general && general.factionId !== this.world.playerFactionId) general = null;
     if (this.selectedGeneralId) {
@@ -462,9 +437,6 @@ export class Game {
     this.sceneBuilder.highlight.setSelected(tile.key, neighbors);
   }
 
-  // ═══════════════════════════════════════════
-  //  ХОД
-  // ═══════════════════════════════════════════
   _executeMove(general, tile, distance) {
     const fromKey = general.hex.key;
     general.spendMove(distance);
@@ -481,6 +453,7 @@ export class Game {
     this.sceneBuilder.setMovementOverlays(null, false);
     this.sceneBuilder.setAttackOverlays(null, false);
     this.sceneBuilder.setGeneralSelected(general.id, false);
+    this.sceneBuilder.refreshBorders();   // ← границы сразу
     this.selectedGeneralId = null;
     this.bus.emit('general:moved', { general, fromKey, toKey: tile.key, cost: distance });
     this.ui.quickJump?.refreshMinimap();
@@ -511,11 +484,12 @@ export class Game {
     const { winner, targetTile, attackerGen, defenderGen, playerSide } = result;
     const cost = this._pendingBattleCost || 0;
     this._pendingBattleCost = 0;
+
     const playerWon =
       (playerSide === 'attacker' && winner === 'attacker') ||
       (playerSide === 'defender' && winner === 'defender');
-
     const playerGen = playerSide === 'attacker' ? attackerGen : defenderGen;
+
     if (playerGen && playerWon) {
       const events = playerGen.addXp(10);
       for (const ev of events) {
@@ -528,7 +502,6 @@ export class Game {
       }
       this.bus.emit('general:selected', { general: playerGen });
     }
-
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
 
@@ -544,20 +517,8 @@ export class Game {
           } else {
             targetTile.setFaction(attackerGen.factionId);
           }
-          if (playerSide === 'attacker' && playerWon && targetTile) {
-            const capturedCity = targetTile.cityId ? this.world.getCity(targetTile.cityId) : null;
-            if (capturedCity) {
-              this.world.captureCity(capturedCity.id, attackerGen.factionId);
-              this.bus.emit('toast:show', { text: `🏛 Захвачен ${capturedCity.name}` });
-            } else {
-              targetTile.setFaction(attackerGen.factionId);
-            }
-            // ─── Обнуляем жизни ТОЛЬКО побеждённого защитника ───
-            if (defenderGen && defenderGen.id !== attackerGen.id) {
-              defenderGen.lives = 0;
-            }
-            attackerGen.spendMove(cost);
-            attackerGen.moveTo(targetTile.hex);
+          if (defenderGen && defenderGen.id !== attackerGen.id) {
+            defenderGen.lives = 0;
           }
         }
         attackerGen.spendMove(cost);
@@ -579,7 +540,6 @@ export class Game {
 
     this.world._checkElimination();
 
-    // ─── Награды / конец партии ───
     if (this.world.winner) {
       this._finishMatchRewards();
     }
@@ -588,6 +548,7 @@ export class Game {
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.updateCityFaction(this.world);
+    this.sceneBuilder.refreshBorders();   // ← границы после боя
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.ui.quickJump?.refreshMinimap();
@@ -610,7 +571,6 @@ export class Game {
       humanFactionIds: this._humanFactions || [],
     });
 
-    // Победа или поражение — выходим в лобби
     setTimeout(() => {
       this.ui.root.querySelectorAll('.battle-modal-overlay, .battle-result-overlay')
         .forEach((e) => e.remove());
@@ -620,9 +580,6 @@ export class Game {
     }, 1500);
   }
 
-  // ═══════════════════════════════════════════
-  //  ГОРОДА / НАЙМ / РЫНОК
-  // ═══════════════════════════════════════════
   _openCity(tile, city) {
     if (this.world) this.world.selectedGeneralId = this.selectedGeneralId;
     this.ui.openCityPanel({ tile, city, world: this.world });
@@ -630,14 +587,7 @@ export class Game {
 
   openMarket() {
     if (!this.world) return;
-    const general = this.selectedGeneralId
-      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
-      : this.world.generals.find((g) => g.factionId === this.world.playerFactionId && g.alive);
-    if (!general) {
-      this.bus.emit('toast:show', { text: 'Нет полководца' });
-      return;
-    }
-    this.ui.marketPanel.open({ general });
+    this.ui.marketPanel.open();
   }
 
   openRecruitForSelected() {
@@ -692,6 +642,7 @@ export class Game {
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.updateCityFaction(this.world);
+    this.sceneBuilder.refreshBorders();
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.ui.quickJump?.refreshMinimap();
@@ -704,13 +655,11 @@ export class Game {
     if (this._aiBusy || !this.world) return;
     const cfg = this.profile.matchConfig || { mode: 'ai' };
 
-    // ─── Hot-seat: меняем активного человека, но НЕ крутим глобальный ход ───
     if (cfg.mode === 'hotseat') {
       this._endTurnForHotseat();
       return;
     }
 
-    // ─── vs AI: глобальный ход + ИИ ───
     this.world.endTurn();
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);
@@ -718,6 +667,64 @@ export class Game {
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.ui.quickJump?.refreshMinimap();
     this._runAITurns();
+  }
+
+  _endTurnForHotseat() {
+    const humans = this._humanFactions || [];
+    if (humans.length < 2) {
+      this.world.endTurn();
+      this._runAITurns();
+      return;
+    }
+    this._selectGeneral(null);
+
+    const nextId = this.world.nextHumanFaction(humans);
+    const isFirstHuman = humans[0] === nextId && this.world.playerFactionId === humans[humans.length - 1];
+
+    this.world.switchToFaction(nextId);
+    this._playerFactionId = nextId;
+    this.profile.lastPlayedFaction = nextId;
+
+    if (isFirstHuman) {
+      this.world.turn += 1;
+      for (const g of this.world.generals) g.resetTurn();
+      this.world.recruitPointsUsedMap.clear();
+      for (const f of this.world.factions) {
+        if (f.eliminated || f.neutral) continue;
+        const pool = this.world.resourcePools.get(f.id);
+        const income = this.world.economy.computeIncome(this.world, f.id);
+        pool.add(income);
+        this.world.recruitPools.get(f.id)?.addTurnIncome(this.world);
+        const created = this.world.market.autoCreateOffers(f.id);
+        for (const offer of created) {
+          const label = offer.goods === 'weapons' ? 'оружия' : 'провизии';
+          this.bus.emit('toast:show', {
+            text: `Излишки ${label} ушли на рынок: ${offer.amount} за ${offer.price}💰`,
+          });
+        }
+      }
+      this.world._aiMarketTurn();
+      this.world._checkElimination();
+      this.bus.emit('turn:ended', { turn: this.world.turn });
+    }
+
+    this.world.recomputeVisibility();
+    this.sceneBuilder.rebuild(this.world);
+    this.sceneBuilder.updateFog(this.world);
+    this.sceneBuilder.updateCityFaction(this.world);
+    this.input.setPickables(this.sceneBuilder.getPickables());
+    this.bus.emit('resources:changed', { factionId: nextId });
+    this.ui.quickJump?.setWorld(this.world);
+    this.ui.quickJump?.refreshMinimap();
+    this._updateHireButton();
+
+    const f = this.world.factions.find((x) => x.id === nextId);
+    this.bus.emit('toast:show', { text: `Ход: ${f?.name || nextId}` });
+    this.sound.play('turn');
+    this.ui.turnIndicator.show(`Ход: ${f?.name || nextId}`);
+    setTimeout(() => this.ui.turnIndicator.hide(), 1500);
+
+    if (isFirstHuman) this._runAITurns();
   }
 
   async _runAITurns() {
@@ -751,71 +758,8 @@ export class Game {
     this._aiBusy = false;
   }
 
-
-  _endTurnForHotseat() {
-    const humans = this._humanFactions || [];
-    if (humans.length < 2) {
-      // На всякий случай — fallback на обычный ход
-      this.world.endTurn();
-      this._runAITurns();
-      return;
-    }
-    this._selectGeneral(null);
-
-    const nextId = this.world.nextHumanFaction(humans);
-
-    // Если вернулись к первому игроку — завершаем глобальный ход и даём ход ИИ
-    const isFirstHuman = humans[0] === nextId && this.world.playerFactionId === humans[humans.length - 1];
-
-    this.world.switchToFaction(nextId);
-    this._playerFactionId = nextId;
-    this.profile.lastPlayedFaction = nextId;
-
-    if (isFirstHuman) {
-      // Глобальный ход прошёл — сбрасываем движение, начисляем доход, ИИ
-      this.world.turn += 1;
-      for (const g of this.world.generals) g.resetTurn();
-      this.recruitPointsUsedMapClear();
-      for (const f of this.world.factions) {
-        if (f.eliminated || f.neutral) continue;
-        const pool = this.world.resourcePools.get(f.id);
-        const income = this.world.economy.computeIncome(this.world, f.id);
-        pool.add(income);
-        this.world.recruitPools.get(f.id)?.addTurnIncome(this.world);
-      }
-      this.world._aiMarketTurn();
-      this.world._checkElimination();
-      this.bus.emit('turn:ended', { turn: this.world.turn });
-    }
-
-    // Пересчёт видимости и рендера под нового игрока
-    this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: nextId });
-    this.ui.quickJump?.setWorld(this.world);
-    this.ui.quickJump?.refreshMinimap();
-    this._updateHireButton();
-
-    const f = this.world.factions.find((x) => x.id === nextId);
-    this.bus.emit('toast:show', { text: `Ход: ${f?.name || nextId}` });
-    this.sound.play('turn');
-    this.ui.turnIndicator.show(`Ход: ${f?.name || nextId}`);
-    setTimeout(() => this.ui.turnIndicator.hide(), 1500);
-
-    // Если после горячего стула нужно запустить ИИ (например, последний человек завершил круг)
-    if (isFirstHuman) this._runAITurns();
-  }
-
-  recruitPointsUsedMapClear() {
-    this.world.recruitPointsUsedMap.clear();
-  }
-
   _afterAITurns() {
     if (!this.world) return;
-    // Возвращаем управление первому человеческому игроку
     const humans = this._humanFactions || [];
     if (humans.length > 0) {
       this.world.switchToFaction(humans[0]);
@@ -825,15 +769,13 @@ export class Game {
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateCityFaction(this.world);
+    this.sceneBuilder.refreshBorders();
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.ui.quickJump?.refreshMinimap();
     this._updateHireButton();
   }
 
-  // ═══════════════════════════════════════════
-  //  ЦИКЛ
-  // ═══════════════════════════════════════════
   _loop() {
     if (this._running) return;
     this._running = true;
