@@ -1,28 +1,23 @@
-import { HexMath } from '../../domain/hex/HexMath.js';
 import { Theme } from '../../infrastructure/config/ThemeConfig.js';
 
-/**
- * Мини-карта в углу. Canvas 2D, рисуем гексы цветом фракции + точки полководцев.
- * Клик — центрирует камеру на гексе.
- */
 export class Minimap {
   constructor(root, { world, cameraController, onCenter }) {
     this.world = world;
     this.cameraController = cameraController;
     this.onCenter = onCenter;
-
     this.el = document.createElement('div');
     this.el.className = 'qj-minimap-inner';
     this.canvas = document.createElement('canvas');
     this.canvas.width = 200;
     this.canvas.height = 200;
+    this.canvas.style.pointerEvents = 'auto';    // ← гарантированно ловит клик
+    this.canvas.style.cursor = 'crosshair';
+    this.canvas.title = 'Клик — перейти к точке';
     this.el.appendChild(this.canvas);
     root.appendChild(this.el);
-
     this.ctx = this.canvas.getContext('2d');
     this._scale = null;
     this._offset = null;
-
     this.canvas.addEventListener('click', (e) => this._onClick(e));
     this.refresh();
   }
@@ -32,8 +27,6 @@ export class Minimap {
     const W = this.canvas.width;
     const H = this.canvas.height;
     ctx.clearRect(0, 0, W, H);
-
-    // Найдём границы
     const tiles = this.world.map.all();
     if (tiles.length === 0) return;
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -53,7 +46,6 @@ export class Minimap {
     this._scale = scale;
     this._offset = { offX, offZ, minX, minZ };
 
-    // Гексы
     for (const t of tiles) {
       if (!t.isLand) continue;
       const { x, z } = t.hex.toWorld(1);
@@ -72,9 +64,6 @@ export class Minimap {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-
-    // Города
-    // Города
     for (const city of this.world.cities) {
       if (!city.tileKey) continue;
       const tile = this.world.map.getByKey(city.tileKey);
@@ -83,7 +72,6 @@ export class Minimap {
       const cx = offX + (x - minX) * scale;
       const cy = offZ + (z - minZ) * scale;
       const isMine = city.factionId === this.world.playerFactionId;
-      // Свои города — ярче и крупнее
       ctx.fillStyle = isMine
         ? (city.isCity ? '#f5d57a' : '#d4a94c')
         : (city.isCity ? '#8a7a58' : '#5a4a30');
@@ -96,15 +84,12 @@ export class Minimap {
         ctx.stroke();
       }
     }
-
-    // Полководцы
     for (const gen of this.world.generals) {
       if (!gen.alive) continue;
       const { x, z } = gen.hex.toWorld(1);
       const cx = offX + (x - minX) * scale;
       const cy = offZ + (z - minZ) * scale;
       const isMine = gen.factionId === this.world.playerFactionId;
-      // Свои — крупнее с обводкой
       ctx.strokeStyle = isMine ? '#fff3d0' : '#fff';
       ctx.lineWidth = isMine ? 2 : 1.5;
       ctx.beginPath();
@@ -121,12 +106,13 @@ export class Minimap {
   _onClick(e) {
     if (!this._scale) return;
     const rect = this.canvas.getBoundingClientRect();
+    // Учитываем возможный CSS-scale
     const px = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-    const py = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+    const py = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
     const { offX, offZ, minX, minZ } = this._offset;
     const worldX = (px - offX) / this._scale + minX;
     const worldZ = (py - offZ) / this._scale + minZ;
-    // Найдём ближайший гекс
+
     let best = null;
     let bestD = Infinity;
     for (const t of this.world.map.all()) {

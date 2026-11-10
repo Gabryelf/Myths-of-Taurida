@@ -19,6 +19,7 @@ import { SaveManager } from '../domain/collection/SaveManager.js';
 import { createStarterProfile } from '../domain/collection/PlayerProfileFactory.js';
 import { DeckRepository } from '../domain/deck/DeckRepository.js';
 import { RewardService } from '../domain/match/RewardService.js';
+import { NotificationCenter } from '../ui/components/NotificationCenter.js';
 
 const FACTION_IDS = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
 
@@ -73,6 +74,16 @@ export class Game {
       onTileHover: (tile, screenPos, meta) => this._onTileHover(tile, screenPos, meta),
     });
     this.input.attachCameraController(this.cameraController);
+
+    this.notifications = new NotificationCenter(uiRoot, { max: 8 });
+
+    this.bus.on('toast:show', ({ text }) => {
+      // старый тултип — оставляем, но параллельно кладём в ленту
+      this.notifications.push({ text, kind: 'info' });
+    });
+    this.bus.on('notification:show', ({ text, kind }) => {
+      this.notifications.push({ text, kind });
+    });
 
     this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
     this.bus.on('battle:started', () => this.sound.play('play'));
@@ -158,6 +169,9 @@ export class Game {
     };
     this.world.onMarketAutoOffer = ({ text }) => {
       this.bus.emit('toast:show', { text });
+    };
+    this.world.onMarketAutoOffer = ({ text }) => {
+      this.bus.emit('notification:show', { text, kind: 'trade' });
     };
 
     this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
@@ -754,6 +768,9 @@ export class Game {
     if (isFirstHuman) this._runAITurns();
   }
 
+  // ═══════════════════════════════════════════
+  //  АВТОБОЙ ИИ
+  // ═══════════════════════════════════════════
   async _runAITurns() {
     if (!this.world) return;
     const humanFactions = this._humanFactions || [this.world.playerFactionId];
@@ -767,16 +784,30 @@ export class Game {
     this._aiBusy = true;
     this.ui.turnIndicator.show('Ход противника…');
     this.sound.play('turn');
+
     const battleAction = await this.turnManager.runAITurns(aiFactionIds, {
       onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
     });
+
     if (battleAction) {
       this.ui.turnIndicator.hide();
-      this.battleController.open({
+      // ─── АВТОБОЙ: ИИ атакует, игрок не играет ───
+      const result = await this.battleController.autoResolve({
         attackerGen: battleAction.attackerGen,
         targetTile: battleAction.targetTile,
         defenderFactionId: battleAction.defenderFactionId,
         playerSide: 'defender',
+      });
+      // сообщение о результате
+      const atkName = battleAction.attackerGen?.name || 'Противник';
+      const winner = result.winner === 'attacker' ? atkName : 'защитник';
+      const targetCity = battleAction.targetTile?.cityId
+        ? this.world.getCity(battleAction.targetTile.cityId)
+        : null;
+      const place = targetCity?.name || 'территория';
+      this.bus.emit('notification:show', {
+        text: `${atkName} атаковал ${place}: победа ${winner}`,
+        kind: result.winner === 'attacker' ? 'danger' : 'success',
       });
     } else {
       this.ui.turnIndicator.hide();

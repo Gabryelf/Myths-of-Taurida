@@ -1,0 +1,134 @@
+/* ═══════════════════════════════════════════════════════════
+   Лента игровых событий — вертикальный столбик иконок справа.
+   ═══════════════════════════════════════════════════════════ */
+.notification-center {
+    position: absolute;
+    top: 80px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 60;
+    pointer-events: auto;
+}
+
+.nc-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(45, 34, 20, 0.95), rgba(22, 15, 8, 0.95));
+    border: 1px solid var(--color-gold);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    animation: ncIn 0.25s ease-out;
+}
+
+@keyframes ncIn {
+    from {
+        transform: translateX(60px) scale(0.7);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.nc-icon:hover {
+    transform: translateX(-6px);
+    border-color: var(--color-gold-bright);
+    box-shadow: 0 0 14px rgba(245, 213, 122, 0.6);
+    z-index: 2;
+}
+
+.nc-icon .nc-icon-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+.nc-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #f5b342, #8a5a10);
+    border: 1px solid #fff3d0;
+    box-shadow: 0 0 6px rgba(245, 179, 66, 0.9);
+}
+
+/* Цвета по типу */
+.nc-icon.kind-success {
+    border-color: #5ec37a;
+}
+
+.nc-icon.kind-success .nc-icon-glyph {
+    color: #5ec37a;
+}
+
+.nc-icon.kind-danger {
+    border-color: #e74c3c;
+}
+
+.nc-icon.kind-danger .nc-icon-glyph {
+    color: #ff8080;
+}
+
+.nc-icon.kind-gold {
+    border-color: #d4a94c;
+}
+
+.nc-icon.kind-trade {
+    border-color: #7aa0c8;
+}
+
+.nc-icon.kind-battle {
+    border-color: #8b1a1a;
+}
+
+/* Тултип (появляется при ховере) */
+.nc-tip {
+    position: absolute;
+    right: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    background: rgba(10, 6, 3, 0.98);
+    border: 1px solid var(--color-gold);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    color: var(--color-text);
+    line-height: 1.4;
+    width: 220px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.9);
+    z-index: 3;
+}
+
+.nc-icon:hover .nc-tip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+.nc-tip-time {
+    font-size: 10px;
+    color: #8a7a58;
+    margin-bottom: 2px;
+    font-style: italic;
+}
+
+.nc-tip-text {
+    color: var(--color-text);
+}

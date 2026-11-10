@@ -187,7 +187,7 @@ export class UIManager {
   }
 
   _subscribe() {
-    this.bus.on('tile:hovered', () => this.tooltip.hide());
+    
     this.bus.on('general:selected', ({ general }) => {
       if (general) {
         this.generalPanel.show(general);

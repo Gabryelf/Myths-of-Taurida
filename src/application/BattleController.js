@@ -13,10 +13,38 @@ export class BattleController {
       attackerGen, targetTile, defenderFactionId, playerSide,
     });
     this.battle = battle;
-    battle._aiInstance = new BattleAI(battle);   // ← теперь BattleAI определён
+    battle._aiInstance = new BattleAI(battle);
     this.bus.emit('battle:started', { battle });
     if (battle.turn !== battle.playerSide) this._scheduleAI();
     return battle;
+  }
+
+  /**
+   * Headless-бой: проигрывается мгновенно, без UI.
+   * Возвращает Promise<result>. Эмитит battle:finished.
+   * Игрок только получает сообщение.
+   */
+  async autoResolve({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
+    const battle = this.world.startBattle({
+      attackerGen, targetTile, defenderFactionId, playerSide,
+    });
+    battle._aiInstance = new BattleAI(battle);
+    // Симулируем до конца — autoPlay уже есть в Battle.
+    await battle.autoPlay(null, 0);
+    // Формируем результат
+    const result = {
+      winner: battle.winner,
+      attackerLives: battle.attacker.lives,
+      defenderLives: battle.defender.lives,
+      targetTile: battle.targetTile,
+      attackerGen: battle.attackerGen,
+      defenderGen: battle.defenderGen,
+      playerSide: battle.playerSide,
+      defenderFactionId: battle.defenderFaction,
+      auto: true,
+    };
+    this.bus.emit('battle:finished', result);
+    return result;
   }
 
   selectCard(card) {

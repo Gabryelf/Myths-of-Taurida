@@ -26,6 +26,7 @@
 @import './components/icons.css';
 @import './components/quick-jump.css';
 @import './components/scrollbar.css';
+@import './components/notification-center.css';
 
 /* Карты — напрямую, без вложенных @import */
 @import './cards/base.css';

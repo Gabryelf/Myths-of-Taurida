@@ -128,3 +128,16 @@ export function generalPortraitUrl(factionId, index = 0) {
 export function factionEmblemUrl(factionId) {
   return imgUrl(FACTION_EMBLEMS[factionId]);
 }
+
+// ─── 3D-модели гексов ───
+export const MODEL_BASE = '/models/';
+export const TERRAIN_MODELS = {
+  mountain: 'rock.glb',
+  forest:   'wood.glb',  
+};
+
+export function terrainModelUrl(terrain) {
+  const file = TERRAIN_MODELS[terrain];
+  if (!file) return null;
+  return MODEL_BASE + file;
+}

@@ -1,33 +1,28 @@
 import * as THREE from 'three';
 import { BaseVisual } from './BaseVisual.js';
 import { Theme } from '../../config/ThemeConfig.js';
+import { ModelLoader } from '../ModelLoader.js';
+import { terrainModelUrl } from '../../../config.js';
 
 /**
- * Гекс с процедурным ландшафтом. На каждом гексе — своя детализация:
- *  - дерево (forest)
- *  - скалы (mountain)
- *  - деревья/трава (plain/steppe)
- *  - руины (ruins)
- * Всё рандомится по seed от tile.key — соседние гексы выглядят по-разному.
+ * Гекс с процедурным ландшафтом.
+ * Для гор и леса — пытается подставить 3D-модель из public/models/.
+ * Если модель не загрузилась или ещё грузится, используется процедурный декор.
  */
 export class HexVisual extends BaseVisual {
   constructor(tile, size) {
     super({ tile, size });
     this._overlays = new Map();
+    this._modelPlaceholder = null;
   }
 
   _build() {
     const { tile, size } = this.data;
-
-    // ─── КРИТИЧНО: инициализируем поля ДО первого использования ───
-    // (super() уже вызвал _build(), поэтому constructor-инициализация
-    //  _decorations не успевает — делаем это здесь)
     if (!this._decorations) this._decorations = [];
 
     const t = Theme.terrain[tile.terrain] || Theme.terrain.plain;
-
-    // ─── Плита выше (0.7 вместо 0.4) — волны не дотягиваются ───
     const height = 0.7;
+
     const geo = new THREE.CylinderGeometry(size * 0.94, size * 0.94, height, 6);
     const mat = new THREE.MeshStandardMaterial({
       color: t.color, roughness: t.roughness, metalness: 0.05,
@@ -40,8 +35,13 @@ export class HexVisual extends BaseVisual {
     plate.userData = { tile, hoverable: 'tile' };
     this.group.add(plate);
 
-    // ─── Ландшафт-декор ───
-    this._addTerrainDecor(tile, size, height);
+    // ─── Модель гор/леса, если есть ───
+    const modelUrl = terrainModelUrl(tile.terrain);
+    if (modelUrl) {
+      this._loadTerrainModel(modelUrl, tile, size, height);
+    } else {
+      this._addTerrainDecor(tile, size, height);
+    }
 
     // ─── Фракционное кольцо ───
     this._factionRing = null;
@@ -63,11 +63,70 @@ export class HexVisual extends BaseVisual {
     }
   }
 
+  /**
+   * Асинхронно подгружает модель гор/леса и ставит её на гекс.
+   * Пока грузится — процедурный декор НЕ рисуем (чтобы не было двойного).
+   * Если загрузка упала — откатываемся на процедурный декор.
+   */
+  _loadTerrainModel(url, tile, size, plateHeight) {
+    // Если уже в кэше — ставим сразу
+    const cached = ModelLoader.instance(url);
+    if (cached) {
+      this._placeTerrainModel(cached, tile, size, plateHeight);
+      return;
+    }
+    // Иначе — грузим и ставим по готовности
+    ModelLoader.load(url)
+      .then((scene) => {
+        // Гекс мог быть удалён из сцены пока грузилась модель
+        if (!this.group || this._disposed) return;
+        const inst = scene.clone(true);
+        this._placeTerrainModel(inst, tile, size, plateHeight);
+      })
+      .catch(() => {
+        // fallback — процедурный декор
+        if (this._disposed || !this.group) return;
+        this._addTerrainDecor(tile, size, plateHeight);
+      });
+  }
+
+  _placeTerrainModel(scene, tile, size, plateHeight) {
+    // Автоскейл: подгоняем модель под размер гекса
+    const box = new THREE.Box3().setFromObject(scene);
+    const sizeV = new THREE.Vector3();
+    box.getSize(sizeV);
+    const maxDim = Math.max(sizeV.x, sizeV.z, sizeV.y) || 1;
+    // Хотим, чтобы модель занимала ~1.4 * size по горизонтали
+    const targetSize = size * 1.4;
+    const scale = targetSize / maxDim;
+    scene.scale.setScalar(scale);
+
+    // Центрируем по XZ и опускаем на плиту
+    const box2 = new THREE.Box3().setFromObject(scene);
+    const center = new THREE.Vector3();
+    box2.getCenter(center);
+    scene.position.x -= center.x;
+    scene.position.z -= center.z;
+    // Ставим нижнюю грань на верх плиты
+    scene.position.y += plateHeight - box2.min.y;
+
+    scene.traverse((c) => {
+      if (c.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+        c.userData = c.userData || {};
+        c.userData.tile = tile;
+        c.userData.hoverable = 'tile';
+      }
+    });
+    this.group.add(scene);
+    this._modelPlaceholder = scene;
+  }
+
   /** Скрыть/показать фракционный ring (для линзы границ). */
   setFactionRingVisible(v) {
     if (this._factionRing) this._factionRing.visible = !!v;
   }
-  
   setFactionColor(factionId) {
     if (!this._factionRing) return;
     if (!factionId || !Theme.faction[factionId]) {
@@ -80,30 +139,28 @@ export class HexVisual extends BaseVisual {
     this._factionRing.visible = true;
   }
 
+  // ─── Процедурный декор (fallback) ───
   _addTerrainDecor(tile, size, plateHeight) {
-    // Детерминированный seed от tile.key
     const rng = mulberry32(hashString(tile.key));
     const baseY = plateHeight;
-
     switch (tile.terrain) {
       case 'forest':
-        this._addTrees(rng, size, baseY, 3 + Math.floor(rng() * 3));   // 3..5 
+        this._addTrees(rng, size, baseY, 3 + Math.floor(rng() * 3));
         break;
       case 'mountain':
-        this._addRocks(rng, size, baseY, 2 + Math.floor(rng() * 2));   // 2..3 
+        this._addRocks(rng, size, baseY, 2 + Math.floor(rng() * 2));
         break;
       case 'plain':
-        this._addGrass(rng, size, baseY, 2 + Math.floor(rng() * 3));   // 2..4 
+        this._addGrass(rng, size, baseY, 2 + Math.floor(rng() * 3));
         break;
       case 'steppe':
         this._addGrass(rng, size, baseY, 2 + Math.floor(rng() * 2), 0xc0a040);
         break;
       case 'ruins':
-        this._addRuins(rng, size, baseY);   // 2..3 
+        this._addRuins(rng, size, baseY);
         break;
     }
   }
-
   _addTrees(rng, size, baseY, count) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -111,28 +168,23 @@ export class HexVisual extends BaseVisual {
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       const h = size * (0.15 + rng() * 0.1);
-
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.015, size * 0.025, h, 4),
         new THREE.MeshStandardMaterial({ color: 0x3a2010 }),
       );
       trunk.position.set(x, baseY + h / 2, z);
-      trunk.castShadow = false;
       this.group.add(trunk);
       this._decorations.push(trunk);
-
       const crownColor = new THREE.Color(0x2a5a20).offsetHSL(0, 0, (rng() - 0.5) * 0.1);
       const crown = new THREE.Mesh(
         new THREE.ConeGeometry(size * 0.12, h * 1.2, 5),
         new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.9 }),
       );
       crown.position.set(x, baseY + h + h * 0.4, z);
-      crown.castShadow = false;
       this.group.add(crown);
       this._decorations.push(crown);
     }
   }
-
   _addRocks(rng, size, baseY, count) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -140,7 +192,6 @@ export class HexVisual extends BaseVisual {
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       const h = size * (0.15 + rng() * 0.25);
-
       const rock = new THREE.Mesh(
         new THREE.ConeGeometry(size * (0.08 + rng() * 0.06), h, 5),
         new THREE.MeshStandardMaterial({
@@ -149,12 +200,10 @@ export class HexVisual extends BaseVisual {
       );
       rock.position.set(x, baseY + h / 2, z);
       rock.rotation.y = rng() * Math.PI;
-      rock.castShadow = false;
       this.group.add(rock);
       this._decorations.push(rock);
     }
   }
-
   _addGrass(rng, size, baseY, count, color = 0x8aaa40) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -162,7 +211,6 @@ export class HexVisual extends BaseVisual {
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       const h = size * (0.04 + rng() * 0.05);
-
       const blade = new THREE.Mesh(
         new THREE.ConeGeometry(size * 0.02, h, 3),
         new THREE.MeshStandardMaterial({ color, roughness: 1 }),
@@ -172,7 +220,6 @@ export class HexVisual extends BaseVisual {
       this._decorations.push(blade);
     }
   }
-
   _addRuins(rng, size, baseY) {
     const count = 2 + Math.floor(rng() * 2);
     for (let i = 0; i < count; i++) {
@@ -181,14 +228,12 @@ export class HexVisual extends BaseVisual {
       const x = Math.cos(angle) * r;
       const z = Math.sin(angle) * r;
       const h = size * (0.15 + rng() * 0.2);
-
       const col = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.05, size * 0.06, h, 6),
         new THREE.MeshStandardMaterial({ color: 0x9a8a70, roughness: 0.9 }),
       );
       col.position.set(x, baseY + h / 2, z);
       col.rotation.z = (rng() - 0.5) * 0.5;
-      col.castShadow = false;
       this.group.add(col);
       this._decorations.push(col);
     }
@@ -199,13 +244,15 @@ export class HexVisual extends BaseVisual {
     this._overlays.set(kind, overlay);
     overlay.addTo(this.group);
   }
-
   setOverlayVisible(kind, visible) {
     const o = this._overlays?.get(kind);
     if (o) o.setVisible(visible);
   }
 
-  
+  removeFrom(scene) {
+    this._disposed = true;
+    super.removeFrom(scene);
+  }
 }
 
 function hashString(str) {
@@ -213,7 +260,6 @@ function hashString(str) {
   for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
   return h >>> 0;
 }
-
 function mulberry32(seed) {
   return function () {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;

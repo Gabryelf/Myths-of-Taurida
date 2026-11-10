@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { Theme } from '../../config/ThemeConfig.js';
+import { generalPortraitUrl, imgUrl } from '../../../config.js';
 
 export class GeneralVisual {
   constructor(general, size) {
     this.general = general;
     this.size = size;
     this.group = new THREE.Group();
+    this._portraitTexture = null;
     this._build();
   }
 
@@ -45,7 +47,7 @@ export class GeneralVisual {
     disc.castShadow = true;
     this.group.add(disc);
 
-    // ─── Конь ───
+    // Конь (как было)
     const horseColor = 0x3a2010;
     const horseBody = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.55, size * 0.22, size * 0.22),
@@ -54,8 +56,6 @@ export class GeneralVisual {
     horseBody.position.set(shiftX, size * 0.38, shiftZ);
     horseBody.castShadow = true;
     this.group.add(horseBody);
-
-    // Ноги коня (4)
     for (let i = 0; i < 4; i++) {
       const leg = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.03, size * 0.025, size * 0.22, 5),
@@ -67,8 +67,6 @@ export class GeneralVisual {
       leg.castShadow = true;
       this.group.add(leg);
     }
-
-    // Шея + голова коня
     const neck = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.12, size * 0.24, size * 0.12),
       new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
@@ -77,7 +75,6 @@ export class GeneralVisual {
     neck.rotation.z = -0.4;
     neck.castShadow = true;
     this.group.add(neck);
-
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.16, size * 0.1, size * 0.1),
       new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
@@ -86,38 +83,22 @@ export class GeneralVisual {
     head.castShadow = true;
     this.group.add(head);
 
-    // ─── Всадник ───
-    const bodyColor = color;
+    // ─── Всадник: тело ───
     const rider = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.16, size * 0.2, size * 0.14),
-      new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.6, metalness: 0.3 }),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.3 }),
     );
     rider.position.set(shiftX, size * 0.62, shiftZ);
     rider.castShadow = true;
     this.group.add(rider);
 
-    // Голова
-    const headR = new THREE.Mesh(
-      new THREE.SphereGeometry(size * 0.07, 8, 6),
-      new THREE.MeshStandardMaterial({ color: 0xd4a070, roughness: 0.7 }),
-    );
-    headR.position.set(shiftX, size * 0.78, shiftZ);
-    headR.castShadow = true;
-    this.group.add(headR);
+    // ─── Портрет (спрайт с текстурой-аватаркой) ───
+    this._portrait = this._createPortraitSprite(general, size, shiftX, shiftZ);
 
-    // Шлем
-    const helmet = new THREE.Mesh(
-      new THREE.ConeGeometry(size * 0.08, size * 0.08, 8),
-      new THREE.MeshStandardMaterial({ color: 0xc0a060, roughness: 0.4, metalness: 0.8 }),
-    );
-    helmet.position.set(shiftX, size * 0.84, shiftZ);
-    this.group.add(helmet);
-
-    // ─── Меч в правой руке ───
+    // ─── Меч ───
     const swordPivot = new THREE.Group();
     swordPivot.position.set(shiftX + size * 0.12, size * 0.66, shiftZ);
     swordPivot.rotation.z = 0.4;
-
     const blade = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.02, size * 0.28, size * 0.015),
       new THREE.MeshStandardMaterial({
@@ -128,16 +109,9 @@ export class GeneralVisual {
     blade.position.y = size * 0.2;
     blade.castShadow = true;
     swordPivot.add(blade);
-
-    const hilt = new THREE.Mesh(
-      new THREE.BoxGeometry(size * 0.06, size * 0.02, size * 0.02),
-      new THREE.MeshStandardMaterial({ color: 0x8a6a30, metalness: 0.7 }),
-    );
-    swordPivot.add(hilt);
-
     this.group.add(swordPivot);
 
-    // ─── Кольцо выбора + свет ───
+    // Кольцо выбора
     this._selRing = new THREE.Mesh(
       new THREE.RingGeometry(size * 0.28, size * 0.34, 32),
       new THREE.MeshBasicMaterial({
@@ -154,37 +128,64 @@ export class GeneralVisual {
     this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
     this._light.position.set(shiftX, size * 0.4, shiftZ);
     this.group.add(this._light);
-
     this._hoverLight = new THREE.PointLight(0x58a6ff, 0, size * 3);
     this._hoverLight.position.set(shiftX, size * 0.4, shiftZ);
     this.group.add(this._hoverLight);
 
-    // userData
     this.group.traverse((c) => {
       if (c.isMesh || c.isSprite) {
         c.userData = c.userData || {};
         c.userData.general = general;
         c.userData.hoverable = 'general';
-        c.userData.generalShiftX = shiftX;
-        c.userData.generalShiftZ = shiftZ;
       }
     });
+  }
+
+  /** Создаёт Sprite с портретом полководца над всадником. */
+  _createPortraitSprite(general, size, shiftX, shiftZ) {
+    const presetIndex = this._presetIndexFor(general);
+    const url = generalPortraitUrl(general.factionId, presetIndex);
+    if (!url) return null;
+
+    const texture = new THREE.TextureLoader().load(url);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    this._portraitTexture = texture;
+
+    const spriteMat = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.position.set(shiftX, size * 0.95, shiftZ);
+    sprite.scale.set(size * 0.5, size * 0.5, 1);
+    sprite.renderOrder = 10;
+    sprite.userData = { general, hoverable: 'general' };
+    this.group.add(sprite);
+    return sprite;
+  }
+
+  /**
+   * Пытаемся определить индекс пресета полководца.
+   * Если у генерала есть presetIndex — используем, иначе 0.
+   * GeneralFactory может прокинуть presetIndex в конструктор General.
+   */
+  _presetIndexFor(general) {
+    if (typeof general.presetIndex === 'number') return general.presetIndex;
+    return 0;
   }
 
   setPosition(x, z) {
     this.group.position.set(x, 0, z);
   }
-
   setSelected(isSelected) {
     this._selRing.visible = isSelected;
     this._light.intensity = isSelected ? 1.0 : 0;
   }
-
-  /** Вызывается из SceneBuilder при hover/hoverOut */
   setHovered(isHovered) {
     this._hoverLight.intensity = isHovered ? 1.2 : 0;
   }
-
   addTo(scene) { scene.add(this.group); return this; }
   removeFrom(scene) { scene.remove(this.group); }
 }
