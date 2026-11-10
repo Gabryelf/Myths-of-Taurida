@@ -310,7 +310,14 @@ export class Game {
       this.sceneBuilder.setCityHovered(this._hoveredCityId, true);
     }
     this.sceneBuilder.highlight.setHovered(tile ? tile.key : null);
-    this.bus.emit('tile:hovered', { tile, screenPos });
+  
+    // ─── Тултип ТОЛЬКО для выделенного гекса ───
+    const isSelected = tile && this.selectedTileKey === tile.key;
+    if (isSelected) {
+      this.bus.emit('tile:hovered', { tile, screenPos });
+    } else {
+      this.bus.emit('tile:hovered', { tile: null, screenPos });
+    }
   }
 
   _confirmAttack(general, tile, cost) {
@@ -411,6 +418,8 @@ export class Game {
     this.sceneBuilder.highlight.setSelected(null);
     if (general) {
       this.sceneBuilder.setGeneralSelected(general.id, true);
+      // ─── Камера к полководцу ───
+      this.cameraController.centerOn(general.hex, Theme.hexSize);
       const moves = this.world.movement.reachableForMove(general);
       const attacks = this.world.movement.reachableForAttack(general);
       this.sceneBuilder.setMovementOverlays(moves, true);
@@ -430,6 +439,8 @@ export class Game {
       this.sceneBuilder.highlight.setSelected(null);
       return;
     }
+    // ─── Камера к гексу ───
+    this.cameraController.centerOn(tile.hex, Theme.hexSize);
     const neighbors = tile.hex.neighbors()
       .map((n) => this.world.map.get(n.q, n.r))
       .filter((t) => t && t.isLand)

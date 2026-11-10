@@ -43,7 +43,7 @@ export class HexVisual extends BaseVisual {
     // ─── Ландшафт-декор ───
     this._addTerrainDecor(tile, size, height);
 
-    // ─── Фракционное кольцо (управляемое) ───
+    // ─── Фракционное кольцо ───
     this._factionRing = null;
     if (tile.factionId && Theme.faction[tile.factionId]) {
       const color = Theme.faction[tile.factionId];
@@ -67,8 +67,7 @@ export class HexVisual extends BaseVisual {
   setFactionRingVisible(v) {
     if (this._factionRing) this._factionRing.visible = !!v;
   }
-
-  /** Перекрасить ring при смене фракции (без пересоздания). */
+  
   setFactionColor(factionId) {
     if (!this._factionRing) return;
     if (!factionId || !Theme.faction[factionId]) {

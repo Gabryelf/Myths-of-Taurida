@@ -1,15 +1,9 @@
-import { HALO_TYPES, CITY_HALO_POOL, VILLAGE_HALO_POOL } from './haloConfig.js';
+import { HALO_TYPES, CITY_HALO_POOL, VILLAGE_HALO_POOL, haloColorAt } from './haloConfig.js';
 import { mulberry32 } from './mulberry32.js';
 
 /**
- * Генерация ресурсных ореолов с ПОЛНЫМ покрытием суши.
- *
- * Стратегия:
- *  1. Каждый город/поселение — якорь своего ореола (тип из пула).
- *  2. Остальные гексы тайлятся: берём любой непокрытый гекс, растим
- *     связный кластер ровно из N гексов (N из конфига типа).
- *  3. Если остаток < N — «приклеиваем» остаток к ближайшему соседнему ореолу
- *     (или создаём ореол с size = остаток, но не меньше 2).
+ * Генерация ресурсных ореолов с полным покрытием суши.
+ * Каждому ореолу — свой цвет из палитры (по кругу).
  */
 export class HaloGenerator {
   constructor({ world, seed = 1337 }) {
@@ -20,6 +14,12 @@ export class HaloGenerator {
   generate() {
     const halos = [];
     const used = new Set();
+
+    const push = (halo) => {
+      halo.color = haloColorAt(halos.length);
+      halos.push(halo);
+      for (const k of halo.cells) used.add(k);
+    };
 
     // ─── 1. Якоря: города, затем деревни ───
     const anchors = this.world.cities
@@ -37,20 +37,18 @@ export class HaloGenerator {
       if (!type) continue;
       const cells = this._growCluster(tile, type.size, used);
       if (cells.length < 2) continue;
-      halos.push({
+      push({
         id: `halo_${halos.length + 1}`,
         type: typeKey,
         cells: cells.map((t) => t.key),
         anchorCityId: city.id,
       });
-      for (const c of cells) used.add(c.key);
     }
 
     // ─── 2. Тайлинг остальных гексов ───
     const typeKeys = Object.keys(HALO_TYPES);
     const landTiles = this.world.map.all().filter((t) => t.isLand);
 
-    // Порядок обхода — детерминированно перемешанный
     const shuffled = [...landTiles];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(this.rng() * (i + 1));
@@ -60,48 +58,42 @@ export class HaloGenerator {
     for (const seedTile of shuffled) {
       if (used.has(seedTile.key)) continue;
 
-      // Выбираем тип случайно из конфига, размер = конфигу
       const typeKey = typeKeys[Math.floor(this.rng() * typeKeys.length)];
       const type = HALO_TYPES[typeKey];
       let cells = this._growCluster(seedTile, type.size, used);
 
-      // Если кластер не набрал нужный размер — «добираем» соседями без фильтра used
-      // (только чтобы не оставить дырок). Если и это не удалось — пробуем меньший тип.
       if (cells.length < type.size) {
+        // Пробуем меньший тип
+        let found = false;
         for (const [tk, t] of Object.entries(HALO_TYPES)) {
           if (t.size > cells.length) continue;
-          // если нашли подходящий размер — используем его
           const tryCells = this._growCluster(seedTile, t.size, used);
           if (tryCells.length === t.size) {
-            halos.push({
+            push({
               id: `halo_${halos.length + 1}`,
               type: tk,
               cells: tryCells.map((x) => x.key),
               anchorCityId: null,
             });
-            for (const c of tryCells) used.add(c.key);
-            cells = null;
+            found = true;
             break;
           }
         }
-        if (cells === null) continue;
+        if (found) continue;
+        if (cells.length === 0) continue;
       }
 
-      if (cells.length === 0) continue;
-
-      halos.push({
+      push({
         id: `halo_${halos.length + 1}`,
         type: typeKey,
         cells: cells.map((t) => t.key),
         anchorCityId: null,
       });
-      for (const c of cells) used.add(c.key);
     }
 
-    // ─── 3. Остатки (если из-за странной геометрии что-то не покрылось) ───
+    // ─── 3. Остатки ───
     for (const t of landTiles) {
       if (used.has(t.key)) continue;
-      // Приклеиваем к соседнему ореолу, если есть
       const neighbor = t.hex.neighbors()
         .map((n) => this.world.map.get(n.q, n.r))
         .find((n) => n && used.has(n.key));
@@ -113,14 +105,12 @@ export class HaloGenerator {
           continue;
         }
       }
-      // Иначе — ореол-одиночка
-      halos.push({
+      push({
         id: `halo_${halos.length + 1}`,
-        type: 'apiary',   // минимальный тип
+        type: 'apiary',
         cells: [t.key],
         anchorCityId: null,
       });
-      used.add(t.key);
     }
 
     return halos;

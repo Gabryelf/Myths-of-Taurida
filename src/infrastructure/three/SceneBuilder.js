@@ -92,8 +92,7 @@ export class SceneBuilder {
     this._lensState[kind] = enabled;
     if (kind === 'borders') {
       this._borderVisual?.setVisible(enabled);
-      // При включённой линзе границ — гасим фракционные ring'и на гексах,
-      // чтобы «граница» читалась только линиями.
+      // Гасим фракционные ring'и на гексах, чтобы граница читалась только линиями
       for (const v of this._tileVisuals.values()) {
         v.setFactionRingVisible(!enabled);
       }
@@ -107,7 +106,6 @@ export class SceneBuilder {
     if (!this._borderVisual || !this.world) return;
     this._borderVisual.refresh();
     this._borderVisual.setVisible(this._lensState.borders);
-    // Обновить фракционные ring'и на гексах под актуальное состояние
     for (const tile of this.world.map.all()) {
       if (!tile.isLand) continue;
       const v = this._tileVisuals.get(tile.key);

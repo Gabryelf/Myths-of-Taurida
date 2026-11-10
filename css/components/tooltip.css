@@ -57,33 +57,88 @@
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid rgba(212, 169, 76, 0.25);
-  }
-  .tooltip .tt-halo-title {
+}
+
+.tooltip .tt-halo-title {
     font-weight: 700;
     color: var(--color-gold-bright);
     font-size: 13px;
     margin-bottom: 4px;
-  }
-  .tooltip .tt-halo-status {
+}
+
+.tooltip .tt-halo-status {
     margin-top: 4px;
     padding: 4px 6px;
     border-radius: 3px;
     font-size: 11px;
     font-weight: 700;
     text-align: center;
-  }
-  .tooltip .tt-halo-monopoly {
+}
+
+.tooltip .tt-halo-monopoly {
     background: rgba(94, 195, 122, 0.2);
     color: #90d8a0;
     border: 1px solid #5ec37a;
-  }
-  .tooltip .tt-halo-contested {
+}
+
+.tooltip .tt-halo-contested {
     background: rgba(231, 76, 60, 0.2);
     color: #f0a0a0;
     border: 1px solid #e74c3c;
-  }
-  .tooltip .tt-halo-neutral {
+}
+
+.tooltip .tt-halo-neutral {
     background: rgba(138, 122, 88, 0.2);
     color: #b8a380;
     border: 1px solid #8a7a58;
-  }
+}
+
+.tooltip .tt-halo {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(212, 169, 76, 0.25);
+}
+
+.tooltip .tt-halo-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tooltip .tt-halo-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.tooltip .tt-halo-status {
+    margin-top: 4px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.tooltip .tt-halo-monopoly {
+    background: rgba(94, 195, 122, 0.2);
+    color: #90d8a0;
+    border: 1px solid #5ec37a;
+}
+
+.tooltip .tt-halo-contested {
+    background: rgba(231, 76, 60, 0.2);
+    color: #f0a0a0;
+    border: 1px solid #e74c3c;
+}
+
+.tooltip .tt-halo-neutral {
+    background: rgba(138, 122, 88, 0.2);
+    color: #b8a380;
+    border: 1px solid #8a7a58;
+}

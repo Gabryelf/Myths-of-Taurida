@@ -215,6 +215,7 @@ export class UIManager {
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
 
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
+      if (!tile) { this.tooltip.hide(); return; }
       this.tooltip.show(tile, screenPos);
     });
   }

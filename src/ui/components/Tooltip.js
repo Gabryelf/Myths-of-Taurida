@@ -41,7 +41,6 @@ export class Tooltip {
       ? `<div class="tt-row"><span>Фракция</span><b><span class="tt-faction" style="background:${factionColor};color:${factionColor}"></span>${factionName}</b></div>`
       : '';
 
-    // ─── Ореол ───
     let haloHtml = '';
     if (this._world) {
       const halo = this._world.haloAt(tile);
@@ -51,6 +50,7 @@ export class Tooltip {
           const tiles = this._world.haloTiles(halo);
           const owners = new Set(tiles.map((t) => t.factionId).filter(Boolean));
           const city = halo.anchorCityId ? this._world.getCity(halo.anchorCityId) : null;
+          const haloColor = '#' + (halo.color ?? type.color).toString(16).padStart(6, '0');
 
           let statusHtml;
           if (owners.size === 0) {
@@ -70,7 +70,8 @@ export class Tooltip {
 
           haloHtml = `
             <div class="tt-halo">
-              <div class="tt-halo-title">
+              <div class="tt-halo-title" style="color:${haloColor}">
+                <span class="tt-halo-dot" style="background:${haloColor}"></span>
                 ${type.icon} ${type.name}
               </div>
               <div class="tt-row"><span>Доход</span><b>
