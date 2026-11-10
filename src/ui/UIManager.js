@@ -75,6 +75,7 @@ export class UIManager {
 
   setWorld(world) {
     this.world = world;
+    this.tooltip.setWorld(world);
     if (this.marketPanel) this.marketPanel.world = world;
     if (this.factionsPanel) this.factionsPanel.world = world;
     if (this.quickJump) this.quickJump.setWorld(world);
@@ -212,5 +213,9 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
+
+    this.bus.on('tile:hovered', ({ tile, screenPos }) => {
+      this.tooltip.show(tile, screenPos);
+    });
   }
 }

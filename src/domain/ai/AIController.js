@@ -34,6 +34,9 @@ export class AIController {
             // ─── Атака полководца или города ───
             if (decision.kind === 'attack' || decision.kind === 'attack-city') {
                 const { general, tile } = decision;
+                const dist = this.world.movement.attackCostTo(general, tile) ?? 1;
+                general.spendMove(dist);
+
                 const enemy = this.world.getGeneralAt(tile.hex);
                 let defenderFactionId;
                 if (enemy) {
@@ -52,9 +55,8 @@ export class AIController {
                     targetTile: tile,
                     defenderFactionId,
                 });
-                break; // бой прерывает ход ИИ
+                break;
             }
-
             // ─── Движение ───
             if (decision.kind === 'move') {
                 const { general, tile } = decision;

@@ -43,7 +43,8 @@ export class HexVisual extends BaseVisual {
     // ─── Ландшафт-декор ───
     this._addTerrainDecor(tile, size, height);
 
-    // ─── Фракционное кольцо ───
+    // ─── Фракционное кольцо (управляемое) ───
+    this._factionRing = null;
     if (tile.factionId && Theme.faction[tile.factionId]) {
       const color = Theme.faction[tile.factionId];
       const ringGeo = new THREE.RingGeometry(size * 0.72, size * 0.82, 6);
@@ -58,7 +59,26 @@ export class HexVisual extends BaseVisual {
       ring.rotation.z = Math.PI / 6;
       ring.position.y = height + 0.01;
       this.group.add(ring);
+      this._factionRing = ring;
     }
+  }
+
+  /** Скрыть/показать фракционный ring (для линзы границ). */
+  setFactionRingVisible(v) {
+    if (this._factionRing) this._factionRing.visible = !!v;
+  }
+
+  /** Перекрасить ring при смене фракции (без пересоздания). */
+  setFactionColor(factionId) {
+    if (!this._factionRing) return;
+    if (!factionId || !Theme.faction[factionId]) {
+      this._factionRing.visible = false;
+      return;
+    }
+    const color = Theme.faction[factionId];
+    this._factionRing.material.color.setHex(color);
+    this._factionRing.material.emissive.setHex(color);
+    this._factionRing.visible = true;
   }
 
   _addTerrainDecor(tile, size, plateHeight) {
@@ -185,6 +205,8 @@ export class HexVisual extends BaseVisual {
     const o = this._overlays?.get(kind);
     if (o) o.setVisible(visible);
   }
+
+  
 }
 
 function hashString(str) {

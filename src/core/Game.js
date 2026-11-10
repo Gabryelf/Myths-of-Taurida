@@ -484,12 +484,14 @@ export class Game {
     const { winner, targetTile, attackerGen, defenderGen, playerSide } = result;
     const cost = this._pendingBattleCost || 0;
     this._pendingBattleCost = 0;
-
+  
+    // Игрок
     const playerWon =
       (playerSide === 'attacker' && winner === 'attacker') ||
       (playerSide === 'defender' && winner === 'defender');
     const playerGen = playerSide === 'attacker' ? attackerGen : defenderGen;
-
+  
+    // ─── Опыт и звук для игрока ───
     if (playerGen && playerWon) {
       const events = playerGen.addXp(10);
       for (const ev of events) {
@@ -504,56 +506,70 @@ export class Game {
     }
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
-
-    if (playerWon) {
-      if (playerSide === 'attacker') {
-        if (targetTile) {
-          const capturedCity = targetTile.cityId
-            ? this.world.getCity(targetTile.cityId)
-            : null;
-          if (capturedCity) {
-            this.world.captureCity(capturedCity.id, attackerGen.factionId);
-            this.bus.emit('toast:show', { text: `🏛 Захвачен ${capturedCity.name}` });
-          } else {
-            targetTile.setFaction(attackerGen.factionId);
-          }
-          if (defenderGen && defenderGen.id !== attackerGen.id) {
-            defenderGen.lives = 0;
-          }
-        }
-        attackerGen.spendMove(cost);
-        attackerGen.moveTo(targetTile.hex);
-      }
-      this.bus.emit('toast:show', { text: 'Победа!' });
-      this.world._checkElimination();
-    } else if (winner !== 'draw') {
-      if (playerSide === 'attacker') {
-        attackerGen.spendMove(cost);
-        attackerGen.lives = Math.max(0, attackerGen.lives - 1);
-      } else if (targetTile) {
-        targetTile.setFaction(defenderGen.factionId);
-      }
-      this.bus.emit('toast:show', { text: 'Поражение' });
+  
+    // ─── Последствия боя (универсально, независимо от playerSide) ───
+    if (winner === 'attacker') {
+      this._applyAttackerVictory(attackerGen, defenderGen, targetTile);
+    } else if (winner === 'defender') {
+      this._applyDefenderVictory(attackerGen, defenderGen, targetTile);
+    }
+  
+    // ─── Тост для игрока ───
+    if (winner !== 'draw') {
+      this.bus.emit('toast:show', { text: playerWon ? 'Победа!' : 'Поражение' });
     } else {
       this.bus.emit('toast:show', { text: 'Ничья' });
     }
-
+  
     this.world._checkElimination();
-
+  
     if (this.world.winner) {
       this._finishMatchRewards();
     }
-
+  
     this.world.recomputeVisibility();
     this.sceneBuilder.rebuild(this.world);
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();   // ← границы после боя
+    this.sceneBuilder.refreshBorders();
     this.input.setPickables(this.sceneBuilder.getPickables());
     this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
     this.ui.quickJump?.refreshMinimap();
     this._updateHireButton();
     if (this._aiBusy) this._afterAITurns();
+  }
+  
+  /** Атакующий победил: захват гекса/города, шаг на гекс, потеря очков движения. */
+  _applyAttackerVictory(attackerGen, defenderGen, targetTile) {
+    if (!attackerGen || !targetTile) return;
+    if (defenderGen && defenderGen.id !== attackerGen.id) {
+      defenderGen.lives = 0;
+    }
+    // Захват города
+    const capturedCity = targetTile.cityId ? this.world.getCity(targetTile.cityId) : null;
+    if (capturedCity) {
+      this.world.captureCity(capturedCity.id, attackerGen.factionId);
+      this.bus.emit('toast:show', { text: `🏛 Захвачен ${capturedCity.name}` });
+    } else {
+      targetTile.setFaction(attackerGen.factionId);
+    }
+    // Генерал делает шаг на гекс
+    attackerGen.moveTo(targetTile.hex);
+    // Списываем движение — но не больше, чем есть
+    const cost = this._pendingBattleCost || 0;
+    if (cost > 0) attackerGen.spendMove(cost);
+  }
+  
+  /** Защитник победил: атакующий теряет жизнь и не двигается. */
+  _applyDefenderVictory(attackerGen, defenderGen, targetTile) {
+    if (!attackerGen) return;
+    attackerGen.lives = Math.max(0, attackerGen.lives - 1);
+    const cost = this._pendingBattleCost || 0;
+    if (cost > 0) attackerGen.spendMove(cost);
+    // Гекс остаётся за защитником (если был город — он и так его)
+    if (targetTile && defenderGen) {
+      targetTile.setFaction(defenderGen.factionId);
+    }
   }
 
   _finishMatchRewards() {
