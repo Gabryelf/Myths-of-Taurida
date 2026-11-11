@@ -1,21 +1,19 @@
-import { Hex } from '../domain/hex/Hex.js';
-
 /**
- * Туман войны. У каждого полководца радиус обзора = 3 гекса.
- * Гекс виден, если в радиусе обзора хотя бы одного своего полководца.
- * Explored — если когда-либо был виден.
+ * Туман войны. Радиус обзора = 3 гекса от каждого своего полководца.
+ * Все города (isCity=true) видны всегда — это публичная информация.
  */
-export class VisibilityService {
+ export class VisibilityService {
   constructor({ world }) {
     this.world = world;
     this.viewRadius = 3;
   }
 
   recompute() {
-    // Сброс
     for (const tile of this.world.map.all()) {
       tile.isVisible = false;
     }
+
+    // ─── Обзор от полководцев ───
     for (const gen of this.world.generals) {
       if (!gen.alive) continue;
       const center = gen.hex;
@@ -24,6 +22,20 @@ export class VisibilityService {
           tile.isVisible = true;
           tile.isExplored = true;
         }
+      }
+    }
+
+    // ─── Все города и поселения видны всегда ───
+    for (const city of this.world.cities) {
+      if (!city.tileKey) continue;
+      const tile = this.world.map.getByKey(city.tileKey);
+      if (!tile) continue;
+      tile.isVisible = true;
+      tile.isExplored = true;
+      // Ореол вокруг города раскрыт в тумане
+      for (const n of tile.hex.neighbors()) {
+        const nt = this.world.map.get(n.q, n.r);
+        if (nt && nt.isLand) nt.isExplored = true;
       }
     }
   }

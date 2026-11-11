@@ -502,3 +502,87 @@
     .lobby-top-bar { min-height: 50px; }
     .lobby-logo img { max-height: 42px; }
   }
+
+  /* ─── Выбор фракций в hot-seat ─── */
+.lobby-hotseat-picker {
+  margin: 6px 0 4px;
+  padding: 8px 12px;
+  background: rgba(10, 6, 3, 0.55);
+  border: 1px solid rgba(212, 169, 76, 0.25);
+  border-radius: var(--radius-sm);
+}
+.lobby-hotseat-picker .hs-title {
+  font-size: 11px;
+  color: #8a7a58;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+.lobby-hotseat-picker .hs-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lobby-hotseat-picker .hs-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(20, 12, 6, 0.6);
+  border: 1px solid var(--faction-color, rgba(212, 169, 76, 0.4));
+  border-radius: var(--radius-sm);
+  min-width: 180px;
+}
+.lobby-hotseat-picker .hs-slot-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.lobby-hotseat-picker .hs-slot-label {
+  font-size: 10px;
+  color: #8a7a58;
+  text-transform: uppercase;
+}
+.lobby-hotseat-picker .hs-slot-faction {
+  font-size: 11px;
+  color: var(--faction-color, var(--color-gold-bright));
+  font-weight: 700;
+}
+.lobby-hotseat-picker .hs-slot-options {
+  display: flex;
+  gap: 4px;
+}
+.lobby-hotseat-picker .hs-fac-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-gold-dark);
+  background: rgba(10, 6, 3, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+.lobby-hotseat-picker .hs-fac-btn:hover { border-color: var(--color-gold); }
+.lobby-hotseat-picker .hs-fac-btn.active {
+  border-color: var(--color-gold-bright);
+  box-shadow: 0 0 8px rgba(245, 213, 122, 0.8);
+}
+.lobby-hotseat-picker .hs-fac-btn.taken {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+.lobby-hotseat-picker .hs-fac-btn.taken:hover { border-color: var(--color-gold-dark); }
+.lobby-hotseat-picker .hs-fac-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}

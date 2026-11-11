@@ -14,29 +14,72 @@ export class WorldGenerator {
 
   generate() {
     const map = new HexMap();
-
     const fixedTiles = generateTauridaTiles();
     for (const t of fixedTiles) {
       map.add(TileFactory.createLand({ q: t.q, r: t.r, terrain: t.terrain }));
     }
 
     const cities = CityFactory.createAll();
+    const occupiedTiles = new Set();
+
+    // ─── Размещаем КАЖДЫЙ город (6 городов + 2 деревни + 6 поселений = 14) ───
     for (let i = 0; i < cities.length; i++) {
       const def = TAURIDA_CITIES[i];
       if (!def) break;
-      const tile = this._findNearestLand(map, def.q, def.r);
-      if (tile && !tile.cityId) {
-        tile.isCity = def.isCity;
-        tile.isVillage = !def.isCity && !def.settlement;
-        tile.isSettlement = !!def.settlement;
-        tile.cityId = cities[i].id;
-        tile.terrain = def.isCity ? TILE_TYPES.CITY : TILE_TYPES.PLAINS;
-        cities[i].tileKey = tile.key;
+
+      // Ищем ближайший свободный от городов сухой гекс
+      let tile = this._findNearestFreeLand(map, def.q, def.r, occupiedTiles, 0, 3);
+      if (!tile) {
+        // Fallback — обычный поиск без ограничений (страховка)
+        tile = this._findNearestFreeLand(map, def.q, def.r, occupiedTiles, 0, 14);
       }
+      if (!tile) {
+        console.warn(`[WorldGenerator] Не удалось разместить город ${def.name}`);
+        continue;
+      }
+
+      tile.isCity = def.isCity;
+      tile.isVillage = !def.isCity && !def.settlement;
+      tile.isSettlement = !!def.settlement;
+      tile.cityId = cities[i].id;
+      tile.terrain = def.isCity ? TILE_TYPES.CITY : TILE_TYPES.PLAINS;
+      cities[i].tileKey = tile.key;
+      occupiedTiles.add(tile.key);
     }
 
     this._buildRoads(map, cities);
     return { tiles: map, radius: this.radius, seed: this.seed, cities };
+  }
+
+  /**
+   * Найти ближайший СВОБОДНЫЙ от городов сухой гекс
+   * на расстоянии от minDist до maxDist от (q,r).
+   */
+  _findNearestFreeLand(map, q, r, occupied, minDist = 0, maxDist = 14) {
+    const visited = new Set();
+    let queue = [{ q, r, d: 0 }];
+    while (queue.length) {
+      const cur = queue.shift();
+      const key = `${cur.q},${cur.r}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      const t = map.get(cur.q, cur.r);
+      if (t && t.isLand && cur.d >= minDist && !occupied.has(t.key)) return t;
+      if (cur.d >= maxDist) continue;
+      for (const d of [
+        { q: cur.q + 1, r: cur.r },
+        { q: cur.q + 1, r: cur.r - 1 },
+        { q: cur.q, r: cur.r - 1 },
+        { q: cur.q - 1, r: cur.r },
+        { q: cur.q - 1, r: cur.r + 1 },
+        { q: cur.q, r: cur.r + 1 },
+      ]) {
+        const k = `${d.q},${d.r}`;
+        if (visited.has(k) || !map.has(d.q, d.r)) continue;
+        queue.push({ q: d.q, r: d.r, d: cur.d + 1 });
+      }
+    }
+    return null;
   }
 
   _findNearestLand(map, q, r, maxDist = 8) {
@@ -51,9 +94,12 @@ export class WorldGenerator {
       if (t && t.isLand) return t;
       if (cur.d >= maxDist) continue;
       for (const d of [
-        { q: cur.q + 1, r: cur.r }, { q: cur.q + 1, r: cur.r - 1 },
-        { q: cur.q, r: cur.r - 1 }, { q: cur.q - 1, r: cur.r },
-        { q: cur.q - 1, r: cur.r + 1 }, { q: cur.q, r: cur.r + 1 },
+        { q: cur.q + 1, r: cur.r },
+        { q: cur.q + 1, r: cur.r - 1 },
+        { q: cur.q, r: cur.r - 1 },
+        { q: cur.q - 1, r: cur.r },
+        { q: cur.q - 1, r: cur.r + 1 },
+        { q: cur.q, r: cur.r + 1 },
       ]) {
         const k = `${d.q},${d.r}`;
         if (visited.has(k) || !map.has(d.q, d.r)) continue;
@@ -86,7 +132,10 @@ export class WorldGenerator {
       if (cur.tile === goal) {
         const path = [];
         let node = cur;
-        while (node && node.tile !== start) { path.push(node.tile); node = node.prev; }
+        while (node && node.tile !== start) {
+          path.push(node.tile);
+          node = node.prev;
+        }
         return path;
       }
       for (const n of cur.tile.hex.neighbors()) {

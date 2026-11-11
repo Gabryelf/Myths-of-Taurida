@@ -3,8 +3,6 @@ import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../../infrastructure/three/visuals/CardImageLoader.js';
 import { Theme } from '../../../infrastructure/config/ThemeConfig.js';
 import {
-  GENERAL_PORTRAITS,
-  imgUrl,
   factionEmblemUrl,
   generalPortraitUrl,
 } from '../../../config.js';
@@ -48,10 +46,11 @@ export class LobbyScreen {
       counts: new Set(),
     };
 
-    // Убеждаемся, что matchConfig есть
     if (!this.profile.matchConfig) {
       this.profile.matchConfig = { mode: 'ai', playerCount: 5 };
     }
+    // Инициализация hotseatFactions, если режим hot-seat и пусто
+    this._ensureHotseatFactions();
 
     this.el = document.createElement('div');
     this.el.className = 'lobby-overlay';
@@ -59,21 +58,28 @@ export class LobbyScreen {
     this.el.addEventListener('click', (e) => this._onClick(e));
   }
 
-  show() {
-    this.el.classList.add('visible');
-    this._render();
+  /** Гарантировать массив hotseatFactions по playerCount. */
+  _ensureHotseatFactions() {
+    const cfg = this.profile.matchConfig;
+    if (cfg.mode !== 'hotseat') return;
+    const count = Math.max(2, Math.min(5, cfg.playerCount || 2));
+    if (!Array.isArray(cfg.hotseatFactions) || cfg.hotseatFactions.length !== count) {
+      cfg.hotseatFactions = FACTION_IDS.slice(0, count).map((fid, i) => ({
+        factionId: fid,
+        playerName: `Игрок ${i + 1}`,
+      }));
+    }
   }
+
+  show() { this.el.classList.add('visible'); this._render(); }
   hide() { this.el.classList.remove('visible'); }
 
-  // ═══════════════════════════════════════════
-  //  ОБРАБОТКА КЛИКОВ
-  // ═══════════════════════════════════════════
   _onClick(e) {
-    // Табы
+    // ─── Табы ───
     const tab = e.target.closest?.('[data-tab]')?.getAttribute('data-tab');
     if (tab) { this._tab = tab; this._render(); return; }
 
-    // Выбор фракции
+    // ─── Фракция в vs-AI ───
     const fac = e.target.closest?.('[data-faction]')?.getAttribute('data-faction');
     if (fac) {
       this._activeFaction = fac;
@@ -83,44 +89,95 @@ export class LobbyScreen {
       return;
     }
 
-    // Режим партии
+    // ─── Режим партии ───
     const modeBtn = e.target.closest?.('[data-match-mode]')?.getAttribute('data-match-mode');
     if (modeBtn) {
       this.profile.matchConfig.mode = modeBtn === 'hotseat' ? 'hotseat' : 'ai';
+      this._ensureHotseatFactions();
       this.onSave?.({});
       this._render();
       return;
     }
 
-    // Количество игроков
+    // ─── Количество игроков ───
     const countBtn = e.target.closest?.('[data-match-count]')?.getAttribute('data-match-count');
     if (countBtn) {
       const n = parseInt(countBtn, 10);
       this.profile.matchConfig.playerCount = Math.max(2, Math.min(5, n || 5));
+      // Пере-инициализировать hotseatFactions с сохранением текущих выборов
+      if (this.profile.matchConfig.mode === 'hotseat') {
+        const prev = this.profile.matchConfig.hotseatFactions || [];
+        const newCount = this.profile.matchConfig.playerCount;
+        const next = [];
+        for (let i = 0; i < newCount; i++) {
+          if (prev[i]) next.push(prev[i]);
+          else next.push({ factionId: FACTION_IDS[i], playerName: `Игрок ${i + 1}` });
+        }
+        this.profile.matchConfig.hotseatFactions = next;
+      }
       this.onSave?.({});
       this._render();
       return;
     }
 
-    // Играть
-    if (e.target.closest?.('[data-play]')) {
-      const v = this.decks.validate(this._activeFaction);
-      if (!v.ok) {
-        this.onSave?.({ error: v.errors.join('; ') });
+    // ─── Выбор фракции у игрока в hot-seat ───
+    const hsSlot = e.target.closest?.('[data-hs-slot]')?.getAttribute('data-hs-slot');
+    const hsFaction = e.target.closest?.('[data-hs-faction]')?.getAttribute('data-hs-faction');
+    if (hsSlot != null && hsFaction) {
+      const idx = parseInt(hsSlot, 10);
+      const cfg = this.profile.matchConfig;
+      if (!Array.isArray(cfg.hotseatFactions)) return;
+      // Проверка уникальности
+      const taken = cfg.hotseatFactions
+        .map((x, i) => (i === idx ? null : x.factionId))
+        .filter(Boolean);
+      if (taken.includes(hsFaction)) {
+        this.onSave?.({ error: `Фракция «${Theme.factionName[hsFaction]}» уже занята` });
         return;
       }
-      this.profile.matchConfig.playerFaction = this._activeFaction;
-      this.onPlay?.(this._activeFaction);
+      cfg.hotseatFactions[idx].factionId = hsFaction;
+      this.onSave?.({});
+      this._render();
       return;
     }
 
-    // Призыв
-    if (e.target.closest?.('[data-summon]')) {
-      this.onSummon?.();
-      return;
+    // ─── Имя игрока в hot-seat ───
+    const nameInput = e.target.closest?.('[data-hs-name]');
+    if (nameInput) return; // input обрабатывается на change
+
+    // ─── Играть ───
+    if (e.target.closest?.('[data-play]')) {
+      const cfg = this.profile.matchConfig;
+      if (cfg.mode === 'hotseat') {
+        const list = cfg.hotseatFactions || [];
+        const ids = list.map((x) => x.factionId);
+        if (new Set(ids).size !== ids.length) {
+          this.onSave?.({ error: 'Фракции игроков должны быть уникальны' });
+          return;
+        }
+        // Проверка что у каждой фракции валидная колода
+        for (const item of list) {
+          const v = this.decks.validate(item.factionId);
+          if (!v.ok) {
+            this.onSave?.({ error: `Колода ${Theme.factionName[item.factionId]}: ${v.errors.join('; ')}` });
+            return;
+          }
+        }
+      } else {
+        const v = this.decks.validate(this._activeFaction);
+        if (!v.ok) {
+          this.onSave?.({ error: v.errors.join('; ') });
+          return;
+        }
+        this.profile.matchConfig.playerFaction = this._activeFaction;
+      }
+      const playFaction = cfg.mode === 'hotseat'
+        ? (cfg.hotseatFactions?.[0]?.factionId || this._activeFaction)
+        : this._activeFaction;
+      this.onPlay?.(playFaction);
     }
 
-    // Автосборка
+    if (e.target.closest?.('[data-summon]')) { this.onSummon?.(); return; }
     if (e.target.closest?.('[data-autofill]')) {
       this.decks.autoFill(this._activeFaction);
       this.onSave?.({});
@@ -128,17 +185,8 @@ export class LobbyScreen {
       return;
     }
 
-    // Убрать карту
     const rmv = e.target.closest?.('[data-remove]')?.getAttribute('data-remove');
-    if (rmv) {
-      const deck = this.decks.getDeck(this._activeFaction);
-      deck.remove(rmv, 1);
-      this.onSave?.({});
-      this._render();
-      return;
-    }
-
-    // Добавить карту
+    if (rmv) { this.decks.getDeck(this._activeFaction).remove(rmv, 1); this.onSave?.({}); this._render(); return; }
     const add = e.target.closest?.('[data-add]')?.getAttribute('data-add');
     if (add) {
       const deck = this.decks.getDeck(this._activeFaction);
@@ -148,7 +196,6 @@ export class LobbyScreen {
       return;
     }
 
-    // Полководец
     const presetBtn = e.target.closest?.('[data-preset]');
     if (presetBtn) {
       const idx = parseInt(presetBtn.getAttribute('data-preset'), 10);
@@ -159,16 +206,12 @@ export class LobbyScreen {
       return;
     }
 
-    // Фильтры
     const ft = e.target.closest?.('[data-filter-type]')?.getAttribute('data-filter-type');
-    if (ft !== undefined && ft !== null) { this._toggle(this._filters.types, ft); this._render(); return; }
-
+    if (ft != null) { this._toggle(this._filters.types, ft); this._render(); return; }
     const fr = e.target.closest?.('[data-filter-rarity]')?.getAttribute('data-filter-rarity');
-    if (fr !== undefined && fr !== null) { this._toggle(this._filters.rarities, fr); this._render(); return; }
-
+    if (fr != null) { this._toggle(this._filters.rarities, fr); this._render(); return; }
     const fc = e.target.closest?.('[data-filter-count]')?.getAttribute('data-filter-count');
-    if (fc !== undefined && fc !== null) { this._toggle(this._filters.counts, fc); this._render(); return; }
-
+    if (fc != null) { this._toggle(this._filters.counts, fc); this._render(); return; }
     if (e.target.closest?.('[data-filter-reset]')) {
       this._filters.types.clear();
       this._filters.rarities.clear();
@@ -178,10 +221,7 @@ export class LobbyScreen {
     }
   }
 
-  _toggle(set, value) {
-    if (set.has(value)) set.delete(value);
-    else set.add(value);
-  }
+  _toggle(set, value) { set.has(value) ? set.delete(value) : set.add(value); }
 
   _passesFilter(card, count) {
     const { types, rarities, counts } = this._filters;
@@ -215,24 +255,16 @@ export class LobbyScreen {
     `).join('');
     return `
       <div class="lobby-filters">
-        <div class="lf-group">
-          <span class="lf-label">Тип:</span>${typeBtns}
-        </div>
-        <div class="lf-group">
-          <span class="lf-label">Редкость:</span>${rarBtns}
-        </div>
-        <div class="lf-group">
-          <span class="lf-label">Кол-во:</span>${cntBtns}
-        </div>
+        <div class="lf-group"><span class="lf-label">Тип:</span>${typeBtns}</div>
+        <div class="lf-group"><span class="lf-label">Редкость:</span>${rarBtns}</div>
+        <div class="lf-group"><span class="lf-label">Кол-во:</span>${cntBtns}</div>
         <span class="lf-count">${shown} / ${total}</span>
         <button class="lf-reset" data-filter-reset="1">Сбросить</button>
       </div>
     `;
   }
 
-  // ═══════════════════════════════════════════
-  //  ВЕРХНЯЯ ПОЛОСА: конфиг + логотип + монеты/слава
-  // ═══════════════════════════════════════════
+  // ─── Конфиг партии ───
   _matchConfigHtml() {
     const cfg = this.profile.matchConfig || { mode: 'ai', playerCount: 5 };
     const modeButtons = ['ai', 'hotseat'].map((mode) => `
@@ -246,39 +278,72 @@ export class LobbyScreen {
     return `
       <div class="lobby-match-config">
         <div class="lmc-block">
-          <div class="lmc-label">Режим:</div>
-          ${modeButtons}
+          <div class="lmc-label">Режим:</div>${modeButtons}
         </div>
         <div class="lmc-block">
-          <div class="lmc-label">Игроков:</div>
-          ${countButtons}
+          <div class="lmc-label">Игроков:</div>${countButtons}
         </div>
+      </div>
+    `;
+  }
+
+  // ─── Блок выбора фракций для hot-seat ───
+  _hotseatFactionsHtml() {
+    const cfg = this.profile.matchConfig;
+    if (cfg.mode !== 'hotseat') return '';
+    const list = cfg.hotseatFactions || [];
+    const takenIds = list.map((x) => x.factionId);
+
+    const slotsHtml = list.map((slot, idx) => {
+      const factionColor = '#' + (Theme.faction[slot.factionId] || 0x888888).toString(16).padStart(6, '0');
+      const options = FACTION_IDS.map((fid) => {
+        const isTaken = takenIds.includes(fid) && fid !== slot.factionId;
+        const emblem = factionEmblemUrl(fid);
+        return `
+          <button class="hs-fac-btn ${fid === slot.factionId ? 'active' : ''} ${isTaken ? 'taken' : ''}"
+                  data-hs-slot="${idx}" data-hs-faction="${fid}"
+                  title="${Theme.factionName[fid]}${isTaken ? ' (занято)' : ''}">
+            <span class="hs-fac-icon" style="background-image:url('${emblem || ''}')"></span>
+          </button>
+        `;
+      }).join('');
+      return `
+        <div class="hs-slot" style="--faction-color:${factionColor}">
+          <div class="hs-slot-name">
+            <span class="hs-slot-label">Игрок ${idx + 1}</span>
+            <span class="hs-slot-faction">${Theme.factionName[slot.factionId] || slot.factionId}</span>
+          </div>
+          <div class="hs-slot-options">${options}</div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="lobby-hotseat-picker">
+        <div class="hs-slots">${slotsHtml}</div>
       </div>
     `;
   }
 
   _topBarHtml() {
-    const cfg = this.profile.matchConfig || { mode: 'ai' };
     return `
       <div class="lobby-top-bar">
-        <div class="lobby-top-left">
-          ${this._matchConfigHtml()}
-        </div>
-        <div class="lobby-logo">
-          <img src="/promo/logo.gif" alt="TAVRIDA" />
-        </div>
+        <div class="lobby-top-left">${this._matchConfigHtml()}</div>
+        <div class="lobby-logo"><img src="/promo/logo.gif" alt="TAVRIDA" /></div>
         <div class="lobby-top-right">
           <div class="lobby-coins">💰 ${this.profile.coins}</div>
           <div class="lobby-glory">⭐ ${this.profile.totalGlory ? this.profile.totalGlory() : 0}</div>
         </div>
       </div>
+      ${this._hotseatFactionsHtml()}
     `;
   }
 
-  // ═══════════════════════════════════════════
-  //  ЛЕВАЯ ПАНЕЛЬ ФРАКЦИЙ
-  // ═══════════════════════════════════════════
   _factionsSidebarHtml() {
+    // Если hot-seat — скрываем обычный выбор фракции, чтобы не путать
+    if (this.profile.matchConfig?.mode === 'hotseat') {
+      return `<aside class="lobby-sidebar lobby-sidebar-left"></aside>`;
+    }
     return `
       <aside class="lobby-sidebar lobby-sidebar-left">
         ${FACTION_IDS.map((fid) => {
@@ -286,13 +351,10 @@ export class LobbyScreen {
           const emblem = factionEmblemUrl(fid);
           return `
             <button class="sidebar-faction ${fid === this._activeFaction ? 'active' : ''}"
-                    data-faction="${fid}"
-                    style="--faction-color:${color}">
+                    data-faction="${fid}" style="--faction-color:${color}">
               <div class="faction-emblem"
-                   style="border-color:${color};
-                          box-shadow:0 0 12px ${color};
-                          background-image:url('${emblem || ''}')">
-              </div>
+                   style="border-color:${color};box-shadow:0 0 12px ${color};
+                          background-image:url('${emblem || ''}')"></div>
               <div class="faction-label">${Theme.factionName[fid] || fid}</div>
             </button>
           `;
@@ -301,15 +363,11 @@ export class LobbyScreen {
     `;
   }
 
-  // ═══════════════════════════════════════════
-  //  ПРАВАЯ ПАНЕЛЬ ГЕНЕРАЛОВ
-  // ═══════════════════════════════════════════
   _generalsSidebarHtml() {
     const presets = GENERAL_PRESETS[this._activeFaction] || [];
     const current = this.profile.starterGeneralByFaction?.[this._activeFaction] ?? 0;
     const active = presets[current] || null;
     const portraitUrl = generalPortraitUrl(this._activeFaction, current);
-
     const listHtml = presets.map((p, i) => {
       const pUrl = generalPortraitUrl(this._activeFaction, i);
       return `
@@ -320,36 +378,25 @@ export class LobbyScreen {
         </button>
       `;
     }).join('');
-
     return `
       <aside class="lobby-sidebar lobby-sidebar-right">
         <div class="general-portrait-box">
           <div class="general-portrait-circle"
-               style="background-image:url('${portraitUrl || ''}')">
-          </div>
+               style="background-image:url('${portraitUrl || ''}')"></div>
           <div class="general-name">${active?.name || '—'}</div>
         </div>
         <div class="general-stats">
-          <div class="stat-row">
-            <span class="stat-icon-circle">❤</span>
-            <span class="stat-value">${active?.lives ?? 3}</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-icon-diamond">⛊</span>
-            <span class="stat-value">${active?.move ?? 3}</span>
-          </div>
+          <div class="stat-row"><span class="stat-icon-circle">❤</span>
+            <span class="stat-value">${active?.lives ?? 3}</span></div>
+          <div class="stat-row"><span class="stat-icon-diamond">⛊</span>
+            <span class="stat-value">${active?.move ?? 3}</span></div>
         </div>
-        <div class="general-picker">
-          ${listHtml}
-        </div>
+        <div class="general-picker">${listHtml}</div>
         <button class="lobby-play-sidebar" data-play="1">▶ Начать партию</button>
       </aside>
     `;
   }
 
-  // ═══════════════════════════════════════════
-  //  ОСНОВНОЙ РЕНДЕР
-  // ═══════════════════════════════════════════
   _render() {
     const tabs = `
       <div class="lobby-tabs">
@@ -360,10 +407,7 @@ export class LobbyScreen {
         <button class="lobby-summon" data-summon="1">🎴 Призыв (100💰)</button>
       </div>
     `;
-    const content = this._tab === 'collection'
-      ? this._collectionHtml()
-      : this._deckHtml();
-
+    const content = this._tab === 'collection' ? this._collectionHtml() : this._deckHtml();
     this.el.innerHTML = `
       <div class="lobby-panel">
         ${this._topBarHtml()}
@@ -377,7 +421,6 @@ export class LobbyScreen {
         </div>
       </div>
     `;
-
     LobbyCard.applyImages(this.el, this._imgLoader);
   }
 
@@ -385,7 +428,7 @@ export class LobbyScreen {
     const factionId = this._activeFaction;
     const keys = this.profile.collection.keysForFaction(factionId);
     if (keys.length === 0) {
-      return `<div class="lobby-empty">В коллекции нет карт ${Theme.factionName[factionId]}.<br>Нажмите «Призыв», чтобы получить карты.</div>`;
+      return `<div class="lobby-empty">В коллекции нет карт ${Theme.factionName[factionId]}.</div>`;
     }
     const filtered = keys.filter((k) => {
       const def = CardFactory.defForKey(k);
@@ -393,15 +436,11 @@ export class LobbyScreen {
       return this._passesFilter(def, count);
     });
     const filtersHtml = this._filtersHtml(keys.length, filtered.length);
-    if (filtered.length === 0) {
-      return filtersHtml + `<div class="lobby-empty">Нет карт по выбранным фильтрам.</div>`;
-    }
+    if (filtered.length === 0) return filtersHtml + `<div class="lobby-empty">Нет карт по фильтрам.</div>`;
     const cards = filtered.map((k) => {
       const def = CardFactory.defForKey(k);
       const count = this.profile.collection.count(k);
-      return `<div class="lobby-card-wrap">
-        ${LobbyCard.render(k, def, count, this._imgLoader)}
-      </div>`;
+      return `<div class="lobby-card-wrap">${LobbyCard.render(k, def, count, this._imgLoader)}</div>`;
     }).join('');
     return filtersHtml + `<div class="lobby-grid">${cards}</div>`;
   }
@@ -422,15 +461,10 @@ export class LobbyScreen {
           ${LobbyCard.render(k, def, count, this._imgLoader, 'remove')}
         </div>`;
       }).join('');
-
     const deckHtml = deckCount === 0
       ? `<div class="lobby-empty">Колода пуста. Нажмите «Автосборка».</div>`
-      : (deckCards
-        ? `<div class="lobby-grid">${deckCards}</div>`
-        : `<div class="lobby-empty">Нет карт по фильтрам.</div>`);
-
-    const collectionKeys = this.profile.collection.keysForFaction(factionId);
-    const available = collectionKeys.map((k) => {
+      : (deckCards ? `<div class="lobby-grid">${deckCards}</div>` : `<div class="lobby-empty">Нет карт по фильтрам.</div>`);
+    const available = this.profile.collection.keysForFaction(factionId).map((k) => {
       const def = CardFactory.defForKey(k);
       const inDeck = deck.count(k);
       const inCollection = this.profile.collection.count(k);
@@ -440,7 +474,6 @@ export class LobbyScreen {
         ${LobbyCard.render(k, def, inCollection - inDeck, this._imgLoader, 'add')}
       </div>`;
     }).join('');
-
     const filtersHtml = this._filtersHtml(deckCount, deckCount);
     return `
       ${filtersHtml}
@@ -453,7 +486,7 @@ export class LobbyScreen {
       <div class="lobby-section-title">В колоде</div>
       ${deckHtml}
       <div class="lobby-section-title">Добавить из коллекции</div>
-      <div class="lobby-grid">${available || '<div class="lobby-empty">Все карты уже в колоде или отфильтрованы</div>'}</div>
+      <div class="lobby-grid">${available || '<div class="lobby-empty">Все карты уже в колоде.</div>'}</div>
     `;
   }
 }

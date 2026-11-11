@@ -11,6 +11,7 @@ import { CardFactory } from '../card/CardFactory.js';
 import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
 import { HaloGenerator } from './HaloGenerator.js';
+import { pickDefenderPreset } from './NeutralDefenders.js';
 
 export class World {
   constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0, activeFactions = null } = {}) {
@@ -177,9 +178,9 @@ export class World {
 
   _seedStartingDecks() {
     for (const gen of this.generals) {
-      const isPlayerFaction = gen.factionId === this.playerFactionId;
-      if (isPlayerFaction) continue;
+      // Все игровые фракции (не нейтралы) получают стартовую колоду
       const keys = CardFactory.keysForFaction(gen.factionId);
+      if (keys.length === 0) continue;
       const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
       const pool = cheap.length > 0 ? cheap : keys;
       for (let i = 0; i < 3; i++) {
@@ -223,18 +224,50 @@ export class World {
     const tile = this.map.getByKey(city.tileKey);
     if (!tile) return null;
     const factionId = city.neutralFaction || 'tauri';
-    const preset = GeneralFactory.presetFor(factionId, 0);
+    const preset = pickDefenderPreset(city, factionId);
+    if (!preset) {
+      return {
+        id: `def_${city.id}`,
+        name: 'Защитник',
+        factionId,
+        hex: tile.hex,
+        lives: 3, maxLives: 3,
+        presetIndex: 0,
+        deck: { cards: [] },
+        isSettlementDefender: true,
+      };
+    }
     return {
       id: `def_${city.id}`,
-      name: preset?.name || 'Защитник',
+      name: preset.name,
       factionId,
       hex: tile.hex,
-      lives: preset?.lives ?? 3,
-      maxLives: preset?.lives ?? 3,
-      presetIndex: 0,          // ← добавлено
-      deck: { cards: this._defenderDeck(factionId) },
+      lives: preset.lives,
+      maxLives: preset.maxLives,
+      presetIndex: preset.presetIndex ?? 0,
+      // портрет прокидываем напрямую
+      portraitUrl: preset.portrait || null,
+      deck: { cards: this._defenderDeckFromPreset(preset.cardPool) },
       isSettlementDefender: true,
     };
+  }
+
+  _defenderDeckFromPreset(cardPool) {
+    const out = [];
+    for (const key of cardPool) {
+      try {
+        const def = CardFactory.defForKey(key);
+        if (def) out.push(CardFactory.create(key));
+      } catch (_) { }
+    }
+    return out;
+  }
+
+  /** Есть ли ещё живые нейтральные поселения этой фракции. */
+  hasNeutralSettlements(neutralFactionId) {
+    return this.cities.some(
+      (c) => c.settlement && c.neutralFaction === neutralFactionId,
+    );
   }
 
   _defenderDeck(factionId) {
@@ -257,14 +290,14 @@ export class World {
     this.turn += 1;
     for (const g of this.generals) g.resetTurn();
     this.recruitPointsUsedMap.clear();
-
+  
+    // Обычные фракции
     for (const f of this.factions) {
       if (f.eliminated || f.neutral) continue;
       const pool = this.resourcePools.get(f.id);
       const income = this.economy.computeIncome(this, f.id);
       pool.add(income);
       this.recruitPools.get(f.id)?.addTurnIncome(this);
-
       const created = this.market.autoCreateOffers(f.id);
       for (const offer of created) {
         const label = offer.goods === 'weapons' ? 'оружия' : 'провизии';
@@ -274,6 +307,13 @@ export class World {
         });
       }
     }
+  
+    // Нейтральные торговцы (тавры/киммерийцы)
+    for (const fid of ['tauri', 'cimmerians']) {
+      this.market.autoCreateOffers(fid);
+    }
+    this.market.sweepNeutralOffers();
+  
     this._aiMarketTurn();
     this._checkElimination();
   }

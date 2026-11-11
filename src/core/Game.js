@@ -135,6 +135,41 @@ export class Game {
   }
 
   _startGame(factionId) {
+    const cfg = this.profile.matchConfig || { mode: 'ai', playerCount: 5 };
+  
+    // ─── Hot-seat: проверяем список фракций и все колоды ───
+    if (cfg.mode === 'hotseat') {
+      const list = cfg.hotseatFactions || [];
+      if (list.length === 0) {
+        this.bus.emit('toast:show', { text: 'Не выбраны фракции для hot-seat' });
+        return;
+      }
+      const ids = list.map((x) => x.factionId);
+      if (new Set(ids).size !== ids.length) {
+        this.bus.emit('toast:show', { text: 'Фракции игроков должны быть уникальны' });
+        return;
+      }
+      for (const item of list) {
+        const v = this.deckRepo.validate(item.factionId);
+        if (!v.ok) {
+          const f = this.world?.factions?.find((x) => x.id === item.factionId);
+          this.bus.emit('toast:show', {
+            text: `Колода «${f?.name || item.factionId}»: ${v.errors.join('; ')}`,
+          });
+          return;
+        }
+      }
+      if (this.lobby) this.lobby.hide();
+      // Передаём первую фракцию — _initWorldForFaction сам разберётся
+      this._initWorldForFaction(list[0].factionId);
+      return;
+    }
+  
+    // ─── vs-AI ───
+    if (!factionId) {
+      this.bus.emit('toast:show', { text: 'Фракция не выбрана' });
+      return;
+    }
     const v = this.deckRepo.validate(factionId);
     if (!v.ok) {
       this.bus.emit('toast:show', { text: v.errors.join('; ') });
@@ -145,45 +180,66 @@ export class Game {
   }
 
   _initWorldForFaction(factionId) {
-    const playerDeck = this.deckRepo.getDeck(factionId);
     const cfg = this.profile.matchConfig || { mode: 'ai', playerCount: 5 };
     const playerCount = Math.max(2, Math.min(5, cfg.playerCount || 5));
-    const activeFactions = FACTION_IDS.slice(0, playerCount);
-
+  
+    // ─── Какие фракции участвуют в партии ───
+    let activeFactions;
+    if (cfg.mode === 'hotseat') {
+      const list = (cfg.hotseatFactions || []).map((x) => x.factionId);
+      activeFactions = list.length ? list : FACTION_IDS.slice(0, playerCount);
+    } else {
+      activeFactions = FACTION_IDS.slice(0, playerCount);
+    }
+  
+    // ─── Кто «человеческие» фракции ───
+    //   vs-AI: только выбранная фракция
+    //   hot-seat: все активные
     this._humanFactions = cfg.mode === 'hotseat'
       ? activeFactions.slice()
       : [factionId];
-    this._playerFactionId = factionId;
-
+  
+    // ─── Активная (стартовая) фракция ───
+    const firstFaction = cfg.mode === 'hotseat'
+      ? activeFactions[0]
+      : factionId;
+  
+    this._playerFactionId = firstFaction;
+  
+    // ─── Колода стартовой фракции ───
+    const playerDeck = this.deckRepo.getDeck(firstFaction);
+  
+    // ─── Мир ───
     this.world = new World({
       seed: 1337,
       radius: 14,
       playerDeck,
-      playerGeneralPreset: this.profile.starterGeneralByFaction?.[factionId] ?? 0,
+      playerGeneralPreset: this.profile.starterGeneralByFaction?.[firstFaction] ?? 0,
       activeFactions,
     });
-
+  
     this.world.onFactionEliminated = (fid) => {
       const f = this.world.factions.find((x) => x.id === fid);
       this.bus.emit('toast:show', { text: `⚔ Фракция «${f?.name || fid}» выбыла` });
     };
     this.world.onMarketAutoOffer = ({ text }) => {
-      this.bus.emit('toast:show', { text });
-    };
-    this.world.onMarketAutoOffer = ({ text }) => {
       this.bus.emit('notification:show', { text, kind: 'trade' });
     };
-
+  
+    // ─── Контроллеры ───
     this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
     this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
     this.marketController = new MarketController({ world: this.world, bus: this.bus });
     this.battleController = new BattleController({ world: this.world, bus: this.bus });
-
+  
+    // ─── UI ───
     this.ui.setWorld(this.world);
     this.ui.battleController = this.battleController;
     this.ui.marketController = this.marketController;
     this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
-    this.ui.onAttackCity = (cityId, defenderFactionId) => this._attackCityById(cityId, defenderFactionId);
+    this.ui.onAttackCity = (cityId, defenderFactionId) =>
+      this._attackCityById(cityId, defenderFactionId);
+  
     if (this.ui.battleModal) this.ui.battleModal.controller = this.battleController;
     if (this.ui.marketPanel) {
       this.ui.marketPanel.controller = this.marketController;
@@ -194,8 +250,9 @@ export class Game {
       this.ui.quickJump.theme = { hexSize: Theme.hexSize };
       this.ui.quickJump.cameraController = this.cameraController;
     }
-
-    this._startWorld(factionId);
+  
+    // ─── Старт мира ───
+    this._startWorld(firstFaction);
   }
 
   _startWorld(factionId) {
@@ -494,29 +551,58 @@ export class Game {
     this.selectedGeneralId = null;
     this.bus.emit('general:selected', { general: null });
     this._updateHireButton();
-    const defenderFactionId = defenderFactionOverride
-      || tile.factionId
-      || 'goths';
+  
+    const defenderFactionId = defenderFactionOverride || tile.factionId || 'goths';
+    const cfg = this.profile.matchConfig || { mode: 'ai' };
+  
+    // Кто из участников боя — «человек»?
+    const humans = this._humanFactions || [];
+    const attackerHuman = humans.includes(general.factionId);
+    const defenderHuman = cfg.mode === 'hotseat'
+      ? humans.includes(defenderFactionId)
+      : false;
+  
+    // В hot-seat атакующий стартует как «активная» сторона
+    const playerSide = attackerHuman ? 'attacker' : 'defender';
+  
     this.battleController.open({
       attackerGen: general,
       targetTile: tile,
       defenderFactionId,
-      playerSide: 'attacker',
+      playerSide,
+      humanSides: { attacker: attackerHuman, defender: defenderHuman },
     });
   }
 
   _onBattleFinished(result) {
-    const { winner, targetTile, attackerGen, defenderGen, playerSide } = result;
+    const {
+      winner, targetTile, attackerGen, defenderGen,
+      playerSide, activeSide, humanSides,
+    } = result;
     const cost = this._pendingBattleCost || 0;
     this._pendingBattleCost = 0;
   
-    // Игрок
-    const playerWon =
-      (playerSide === 'attacker' && winner === 'attacker') ||
-      (playerSide === 'defender' && winner === 'defender');
-    const playerGen = playerSide === 'attacker' ? attackerGen : defenderGen;
+    // ─── Кто был «активным» игроком в момент боя ───
+    const side = activeSide || playerSide || 'attacker';
+    const isHumanFight = humanSides?.attacker || humanSides?.defender;
   
-    // ─── Опыт и звук для игрока ───
+    // Для vs-AI: результат относительно игрока
+    // Для hot-seat: результат относительно активной стороны
+    let playerWon = false;
+    if (isHumanFight) {
+      playerWon =
+        (side === 'attacker' && winner === 'attacker') ||
+        (side === 'defender' && winner === 'defender');
+    } else {
+      playerWon =
+        (playerSide === 'attacker' && winner === 'attacker') ||
+        (playerSide === 'defender' && winner === 'defender');
+    }
+  
+    // Генерал «игрока» (активной стороны)
+    const playerGen = side === 'attacker' ? attackerGen : defenderGen;
+  
+    // ─── Опыт и звук для победившего игрока ───
     if (playerGen && playerWon) {
       const events = playerGen.addXp(10);
       for (const ev of events) {
@@ -532,7 +618,7 @@ export class Game {
     if (playerWon) this.sound.play('victory');
     else if (winner !== 'draw') this.sound.play('defeat');
   
-    // ─── Последствия боя (универсально, независимо от playerSide) ───
+    // ─── Последствия боя ───
     if (winner === 'attacker') {
       this._applyAttackerVictory(attackerGen, defenderGen, targetTile);
     } else if (winner === 'defender') {
@@ -547,10 +633,7 @@ export class Game {
     }
   
     this.world._checkElimination();
-  
-    if (this.world.winner) {
-      this._finishMatchRewards();
-    }
+    if (this.world.winner) this._finishMatchRewards();
   
     this.world.recomputeVisibility();
     this.sceneBuilder.rebuild(this.world);
