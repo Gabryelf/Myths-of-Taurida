@@ -1,18 +1,16 @@
 import { CardImageLoader } from '../../infrastructure/three/visuals/CardImageLoader.js';
-import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
+import { generalPortraitUrl } from '../../config.js';
 import { iconImg } from '../../config/icons.js';
 
 export class CityPanel {
   constructor(root, { bus }) {
     this.bus = bus;
     this.onBuySettlement = null;
-    this.onAttackCity = null;   // (cityId, defenderFactionId) => void
-
+    this.onAttackCity = null;
     this.el = document.createElement('div');
     this.el.className = 'city-panel-overlay';
     this.el.innerHTML = `<div class="city-panel"></div>`;
     root.appendChild(this.el);
-
     this._world = null;
     this._city = null;
     this._tile = null;
@@ -53,7 +51,6 @@ export class CityPanel {
     this.el.classList.add('visible');
     this._render();
   }
-
   hide() { this.el.classList.remove('visible'); }
 
   _tryHireGeneral() {
@@ -72,8 +69,10 @@ export class CityPanel {
     this._render();
   }
 
-  _portraitStyle(factionId) {
-    const url = imgUrl(GENERAL_PORTRAITS[factionId]);
+  /** Портрет полководца по пресету. */
+  _portraitStyle(general) {
+    const idx = general.presetIndex ?? 0;
+    const url = generalPortraitUrl(general.factionId, idx);
     if (!url) return '';
     return `background-image:url('${url}');background-size:cover;background-position:center top;`;
   }
@@ -84,24 +83,16 @@ export class CityPanel {
     if (!world || !city) return;
     const factionId = world.playerFactionId;
     if (!factionId) return;
-
     const income = world.economy.computeIncome(world, factionId);
     const generals = world.generals.filter((g) => g.factionId === factionId && g.alive);
     const citiesOfMine = world.cities.filter((c) => c.factionId === factionId);
     const myCities = citiesOfMine.filter((c) => c.isCity).length;
     const myVillages = citiesOfMine.filter((c) => !c.isCity).length;
-
     const isMine = city.factionId === factionId;
     const maxGenerals = Math.max(1, myCities + 1);
     const canHireGeneral = isMine && city.isCity && generals.length < maxGenerals;
     const cityGeneral = world.getGeneralAt(this._tile.hex);
-
-    const typeLabel = city.isCity
-      ? 'Город'
-      : city.settlement
-        ? 'Поселение'
-        : 'Деревня';
-
+    const typeLabel = city.isCity ? 'Город' : city.settlement ? 'Поселение' : 'Деревня';
     const ownerLabel = isMine
       ? 'Ваш'
       : city.settlement
@@ -110,7 +101,6 @@ export class CityPanel {
           ? factionLabel(city.factionId)
           : 'Ничейное';
 
-    // Может ли текущий выбранный полководец атаковать эту цель?
     let canAttackHere = false;
     let attackCost = null;
     if (!isMine && world.selectedGeneralId) {
@@ -121,12 +111,11 @@ export class CityPanel {
       }
     }
 
-    // ─── Полководцы ───
     const generalsHtml = generals.map((g) => {
       const inCity = g.hex.key === this._tile.key;
       return `
         <div class="cp-general-row">
-          <div class="cp-general-portrait" style="${this._portraitStyle(g.factionId)}"></div>
+          <div class="cp-general-portrait" style="${this._portraitStyle(g)}"></div>
           <div class="cp-general-info">
             <div class="cp-general-name">${g.name}</div>
             <div class="cp-general-stats">
@@ -170,7 +159,6 @@ export class CityPanel {
         ${typeLabel} · ${ownerLabel}
         ${cityGeneral ? ` · Полководец: ${cityGeneral.name}` : ''}
       </div>
-
       ${isMine ? `
       <div class="cp-section">
         <div class="cp-section-title">Империя</div>
@@ -185,9 +173,7 @@ export class CityPanel {
         <div class="cp-stat-row"><span>Очки найма</span><b>${world.recruitPointsUsed(factionId)}/${world.economy.recruitPointsForFaction(world, factionId)}</b></div>
       </div>
       ` : ''}
-
       ${restrHtml}
-
       ${isMine ? `
       <div class="cp-section">
         <div class="cp-section-title">Полководцы (${generals.length}/${maxGenerals})</div>
@@ -202,11 +188,9 @@ export class CityPanel {
           : ''}
       </div>
       ` : ''}
-
       ${defenseHtml}
       ${attackHtml}
       ${buySettlementHtml}
-
       <button class="btn cp-close" data-close="1">Закрыть</button>
     `;
   }
@@ -214,12 +198,7 @@ export class CityPanel {
 
 function factionLabel(factionId) {
   return {
-    scythians: 'Скифы',
-    bosporus: 'Боспор',
-    chersonesos: 'Херсонес',
-    rome: 'Рим',
-    goths: 'Готы',
-    tauri: 'Тавры',
-    cimmerians: 'Киммерийцы',
+    scythians: 'Скифы', bosporus: 'Боспор', chersonesos: 'Херсонес',
+    rome: 'Рим', goths: 'Готы', tauri: 'Тавры', cimmerians: 'Киммерийцы',
   }[factionId] || factionId || '';
 }

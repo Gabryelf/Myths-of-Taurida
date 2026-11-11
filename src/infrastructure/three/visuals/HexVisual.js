@@ -2,7 +2,10 @@ import * as THREE from 'three';
 import { BaseVisual } from './BaseVisual.js';
 import { Theme } from '../../config/ThemeConfig.js';
 import { ModelLoader } from '../ModelLoader.js';
-import { terrainModelUrl } from '../../../config.js';
+import {
+  terrainModelUrl,
+  terrainModelSettings,
+} from '../../../config.js';
 
 /**
  * Гекс с процедурным ландшафтом.
@@ -13,7 +16,8 @@ export class HexVisual extends BaseVisual {
   constructor(tile, size) {
     super({ tile, size });
     this._overlays = new Map();
-    this._modelPlaceholder = null;
+    this._modelObj = null;
+    this._disposed = false;
   }
 
   _build() {
@@ -35,7 +39,7 @@ export class HexVisual extends BaseVisual {
     plate.userData = { tile, hoverable: 'tile' };
     this.group.add(plate);
 
-    // ─── Модель гор/леса, если есть ───
+    // ─── Модель гор/леса ───
     const modelUrl = terrainModelUrl(tile.terrain);
     if (modelUrl) {
       this._loadTerrainModel(modelUrl, tile, size, height);
@@ -63,70 +67,80 @@ export class HexVisual extends BaseVisual {
     }
   }
 
-  /**
-   * Асинхронно подгружает модель гор/леса и ставит её на гекс.
-   * Пока грузится — процедурный декор НЕ рисуем (чтобы не было двойного).
-   * Если загрузка упала — откатываемся на процедурный декор.
-   */
   _loadTerrainModel(url, tile, size, plateHeight) {
-    // Если уже в кэше — ставим сразу
     const cached = ModelLoader.instance(url);
     if (cached) {
       this._placeTerrainModel(cached, tile, size, plateHeight);
       return;
     }
-    // Иначе — грузим и ставим по готовности
     ModelLoader.load(url)
       .then((scene) => {
-        // Гекс мог быть удалён из сцены пока грузилась модель
-        if (!this.group || this._disposed) return;
+        if (this._disposed || !this.group) return;
         const inst = scene.clone(true);
         this._placeTerrainModel(inst, tile, size, plateHeight);
       })
       .catch(() => {
-        // fallback — процедурный декор
         if (this._disposed || !this.group) return;
         this._addTerrainDecor(tile, size, plateHeight);
       });
   }
 
-  _placeTerrainModel(scene, tile, size, plateHeight) {
-    // Автоскейл: подгоняем модель под размер гекса
-    const box = new THREE.Box3().setFromObject(scene);
+  _placeTerrainModel(obj, tile, size, plateHeight) {
+    const cfg = terrainModelSettings(tile.terrain) || {};
+    const fitToHex = cfg.fitToHex !== false;
+
+    // Сброс трансформаций
+    obj.position.set(0, 0, 0);
+    obj.rotation.set(0, 0, 0);
+    obj.scale.set(1, 1, 1);
+
+    // 1) Первый box3 — до масштабирования
+    const box0 = new THREE.Box3().setFromObject(obj);
     const sizeV = new THREE.Vector3();
-    box.getSize(sizeV);
-    const maxDim = Math.max(sizeV.x, sizeV.z, sizeV.y) || 1;
-    // Хотим, чтобы модель занимала ~1.4 * size по горизонтали
-    const targetSize = size * 1.4;
-    const scale = targetSize / maxDim;
-    scene.scale.setScalar(scale);
+    box0.getSize(sizeV);
 
-    // Центрируем по XZ и опускаем на плиту
-    const box2 = new THREE.Box3().setFromObject(scene);
+    // 2) Автоскейл по горизонтали (XZ)
+    let baseScale = 1;
+    if (fitToHex) {
+      const maxXZ = Math.max(sizeV.x, sizeV.z) || 1;
+      const target = size * 1.4;
+      baseScale = target / maxXZ;
+    }
+    const userScale = cfg.scale ?? 1;
+    const totalScale = baseScale * userScale;
+    obj.scale.setScalar(totalScale);
+
+    // 3) Центрируем по XZ и ставим низ на верх плиты
+    const box1 = new THREE.Box3().setFromObject(obj);
     const center = new THREE.Vector3();
-    box2.getCenter(center);
-    scene.position.x -= center.x;
-    scene.position.z -= center.z;
-    // Ставим нижнюю грань на верх плиты
-    scene.position.y += plateHeight - box2.min.y;
+    box1.getCenter(center);
 
-    scene.traverse((c) => {
+    obj.position.x += -center.x + (cfg.offsetX ?? 0);
+    obj.position.z += -center.z + (cfg.offsetZ ?? 0);
+    obj.position.y += (plateHeight - box1.min.y) + (cfg.offsetY ?? 0);
+
+    // 4) Поворот
+    if (cfg.rotationY) obj.rotation.y = cfg.rotationY;
+
+    // 5) Тени и userData
+    obj.traverse((c) => {
       if (c.isMesh) {
-        c.castShadow = true;
-        c.receiveShadow = true;
+        c.castShadow = cfg.castShadow !== false;
+        c.receiveShadow = cfg.receiveShadow !== false;
         c.userData = c.userData || {};
         c.userData.tile = tile;
         c.userData.hoverable = 'tile';
       }
     });
-    this.group.add(scene);
-    this._modelPlaceholder = scene;
+
+    this.group.add(obj);
+    this._modelObj = obj;
   }
 
-  /** Скрыть/показать фракционный ring (для линзы границ). */
   setFactionRingVisible(v) {
     if (this._factionRing) this._factionRing.visible = !!v;
   }
+
   setFactionColor(factionId) {
     if (!this._factionRing) return;
     if (!factionId || !Theme.faction[factionId]) {
@@ -161,6 +175,7 @@ export class HexVisual extends BaseVisual {
         break;
     }
   }
+
   _addTrees(rng, size, baseY, count) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -185,6 +200,7 @@ export class HexVisual extends BaseVisual {
       this._decorations.push(crown);
     }
   }
+
   _addRocks(rng, size, baseY, count) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -204,6 +220,7 @@ export class HexVisual extends BaseVisual {
       this._decorations.push(rock);
     }
   }
+
   _addGrass(rng, size, baseY, count, color = 0x8aaa40) {
     for (let i = 0; i < count; i++) {
       const angle = rng() * Math.PI * 2;
@@ -220,6 +237,7 @@ export class HexVisual extends BaseVisual {
       this._decorations.push(blade);
     }
   }
+
   _addRuins(rng, size, baseY) {
     const count = 2 + Math.floor(rng() * 2);
     for (let i = 0; i < count; i++) {
@@ -244,6 +262,7 @@ export class HexVisual extends BaseVisual {
     this._overlays.set(kind, overlay);
     overlay.addTo(this.group);
   }
+
   setOverlayVisible(kind, visible) {
     const o = this._overlays?.get(kind);
     if (o) o.setVisible(visible);

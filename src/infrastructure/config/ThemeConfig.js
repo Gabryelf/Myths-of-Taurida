@@ -6,6 +6,29 @@ export const Theme = {
     ambient: 0x6a5a4a,
     rim: 0x5a7ab0,
   },
+
+  // ─── ОСВЕЩЕНИЕ ───
+  light: {
+    ambient: {
+      color: 0x6a5a4a,
+      intensity: 0.6,
+    },
+    sun: {
+      color: 0xffe0b0,
+      intensity: 1.4,
+      position: { x: 20, y: 30, z: 10 },
+      castShadow: true,
+      shadowMapSize: 2048,
+      shadowCamera: { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 100 },
+      shadowBias: -0.0005,
+    },
+    rim: {
+      color: 0x5a7ab0,
+      intensity: 0.5,
+      position: { x: -18, y: 14, z: -16 },
+    },
+  },
+
   hexSize: 18.0,
   terrain: {
     plain:    { color: 0xa8bf6a, roughness: 0.95, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },
@@ -40,7 +63,7 @@ export const Theme = {
     opacity: 0.05,
   },
   city: {
-    radius: 1.1,          // × hexSize
+    radius: 1.1,
     height: 0.9,
     villageRadius: 0.5,
     villageHeight: 0.4,
@@ -54,7 +77,7 @@ export const Theme = {
     size: 600, y: -0.35,
   },
   sky: {
-    color: 0x0a0d12, fogColor: 0x0a0d12, fogDensity: 0,   // было 0.012
+    color: 0x0a0d12, fogColor: 0x0a0d12, fogDensity: 0,
     starsCount: 300, starsColor: 0xffe8b0, starsSize: 0.35,
     starsRadiusMin: 120, starsRadiusMax: 240, starsOpacity: 0.85,
   },

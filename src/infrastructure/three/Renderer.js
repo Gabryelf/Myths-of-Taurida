@@ -1,79 +1,65 @@
 import * as THREE from 'three';
 import { Theme } from '../config/ThemeConfig.js';
 import { SeaVisual } from './visuals/SeaVisual.js';
-import { StarField } from './visuals/StarField.js';
 
-/**
- * Обёртка над Three.js: сцена, камера, рендер-цикл.
- * Единственное место, где живёт THREE.WebGLRenderer.
- *
- * С v0.3 включает море и звёзды — но не знает о домене.
- */
 export class Renderer {
   constructor(canvas) {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(Theme.sky.color);
-    //this.scene.fog = new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity);
-    // Туман убран — на большой карте он съедает обзор.
-    // Если нужна атмосфера — включай через Theme.sky.fogDensity > 0.
     this.scene.fog = Theme.sky.fogDensity > 0
-    ? new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity)
-    : null;
+      ? new THREE.FogExp2(Theme.sky.fogColor, Theme.sky.fogDensity)
+      : null;
 
     this.camera = new THREE.PerspectiveCamera(
       45, window.innerWidth / window.innerHeight, 0.1, 1000,
     );
-
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Убирает металлический пересвет на GLTF-материалах
+    this.renderer.toneMapping = THREE.NoToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
 
-    // Время для анимаций
     this._t0 = performance.now();
-
     this._setupLights();
     this._setupEnvironment();
-
     window.addEventListener('resize', () => this._onResize());
   }
 
   _setupLights() {
-    this.scene.add(new THREE.AmbientLight(Theme.colors.ambient, 0.6));
+    const L = Theme.light;
 
-    const sun = new THREE.DirectionalLight(Theme.colors.sun, 1.4);
-    sun.position.set(
-      Theme.sea.sunDirection.x,
-      Theme.sea.sunDirection.y,
-      Theme.sea.sunDirection.z,
-    );
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, {
-      left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 100,
-    });
-    sun.shadow.bias = -0.0005;
+    // Ambient
+    this.scene.add(new THREE.AmbientLight(L.ambient.color, L.ambient.intensity));
+
+    // Sun
+    const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity);
+    sun.position.set(L.sun.position.x, L.sun.position.y, L.sun.position.z);
+    sun.castShadow = L.sun.castShadow;
+    if (L.sun.castShadow) {
+      sun.shadow.mapSize.set(L.sun.shadowMapSize, L.sun.shadowMapSize);
+      Object.assign(sun.shadow.camera, L.sun.shadowCamera);
+      sun.shadow.bias = L.sun.shadowBias;
+    }
     this.scene.add(sun);
 
-    const rim = new THREE.DirectionalLight(Theme.colors.rim, 0.5);
-    rim.position.set(-18, 14, -16);
+    // Rim
+    const rim = new THREE.DirectionalLight(L.rim.color, L.rim.intensity);
+    rim.position.set(L.rim.position.x, L.rim.position.y, L.rim.position.z);
     this.scene.add(rim);
   }
 
   _setupEnvironment() {
     this.sea = new SeaVisual();
     this.sea.addTo(this.scene);
-
-    //this.stars = new StarField();
-    //this.stars.addTo(this.scene);
   }
 
   tick() {
     const t = (performance.now() - this._t0) / 1000;
     this.sea.update(t);
-    //this.stars.update(t);
     this.renderer.render(this.scene, this.camera);
   }
 

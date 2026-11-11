@@ -1,5 +1,5 @@
 import { Theme } from '../../infrastructure/config/ThemeConfig.js';
-import { GENERAL_PORTRAITS, imgUrl } from '../../config.js';
+import { generalPortraitUrl } from '../../config.js';
 
 export class GeneralPanel {
   constructor(root) {
@@ -8,6 +8,7 @@ export class GeneralPanel {
     root.appendChild(this.el);
     this._general = null;
   }
+
   show(general) {
     if (!general) { this.hide(); return; }
     this._general = general;
@@ -26,10 +27,14 @@ export class GeneralPanel {
     const livesHtml = Array.from({ length: g.maxLives }, (_, i) =>
       `<span class="gp-life ${i >= g.lives ? 'lost' : ''}"></span>`
     ).join('');
-    const url = imgUrl(GENERAL_PORTRAITS[g.factionId]);
+
+    // ─── Портрет по пресету ───
+    const presetIndex = g.presetIndex ?? 0;
+    const url = generalPortraitUrl(g.factionId, presetIndex);
     const emblemStyle = url
       ? `background-image:url('${url}');background-size:cover;background-position:center top;`
       : '';
+
     const xpPct = Math.min(100, Math.round((g.xp / g.xpToNext) * 100));
     const perksHtml = g.perks.length > 0
       ? `<div class="gp-row"><span>Перки</span><b>${g.perks.map((p) => this._perkIcon(p)).join(' ')}</b></div>`
@@ -60,9 +65,7 @@ export class GeneralPanel {
   }
 
   _perkIcon(perkId) {
-    const map = {
-      move: '👟', lives: '❤', capacity: '🃏',
-    };
+    const map = { move: '👟', lives: '❤', capacity: '🃏' };
     const key = perkId.includes('move') ? 'move' : perkId.includes('lives') ? 'lives' : 'capacity';
     return `<span class="gp-perk" title="${perkId}">${map[key]}</span>`;
   }

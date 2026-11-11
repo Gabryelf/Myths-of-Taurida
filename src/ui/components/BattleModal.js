@@ -304,7 +304,8 @@ export class BattleModal {
   }
 
   _portraitHtml(gen, cls) {
-    const url = imgUrl(GENERAL_PORTRAITS[gen.factionId]);
+    const idx = gen.presetIndex ?? 0;
+    const url = generalPortraitUrl(gen.factionId, idx);
     const style = url ? `style="background-image:url('${url}')"` : '';
     return `<div class="hero-portrait ${cls}" data-faction="${gen.factionId}" ${style}></div>`;
   }

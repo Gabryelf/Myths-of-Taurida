@@ -1,6 +1,5 @@
 // Пути к картинкам. Все файлы — в public/images/.
 export const IMAGE_BASE = '/images/';
-
 export const CARD_IMAGES = {
   // ═══════════════ СКИФЫ ═══════════════
   scyth_archer:       'skithian/004.png',
@@ -114,7 +113,6 @@ export function imgUrl(file) {
   if (!file) return null;
   return IMAGE_BASE + file;
 }
-
 /** Портрет полководца с fallback на общий портрет фракции. */
 export function generalPortraitUrl(factionId, index = 0) {
   const list = GENERAL_PRESET_PORTRAITS[factionId];
@@ -123,21 +121,62 @@ export function generalPortraitUrl(factionId, index = 0) {
   }
   return imgUrl(GENERAL_PORTRAITS[factionId]);
 }
-
 /** Герб фракции. */
 export function factionEmblemUrl(factionId) {
   return imgUrl(FACTION_EMBLEMS[factionId]);
 }
 
-// ─── 3D-модели гексов ───
+// ═══════════════════════════════════════════
+//  3D-МОДЕЛИ ГЕКСОВ
+// ═══════════════════════════════════════════
 export const MODEL_BASE = '/models/';
 export const TERRAIN_MODELS = {
   mountain: 'rock.glb',
-  forest:   'wood.glb',  
+  forest:   'wood.glb',
 };
 
+/**
+ * Настройки отображения моделей по типу террейна.
+ * Все поля опциональны — берутся значения по умолчанию.
+ *
+ * scale        — пользовательский множитель к автоскейлу (1.0 = вписать ~1.4*size)
+ * offsetY      — вертикальный сдвиг в мировых единицах (0 = низ на плите)
+ * offsetX, offsetZ — горизонтальный сдвиг относительно центра гекса
+ * rotationY    — поворот вокруг Y в радианах
+ * castShadow, receiveShadow — тени
+ * fitToHex     — если true, автоскейл по горизонтали ~1.4*size; если false, scale = size
+ */
+export const TERRAIN_MODEL_SETTINGS = {
+  mountain: {
+    scale: 1.45,
+    offsetY: -7,
+    offsetX: 0,
+    offsetZ: 0,
+    rotationY: 0,
+    castShadow: true,
+    receiveShadow: true,
+    fitToHex: true,
+  },
+  forest: {
+    scale: 1.45,
+    offsetY: -7,
+    offsetX: 0,
+    offsetZ: 0,
+    rotationY: 0,
+    castShadow: true,
+    receiveShadow: true,
+    fitToHex: true,
+  },
+};
+
+/** URL модели для террейна или null. */
 export function terrainModelUrl(terrain) {
   const file = TERRAIN_MODELS[terrain];
   if (!file) return null;
   return MODEL_BASE + file;
+}
+
+/** Настройки модели для террейна или null. */
+export function terrainModelSettings(terrain) {
+  return TERRAIN_MODEL_SETTINGS[terrain] || null;
 }

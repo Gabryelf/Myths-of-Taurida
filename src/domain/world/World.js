@@ -231,6 +231,7 @@ export class World {
       hex: tile.hex,
       lives: preset?.lives ?? 3,
       maxLives: preset?.lives ?? 3,
+      presetIndex: 0,          // ← добавлено
       deck: { cards: this._defenderDeck(factionId) },
       isSettlementDefender: true,
     };

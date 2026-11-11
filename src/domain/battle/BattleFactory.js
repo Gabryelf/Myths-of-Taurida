@@ -33,6 +33,7 @@ export class BattleFactory {
         factionId: defenderFactionId,
         lives: 3,
         maxLives: 3,
+        presetIndex: 0, 
         deck: { cards: [] },
       };
     }

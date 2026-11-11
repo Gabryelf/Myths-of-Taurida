@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Theme } from '../../config/ThemeConfig.js';
-import { generalPortraitUrl, imgUrl } from '../../../config.js';
+import { generalPortraitUrl } from '../../../config.js';
 
 export class GeneralVisual {
   constructor(general, size) {
@@ -47,7 +47,7 @@ export class GeneralVisual {
     disc.castShadow = true;
     this.group.add(disc);
 
-    // Конь (как было)
+    // Конь
     const horseColor = 0x3a2010;
     const horseBody = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.55, size * 0.22, size * 0.22),
@@ -56,6 +56,7 @@ export class GeneralVisual {
     horseBody.position.set(shiftX, size * 0.38, shiftZ);
     horseBody.castShadow = true;
     this.group.add(horseBody);
+
     for (let i = 0; i < 4; i++) {
       const leg = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.03, size * 0.025, size * 0.22, 5),
@@ -67,6 +68,7 @@ export class GeneralVisual {
       leg.castShadow = true;
       this.group.add(leg);
     }
+
     const neck = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.12, size * 0.24, size * 0.12),
       new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
@@ -75,6 +77,7 @@ export class GeneralVisual {
     neck.rotation.z = -0.4;
     neck.castShadow = true;
     this.group.add(neck);
+
     const head = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.16, size * 0.1, size * 0.1),
       new THREE.MeshStandardMaterial({ color: horseColor, roughness: 0.85 }),
@@ -83,7 +86,7 @@ export class GeneralVisual {
     head.castShadow = true;
     this.group.add(head);
 
-    // ─── Всадник: тело ───
+    // Всадник
     const rider = new THREE.Mesh(
       new THREE.BoxGeometry(size * 0.16, size * 0.2, size * 0.14),
       new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.3 }),
@@ -92,10 +95,10 @@ export class GeneralVisual {
     rider.castShadow = true;
     this.group.add(rider);
 
-    // ─── Портрет (спрайт с текстурой-аватаркой) ───
+    // Портрет-спрайт
     this._portrait = this._createPortraitSprite(general, size, shiftX, shiftZ);
 
-    // ─── Меч ───
+    // Меч
     const swordPivot = new THREE.Group();
     swordPivot.position.set(shiftX + size * 0.12, size * 0.66, shiftZ);
     swordPivot.rotation.z = 0.4;
@@ -141,7 +144,6 @@ export class GeneralVisual {
     });
   }
 
-  /** Создаёт Sprite с портретом полководца над всадником. */
   _createPortraitSprite(general, size, shiftX, shiftZ) {
     const presetIndex = this._presetIndexFor(general);
     const url = generalPortraitUrl(general.factionId, presetIndex);
@@ -166,11 +168,6 @@ export class GeneralVisual {
     return sprite;
   }
 
-  /**
-   * Пытаемся определить индекс пресета полководца.
-   * Если у генерала есть presetIndex — используем, иначе 0.
-   * GeneralFactory может прокинуть presetIndex в конструктор General.
-   */
   _presetIndexFor(general) {
     if (typeof general.presetIndex === 'number') return general.presetIndex;
     return 0;

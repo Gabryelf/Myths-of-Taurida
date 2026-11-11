@@ -6,8 +6,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * Кэширует промисы, чтобы не грузить одну модель дважды.
  *
  * Использование:
- *   const model = await ModelLoader.load('/models/mountain.glb');
- *   const inst = ModelLoader.instance('/models/mountain.glb');
+ *   const model = await ModelLoader.load('/models/rock.glb');
+ *   const inst = ModelLoader.instance('/models/rock.glb');
  */
 class _ModelLoader {
   constructor() {
@@ -40,17 +40,13 @@ class _ModelLoader {
     return p.then((g) => g.scene);
   }
 
-  /**
-   * Создать инстанс модели (клон шаблона). Синхронный —
-   * возвращает null, если модель ещё не загружена (см. load).
-   */
+  /** Создать инстанс модели (клон шаблона). null, если ещё не загружено. */
   instance(url) {
     const tpl = this._instances.get(url);
     if (!tpl) return null;
     return tpl.clone(true);
   }
 
-  /** Проверка: загружена ли модель. */
   isLoaded(url) { return this._instances.has(url); }
 
   /** Прогреть кэш заранее. */

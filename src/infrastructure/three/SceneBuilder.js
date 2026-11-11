@@ -90,7 +90,6 @@ export class SceneBuilder {
     }
     this.updateFog(world);
 
-    // ─── Линзы ───
     this._borderVisual = new BorderVisual(world, Theme.hexSize).addTo(this.scene);
     this._borderVisual.setVisible(this._lensState.borders);
     this._haloVisual = new HaloVisual(world, Theme.hexSize).addTo(this.scene);
@@ -101,7 +100,6 @@ export class SceneBuilder {
     this._lensState[kind] = enabled;
     if (kind === 'borders') {
       this._borderVisual?.setVisible(enabled);
-      // Гасим фракционные ring'и на гексах, чтобы граница читалась только линиями
       for (const v of this._tileVisuals.values()) {
         v.setFactionRingVisible(!enabled);
       }
