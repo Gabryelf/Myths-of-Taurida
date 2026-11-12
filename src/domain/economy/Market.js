@@ -1,7 +1,14 @@
 const NEUTRAL_GOODS = {
-  tauri:      { weapons: 6,  prov: 8,  gold: 0 },   // у тавров много оружия/провизии
-  cimmerians: { weapons: 8,  prov: 4,  gold: 0 },   // у киммерийцев — оружие
+  tauri:      { weapons: 6, prov: 8, gold: 0 },
+  cimmerians: { weapons: 8, prov: 4, gold: 0 },
 };
+
+const GOODS = {
+  weapons: { basePrice: 10, baseThreshold: 10, growth: 2, amount: 5 },
+  prov:    { basePrice: 8,  baseThreshold: 12, growth: 2, amount: 5 },
+};
+
+let _nextOfferId = 1;
 
 export class Market {
   constructor({ world }) {
@@ -19,7 +26,6 @@ export class Market {
     const c = this._counters.get(factionId);
     c[goods] = (c[goods] || 0) + 1;
   }
-
   thresholdFor(factionId, goods) {
     const cfg = GOODS[goods];
     return cfg.baseThreshold + this._counterFor(factionId, goods) * cfg.growth;
@@ -29,12 +35,13 @@ export class Market {
     return cfg.basePrice + this._counterFor(factionId, goods) * cfg.growth;
   }
 
+  /**
+   * Автосоздание лотов от обычных фракций (излишки).
+   */
   autoCreateOffers(factionId) {
-    // ─── Нейтральные фракции ───
     if (factionId === 'tauri' || factionId === 'cimmerians') {
       return this._autoCreateNeutralOffers(factionId);
     }
-    // ─── Обычные фракции ───
     const pool = this.world.resourcePools.get(factionId);
     if (!pool) return [];
     const created = [];
@@ -62,17 +69,19 @@ export class Market {
   }
 
   /**
-   * Нейтралы торгуют только пока у них есть поселения.
-   * Раз в ход выставляют по одному лоту на товар.
+   * Нейтралы (тавры, киммерийцы) выставляют лоты пока у них есть деревни.
+   *  - стартовые лоты создаются в начале партии
+   *  - каждый ход — по 1 лоту на товар, если у нейтрала есть деревни
+   *  - если деревень не осталось — лоты удаляются
    */
   _autoCreateNeutralOffers(neutralFactionId) {
-    if (!this.world.hasNeutralSettlements?.(neutralFactionId)) return [];
-    // Удалить старые лоты этой фракции — если больше нет поселений (страховка)
-    this.offers = this.offers.filter((o) => o.sellerFactionId !== neutralFactionId || !o.neutral || true);
-    // Не дублируем: если уже есть N лотов от нейтралов — не создаём сверх лимита
+    if (!this.world.hasNeutralSettlements?.(neutralFactionId)) {
+      // Деревень нет — снимаем все лоты этого нейтрала
+      this.offers = this.offers.filter((o) => o.sellerFactionId !== neutralFactionId);
+      return [];
+    }
     const existing = this.offers.filter((o) => o.sellerFactionId === neutralFactionId);
     if (existing.length >= 2) return [];
-
     const cfg = NEUTRAL_GOODS[neutralFactionId];
     if (!cfg) return [];
     const created = [];
@@ -80,7 +89,6 @@ export class Market {
     const basePrice = 18;
     for (const goods of ['weapons', 'prov']) {
       if ((cfg[goods] || 0) <= 0) continue;
-      // Один лот за ход по товару
       const already = existing.find((o) => o.goods === goods);
       if (already) continue;
       const price = basePrice + this._counterFor(neutralFactionId, goods) * 2;
@@ -100,10 +108,41 @@ export class Market {
     return created;
   }
 
-  offersBy(factionId) { return this.offers.filter((o) => o.sellerFactionId === factionId); }
-  offersFromOthers(factionId) { return this.offers.filter((o) => o.sellerFactionId !== factionId); }
+  /**
+   * Стартовые лоты для нейтралов — в начале партии.
+   */
+  createStarterNeutralOffers() {
+    const created = [];
+    for (const fid of ['tauri', 'cimmerians']) {
+      if (!this.world.hasNeutralSettlements?.(fid)) continue;
+      const cfg = NEUTRAL_GOODS[fid];
+      if (!cfg) continue;
+      for (const goods of ['weapons', 'prov']) {
+        if ((cfg[goods] || 0) <= 0) continue;
+        const offer = {
+          id: `offer_${_nextOfferId++}`,
+          sellerFactionId: fid,
+          goods,
+          amount: 5,
+          price: 18 + this._counterFor(fid, goods) * 2,
+          createdAt: Date.now(),
+          neutral: true,
+        };
+        this.offers.push(offer);
+        this._incCounter(fid, goods);
+        created.push(offer);
+      }
+    }
+    return created;
+  }
 
-  /** Убрать с рынка лоты нейтралов, если у них больше нет поселений. */
+  offersBy(factionId) {
+    return this.offers.filter((o) => o.sellerFactionId === factionId);
+  }
+  offersFromOthers(factionId) {
+    return this.offers.filter((o) => o.sellerFactionId !== factionId);
+  }
+
   sweepNeutralOffers() {
     for (const fid of ['tauri', 'cimmerians']) {
       if (!this.world.hasNeutralSettlements?.(fid)) {
@@ -120,7 +159,7 @@ export class Market {
       return { ok: false, reason: 'Свой лот не купить' };
     }
     const buyerPool = this.world.resourcePools.get(buyerFactionId);
-    if (!buyerPool.canAfford({ gold: offer.price })) {
+    if (!buyerPool?.canAfford({ gold: offer.price })) {
       return { ok: false, reason: 'Не хватает золота' };
     }
     buyerPool.spend({ gold: offer.price });
@@ -128,7 +167,24 @@ export class Market {
     if (sellerPool) sellerPool.add({ gold: offer.price });
     if (offer.goods === 'weapons') buyerPool.weapons += offer.amount;
     else buyerPool.prov += offer.amount;
+
+    // ─── Прокладка дороги от покупателя к продавцу ───
+    if (this.world.roadService) {
+      this.world.roadService.onMarketPurchase({
+        buyerFactionId,
+        sellerFactionId: offer.sellerFactionId,
+      });
+    }
+
     this.offers.splice(idx, 1);
-    return { ok: true, goods: offer.goods, amount: offer.amount, price: offer.price };
+    return {
+      ok: true,
+      goods: offer.goods,
+      amount: offer.amount,
+      price: offer.price,
+      sellerFactionId: offer.sellerFactionId,
+      buyerFactionId,
+      neutral: !!offer.neutral,
+    };
   }
 }

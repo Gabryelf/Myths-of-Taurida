@@ -1,33 +1,56 @@
 import { AIController } from './AIController.js';
+import { BotTurnPlanner } from './BotTurnPlanner.js';
 
 /**
- * Менеджер ходов. Все «не-игрок» фракции ходят ИИ.
- * Для hot-seat — только фракции, помеченные как AI, ходят автоматически.
+ * Менеджер ходов. Боты ходят пошагово (1 гекс = 1 такт).
  */
 export class TurnManager {
-    constructor({ world, bus }) {
-        this.world = world;
-        this.bus = bus;
-        this.ai = new AIController({ world });
-        this.isRunning = false;
-    }
+  constructor({ world, bus }) {
+    this.world = world;
+    this.bus = bus;
+    this.ai = new AIController({ world });
+    this.planner = new BotTurnPlanner({ world });
+    this.isRunning = false;
+  }
 
-    async runAITurns(aiFactionIds, callbacks = {}) {
-        if (this.isRunning) return null;
-        this.isRunning = true;
-        for (const factionId of aiFactionIds) {
-            callbacks.onAITurnStart?.(factionId);
-            await new Promise((r) => setTimeout(r, 350));
-            const result = this.ai.takeTurn(factionId);
-            callbacks.onAITurnEnd?.(result);
-            this.bus.emit('ai:turnEnded', result);
-            const battle = result.actions.find((a) => a.kind === 'battle');
-            if (battle) {
-                this.isRunning = false;
-                return battle;
-            }
+  /**
+   * Запустить AI-ходы пошагово.
+   * Возвращает battle-действие (если бот атаковал город/генерала) или null.
+   *
+   * onStep(steps) — колбэк после каждого шага (для обновления сцены).
+   */
+  async runAITurns(aiFactionIds, callbacks = {}) {
+    if (this.isRunning) return null;
+    this.isRunning = true;
+    try {
+      for (const factionId of aiFactionIds) {
+        callbacks.onAITurnStart?.(factionId);
+        await new Promise((r) => setTimeout(r, 350));
+
+        // 1. Построить план хода
+        const plan = this.planner.planForFaction(factionId);
+
+        // 2. Исполнить шаги пошагово
+        for (const step of plan) {
+          callbacks.onAIStep?.(step);
+          this.bus.emit('ai:step', step);
+          await new Promise((r) => setTimeout(r, 300));
         }
-        this.isRunning = false;
-        return null;
+
+        // 3. Проверить, была ли атака (последний шаг)
+        const battleStep = plan.find(
+          (s) => s.action === 'attack' || s.action === 'attack-city'
+        );
+        if (battleStep) {
+          callbacks.onAITurnEnd?.({ factionId, battle: battleStep });
+          return battleStep;
+        }
+        callbacks.onAITurnEnd?.({ factionId });
+        this.bus.emit('ai:turnEnded', { factionId });
+      }
+      return null;
+    } finally {
+      this.isRunning = false;
     }
+  }
 }

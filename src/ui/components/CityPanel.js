@@ -15,7 +15,6 @@ export class CityPanel {
     this._city = null;
     this._tile = null;
     this._imgLoader = new CardImageLoader();
-
     this.el.addEventListener('click', (e) => {
       if (e.target === this.el) { this.hide(); return; }
       const close = e.target.getAttribute?.('data-close');
@@ -59,22 +58,91 @@ export class CityPanel {
       factionId: this._world.playerFactionId,
       tileKey: this._tile.key,
     });
-    if (!result.ok) {
-      this.bus.emit('toast:show', { text: result.reason });
-      return;
-    }
+    if (!result.ok) { this.bus.emit('toast:show', { text: result.reason }); return; }
     this.bus.emit('resources:changed', { factionId: this._world.playerFactionId });
     this.bus.emit('toast:show', { text: `Нанят: ${result.general.name}` });
     this.bus.emit('world:generalsChanged', {});
     this._render();
   }
 
-  /** Портрет полководца по пресету. */
   _portraitStyle(general) {
     const idx = general.presetIndex ?? 0;
     const url = generalPortraitUrl(general.factionId, idx);
     if (!url) return '';
     return `background-image:url('${url}');background-size:cover;background-position:center top;`;
+  }
+
+  /** Найти защитника (нейтрального или отколовшегося). */
+  _getDefender() {
+    const world = this._world;
+    const city = this._city;
+    if (!world || !city) return null;
+    // Для отколовшегося
+    if (world._rebelDefenders?.has(city.id)) {
+      return world._rebelDefenders.get(city.id);
+    }
+    // Для нейтральной деревни
+    if (city.settlement && city.neutralFaction) {
+      return world.getSettlementDefender(city);
+    }
+    return null;
+  }
+
+  /** Стиль портрета защитника. */
+  _defenderPortraitStyle(def) {
+    if (!def) return '';
+    if (def.portraitUrl) {
+      const url = def.portraitUrl.startsWith('/') ? def.portraitUrl : `/images/${def.portraitUrl}`;
+      return `background-image:url('${url}');background-size:cover;background-position:center top;`;
+    }
+    // Fallback — общий портрет фракции
+    const url = generalPortraitUrl(def.factionId, def.presetIndex ?? 0);
+    if (!url) return '';
+    return `background-image:url('${url}');background-size:cover;background-position:center top;`;
+  }
+
+  /** Секция обороны для своего города. */
+  _renderDefenseSection() {
+    const world = this._world;
+    const city = this._city;
+    if (!world || !city) return '';
+    const d = world.cityDefense?.get(city.id);
+    if (!d) return '';
+    const pct = d.maxGarrison > 0 ? Math.round((d.garrison / d.maxGarrison) * 100) : 0;
+    return `
+      <div class="cp-section">
+        <div class="cp-section-title">Оборона</div>
+        <div class="cp-defense-bar">
+          <div class="cp-defense-fill" style="width:${pct}%"></div>
+          <span class="cp-defense-label">${d.garrison} / ${d.maxGarrison}</span>
+        </div>
+        <div class="cp-hint">Гарнизон восстанавливается +1 за ход</div>
+      </div>
+    `;
+  }
+
+  /** Секция защитника-нейтрала/отколовшегося (для независимых городов). */
+  _renderDefenderSection() {
+    const def = this._getDefender();
+    if (!def) return '';
+    const portrait = this._defenderPortraitStyle(def);
+    const factionLabel = def.factionId === 'cimmerians' ? 'Киммерийцы' : 'Тавры';
+    const livesHtml = Array.from({ length: def.maxLives }, (_, i) =>
+      `<span class="cp-life ${i >= def.lives ? 'lost' : ''}"></span>`
+    ).join('');
+    return `
+      <div class="cp-section">
+        <div class="cp-section-title">Защитник</div>
+        <div class="cp-defender-row">
+          <div class="cp-defender-portrait" style="${portrait}"></div>
+          <div class="cp-defender-info">
+            <div class="cp-defender-name">${def.name}</div>
+            <div class="cp-defender-faction">${factionLabel}</div>
+            <div class="cp-defender-lives">${livesHtml}</div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   _render() {
@@ -133,13 +201,17 @@ export class CityPanel {
       ? `<div class="cp-restr">${iconImg('ui_help', { size: 11 })} В поселении: только <b>common</b> / <b>rare</b>, цена ×1.5</div>`
       : '';
 
-    const buySettlementHtml = (!isMine && city.settlement)
+    // Покупка деревни доступна, только если соседствует с нашей территорией
+    const canBuyHere = !isMine && city.settlement && this._isAdjacentToFaction(factionId);
+    const buySettlementHtml = canBuyHere
       ? `<button class="btn primary cp-buy-settlement" data-buy-settlement="1">
            🏛 Купить поселение · 40${iconImg('res_gold', { size: 12 })}
          </button>`
-      : '';
+      : (!isMine && city.settlement
+          ? `<div class="cp-hint">Покупка недоступна: деревня не граничит с вашей территорией</div>`
+          : '');
 
-    const attackHtml = (canAttackHere)
+    const attackHtml = canAttackHere
       ? `<button class="btn primary cp-attack-btn" data-attack-city="1">
            ⚔ Атаковать · ${attackCost}${iconImg('action_move', { size: 12 })}
          </button>`
@@ -147,11 +219,8 @@ export class CityPanel {
           ? `<div class="cp-hint">Выберите полководца в радиусе, чтобы атаковать</div>`
           : '');
 
-    const defenseHtml = (!isMine && city.settlement)
-      ? `<div class="cp-defense-info">
-           ${iconImg('ui_shield', { size: 12 })} Охраняется: <b>${factionLabel(city.neutralFaction)}</b>
-         </div>`
-      : '';
+    const defenseSection = isMine ? this._renderDefenseSection() : '';
+    const defenderSection = !isMine ? this._renderDefenderSection() : '';
 
     this.el.querySelector('.city-panel').innerHTML = `
       <h2>${city.name}</h2>
@@ -173,6 +242,8 @@ export class CityPanel {
         <div class="cp-stat-row"><span>Очки найма</span><b>${world.recruitPointsUsed(factionId)}/${world.economy.recruitPointsForFaction(world, factionId)}</b></div>
       </div>
       ` : ''}
+      ${defenseSection}
+      ${defenderSection}
       ${restrHtml}
       ${isMine ? `
       <div class="cp-section">
@@ -188,11 +259,20 @@ export class CityPanel {
           : ''}
       </div>
       ` : ''}
-      ${defenseHtml}
       ${attackHtml}
       ${buySettlementHtml}
       <button class="btn cp-close" data-close="1">Закрыть</button>
     `;
+  }
+
+  /** Есть ли у фракции гекс, соседний с городом. */
+  _isAdjacentToFaction(factionId) {
+    if (!this._world || !this._tile) return false;
+    for (const n of this._tile.hex.neighbors()) {
+      const nt = this._world.map.get(n.q, n.r);
+      if (nt && nt.factionId === factionId) return true;
+    }
+    return false;
   }
 }
 

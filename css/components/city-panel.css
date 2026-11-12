@@ -228,3 +228,86 @@
   color: #fff;
   box-shadow: 0 0 20px rgba(255, 100, 100, 0.5);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ОБОРОНА ГОРОДА
+   ═══════════════════════════════════════════════════════════ */
+   .city-panel .cp-defense-bar {
+    position: relative;
+    height: 22px;
+    background: rgba(10, 6, 3, 0.8);
+    border: 1px solid rgba(212, 169, 76, 0.3);
+    border-radius: 11px;
+    overflow: hidden;
+    margin: 6px 0;
+  }
+  .city-panel .cp-defense-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, #2a5a8b, #58a6ff);
+    transition: width 0.4s ease;
+  }
+  .city-panel .cp-defense-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff3d0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    z-index: 1;
+  }
+  
+  /* ═══════════════════════════════════════════════════════════
+     ЗАЩИТНИК (нейтрал / отколовшийся)
+     ═══════════════════════════════════════════════════════════ */
+  .city-panel .cp-defender-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .city-panel .cp-defender-portrait {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid #d4a94c;
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(212, 169, 76, 0.5);
+  }
+  .city-panel .cp-defender-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .city-panel .cp-defender-name {
+    color: var(--color-gold-bright);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+  .city-panel .cp-defender-faction {
+    color: #8a7a58;
+    font-size: 11px;
+    font-style: italic;
+    margin-bottom: 4px;
+  }
+  .city-panel .cp-defender-lives {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .city-panel .cp-life {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
+    border: 1px solid var(--color-gold);
+  }
+  .city-panel .cp-life.lost {
+    background: #1a1a1a;
+    border-color: #333;
+  }

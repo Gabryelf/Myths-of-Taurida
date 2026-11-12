@@ -89,20 +89,23 @@ export class MarketPanel {
   _offerHtml(offer, mode) {
     const label = GOODS_LABEL[offer.goods] || offer.goods;
     const icon = GOODS_ICON[offer.goods] || 'res_gold';
+    const neutralBadge = offer.neutral
+      ? `<div class="mp-neutral-badge" title="Нейтральный торговец">Н</div>`
+      : '';
     const action = mode === 'buy'
       ? `<button class="mp-action buy" data-buy="${offer.id}">
            Купить · ${offer.price}${iconImg('res_gold', { size: 10 })}
          </button>`
-      : `<div class="mp-action mine-label">
-           ${this._sellerName(offer.sellerFactionId)}
-         </div>`;
+      : `<div class="mp-action mine-label">${this._sellerName(offer.sellerFactionId)}</div>`;
     return `
-      <div class="mp-card goods-${offer.goods}">
+      <div class="mp-card goods-${offer.goods} ${offer.neutral ? 'neutral-offer' : ''}">
+        ${neutralBadge}
         <div class="mp-art mp-goods-art">
           <div class="mp-count">${offer.amount}${iconImg(icon, { size: 12, cls: 'icon-inline' })}</div>
         </div>
         <div class="mp-name">${label}</div>
         <div class="mp-seller">Цена: ${offer.price}${iconImg('res_gold', { size: 10 })}</div>
+        <div class="mp-seller">${offer.neutral ? this._sellerName(offer.sellerFactionId) : ''}</div>
         ${action}
       </div>
     `;

@@ -12,16 +12,17 @@ import { BattleFactory } from '../battle/BattleFactory.js';
 import { VisibilityService } from '../../core/VisibilityService.js';
 import { HaloGenerator } from './HaloGenerator.js';
 import { pickDefenderPreset } from './NeutralDefenders.js';
+import { ConnectivityService } from './ConnectivityService.js';
+import { RoadService } from '../economy/RoadService.js';
+import { CityDefense } from '../economy/CityDefense.js';
 
 export class World {
   constructor({ seed = 1337, radius = 14, playerDeck = null, playerGeneralPreset = 0, activeFactions = null } = {}) {
     this.seed = seed;
     this.radius = radius;
-
     const data = new WorldGenerator({ seed, radius }).generate();
     this.map = data.tiles;
     this.cities = data.cities || [];
-
     this.playerDeck = playerDeck;
     this.recruitPools = new Map();
     this.factions = FactionFactory.createAll();
@@ -30,25 +31,26 @@ export class World {
     this.activeFactions = activeFactions || null;
     this.playerGeneralPreset = playerGeneralPreset;
     this.turn = 1;
-
     this.movement = new MovementService(this);
     this.economy = new EconomyService();
     this.visibility = new VisibilityService({ world: this });
-
     this.resourcePools = new Map();
     for (const f of this.factions) this.resourcePools.set(f.id, new ResourcePool());
-
     this.recruitPointsUsedMap = new Map();
     this.recruit = new RecruitService({ economy: this.economy, world: this });
     this.market = new Market({ world: this });
-
+    // ─── Новые сервисы v0.2.0 ───
+    this.connectivity = new ConnectivityService({ world: this });
+    this.roadService = new RoadService({ world: this });
+    this.cityDefense = new CityDefense({ world: this });
     // ─── Ореолы ───
     this.halos = [];
-    this.haloByCell = new Map();   // tileKey → halo.id
-    this.haloById = new Map();     // halo.id → halo
-
+    this.haloByCell = new Map();
+    this.haloById = new Map();
     this.onFactionEliminated = null;
     this.winner = null;
+    // Защитники отколовшихся городов
+    this._rebelDefenders = new Map();
   }
 
   selectPlayerFaction(id) {
@@ -56,18 +58,18 @@ export class World {
     if (!f) throw new Error(`Unknown faction: ${id}`);
     this.factions.forEach((x) => (x.isPlayer = x.id === id));
     this.playerFactionId = id;
-
     this._assignCitiesToFactions();
     this._placeFactionStarts();
     this._spawnGenerals();
     this._seedStartingDecks();
     this._initRecruitPools();
-    this._initHalos();               // ← до visibility, чтобы доход был корректным
+    this._initHalos();
+    this.cityDefense.initForAllCities();
+    this.market.createStarterNeutralOffers();
     this.visibility.recompute();
     return f;
   }
 
-  // ─── Hot-seat: смена активной фракции без пересоздания мира ───
   switchToFaction(factionId) {
     const f = this.factions.find((x) => x.id === factionId);
     if (!f) return false;
@@ -84,7 +86,6 @@ export class World {
     return humanFactionIds[nextIdx];
   }
 
-  // ─── Ореолы ───
   _initHalos() {
     if (this.halos.length > 0) return;
     const gen = new HaloGenerator({ world: this, seed: this.seed });
@@ -93,7 +94,6 @@ export class World {
       this.haloById.set(h.id, h);
       for (const key of h.cells) this.haloByCell.set(key, h.id);
     }
-    // Гексы ореолов на старте принадлежат тому, кто владеет городом-якорем
     for (const h of this.halos) {
       const city = this.getCity(h.anchorCityId);
       if (!city || !city.factionId) continue;
@@ -108,12 +108,10 @@ export class World {
     if (!tile) return null;
     return this.haloById.get(this.haloByCell.get(tile.key)) || null;
   }
-
   haloTiles(halo) {
     if (!halo) return [];
     return halo.cells.map((k) => this.map.getByKey(k)).filter(Boolean);
   }
-
   isHaloMonopoly(halo, factionId) {
     if (!halo || !factionId) return false;
     const tiles = this.haloTiles(halo);
@@ -121,7 +119,6 @@ export class World {
     return tiles.every((t) => t.factionId === factionId);
   }
 
-  // ─── Остальное (как было) ───
   _assignCitiesToFactions() {
     for (const city of this.cities) {
       city.factionId = null;
@@ -136,13 +133,11 @@ export class World {
     const playerFaction = this.factions.find((f) => f.isPlayer);
     const playable = this.factions.filter((f) => !f.neutral);
     const others = playable.filter((f) => !f.isPlayer);
-
     const startCities = this.cities
       .filter((c) => c.isCity && c.tileKey)
       .map((c) => ({ city: c, tile: this.map.getByKey(c.tileKey) }))
       .filter((x) => x.tile)
       .sort((a, b) => a.tile.hex.distance({ q: 0, r: 0, s: 0 }) - b.tile.hex.distance({ q: 0, r: 0, s: 0 }));
-
     const used = new Set();
     const assign = (faction, candidates) => {
       for (const { city, tile } of candidates) {
@@ -155,7 +150,6 @@ export class World {
       }
       return false;
     };
-
     assign(playerFaction, startCities);
     for (const f of others) assign(f, startCities);
   }
@@ -178,7 +172,6 @@ export class World {
 
   _seedStartingDecks() {
     for (const gen of this.generals) {
-      // Все игровые фракции (не нейтралы) получают стартовую колоду
       const keys = CardFactory.keysForFaction(gen.factionId);
       if (keys.length === 0) continue;
       const cheap = keys.filter((k) => CardFactory.defForKey(k).str === 1);
@@ -207,11 +200,9 @@ export class World {
     if (!this.playerFactionId) return null;
     return this.generals.find((g) => g.factionId === this.playerFactionId) || null;
   }
-
   getGeneralAt(hex) {
     return this.generals.find((g) => g.alive && g.hex.key === hex.key) || null;
   }
-
   getCity(cityId) { return this.cities.find((c) => c.id === cityId) || null; }
   getCityAt(hex) {
     const tile = this.map.get(hex.q, hex.r);
@@ -219,37 +210,52 @@ export class World {
     return this.getCity(tile.cityId);
   }
 
+  /**
+   * Защитник поселения/города.
+   *  - Для нейтральных деревень — из NeutralDefenders (preset)
+   *  - Для отколовшихся городов — из this._rebelDefenders
+   *  - Для обычных городов — гарнизон (CityDefense), генерала нет
+   */
   getSettlementDefender(city) {
-    if (!city || !city.settlement) return null;
-    const tile = this.map.getByKey(city.tileKey);
+    if (!city) return null;
+    const tile = city.tileKey ? this.map.getByKey(city.tileKey) : null;
     if (!tile) return null;
-    const factionId = city.neutralFaction || 'tauri';
-    const preset = pickDefenderPreset(city, factionId);
-    if (!preset) {
+
+    // 1. Отколовшийся город
+    if (this._rebelDefenders.has(city.id)) {
+      return this._rebelDefenders.get(city.id);
+    }
+
+    // 2. Нейтральная деревня
+    if (city.settlement && city.neutralFaction) {
+      const preset = pickDefenderPreset(city, city.neutralFaction);
+      if (!preset) {
+        return {
+          id: `def_${city.id}`,
+          name: 'Защитник',
+          factionId: city.neutralFaction,
+          hex: tile.hex,
+          lives: 3, maxLives: 3,
+          presetIndex: 0,
+          deck: { cards: [] },
+          isSettlementDefender: true,
+        };
+      }
       return {
         id: `def_${city.id}`,
-        name: 'Защитник',
-        factionId,
+        name: preset.name,
+        factionId: city.neutralFaction,
         hex: tile.hex,
-        lives: 3, maxLives: 3,
-        presetIndex: 0,
-        deck: { cards: [] },
+        lives: preset.lives,
+        maxLives: preset.maxLives,
+        presetIndex: preset.presetIndex ?? 0,
+        portraitUrl: preset.portrait || null,
+        deck: { cards: this._defenderDeckFromPreset(preset.cardPool) },
         isSettlementDefender: true,
       };
     }
-    return {
-      id: `def_${city.id}`,
-      name: preset.name,
-      factionId,
-      hex: tile.hex,
-      lives: preset.lives,
-      maxLives: preset.maxLives,
-      presetIndex: preset.presetIndex ?? 0,
-      // портрет прокидываем напрямую
-      portraitUrl: preset.portrait || null,
-      deck: { cards: this._defenderDeckFromPreset(preset.cardPool) },
-      isSettlementDefender: true,
-    };
+
+    return null;
   }
 
   _defenderDeckFromPreset(cardPool) {
@@ -258,40 +264,32 @@ export class World {
       try {
         const def = CardFactory.defForKey(key);
         if (def) out.push(CardFactory.create(key));
-      } catch (_) { }
+      } catch (_) {}
     }
     return out;
   }
 
-  /** Есть ли ещё живые нейтральные поселения этой фракции. */
   hasNeutralSettlements(neutralFactionId) {
     return this.cities.some(
       (c) => c.settlement && c.neutralFaction === neutralFactionId,
     );
   }
 
-  _defenderDeck(factionId) {
-    const keys = CardFactory.keysForFaction(factionId);
-    const out = [];
-    for (let i = 0; i < 4 && keys.length > 0; i++) {
-      out.push(CardFactory.create(keys[i % keys.length]));
-    }
-    return out;
-  }
-
   recomputeVisibility() { this.visibility.recompute(); }
-
   recruitPointsUsed(factionId) { return this.recruitPointsUsedMap.get(factionId) || 0; }
   markRecruitPointsUsed(factionId, pts) {
     this.recruitPointsUsedMap.set(factionId, this.recruitPointsUsed(factionId) + pts);
   }
 
+  /**
+   * Конец хода: доход, ореолы, рынок, оборона, связность.
+   */
   endTurn() {
     this.turn += 1;
     for (const g of this.generals) g.resetTurn();
     this.recruitPointsUsedMap.clear();
-  
-    // Обычные фракции
+
+    // Доход и рынок обычных фракций
     for (const f of this.factions) {
       if (f.eliminated || f.neutral) continue;
       const pool = this.resourcePools.get(f.id);
@@ -307,13 +305,25 @@ export class World {
         });
       }
     }
-  
-    // Нейтральные торговцы (тавры/киммерийцы)
+
+    // Нейтральные торговцы
     for (const fid of ['tauri', 'cimmerians']) {
       this.market.autoCreateOffers(fid);
     }
     this.market.sweepNeutralOffers();
-  
+
+    // Оборона городов
+    for (const f of this.factions) {
+      if (f.eliminated || f.neutral) continue;
+      this.cityDefense.regenForFaction(f.id);
+    }
+
+    // Связность
+    const connectivityEvents = this.connectivity.enforceForAll();
+    for (const ev of connectivityEvents) {
+      this.onConnectivityEvent?.(ev);
+    }
+
     this._aiMarketTurn();
     this._checkElimination();
   }
@@ -339,12 +349,10 @@ export class World {
   startBattle({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     return BattleFactory.create({ attackerGen, targetTile, defenderFactionId, world: this, playerSide });
   }
-
   getRecruitPool(factionId) {
     const pool = this.recruitPools.get(factionId);
     return pool ? pool.available : [];
   }
-
   returnCardToPool(factionId, cardKey) {
     this.recruitPools.get(factionId)?.returnCard(cardKey);
   }
@@ -358,6 +366,10 @@ export class World {
     city.neutralFaction = null;
     city.settlement = false;
     tile.setFaction(newFactionId);
+    // Оборона ослаблена
+    this.cityDefense.onCapture(cityId);
+    // Удалить защитника-отколовшегося
+    this._rebelDefenders.delete(cityId);
     return { ok: true, city, tile };
   }
 

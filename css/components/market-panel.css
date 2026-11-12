@@ -230,8 +230,9 @@
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #2a1d0f, #0a0603);
-  }
-  .market-panel .mp-goods-art .mp-count {
+}
+
+.market-panel .mp-goods-art .mp-count {
     position: static;
     width: auto;
     height: auto;
@@ -245,16 +246,41 @@
     display: flex;
     align-items: center;
     gap: 4px;
-  }
-  .market-panel .mp-card.goods-weapons .mp-goods-art {
+}
+
+.market-panel .mp-card.goods-weapons .mp-goods-art {
     background: linear-gradient(135deg, #3a4a5a, #0a1018);
-  }
-  .market-panel .mp-card.goods-prov .mp-goods-art {
+}
+
+.market-panel .mp-card.goods-prov .mp-goods-art {
     background: linear-gradient(135deg, #2a5a2c, #0a1a0a);
-  }
-  .market-panel .mp-action.mine-label {
+}
+
+.market-panel .mp-action.mine-label {
     color: #8a7a58;
     font-style: italic;
     cursor: default;
     font-size: 10px;
-  }
+}
+
+.market-panel .mp-card.neutral-offer {
+    border-color: #8a7aff;
+}
+
+.market-panel .mp-neutral-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #4a3a8a, #2a1a4a);
+    color: #d0c8ff;
+    font-size: 10px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #8a7aff;
+    z-index: 3;
+}
