@@ -1,17 +1,39 @@
 .icon {
-    display: inline-block;
-    vertical-align: middle;
-    flex-shrink: 0;
-    image-rendering: crisp-edges;
-  }
-  .icon-inline {
-    margin-right: 4px;
-  }
-  .icon-large {
-    width: 24px;
-    height: 24px;
-  }
-  .icon-small {
-    width: 12px;
-    height: 12px;
-  }
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  image-rendering: crisp-edges;
+}
+
+.icon-inline {
+  margin-right: 4px;
+}
+
+.icon-large {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-small {
+  width: 12px;
+  height: 12px;
+}
+
+/* css/components/icons.css — дополнение */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  object-fit: contain;
+  /* svg не растягивается */
+}
+
+/* Если иконка-картинка в блоке с текстом — выровнять по базовой линии */
+.icon-inline {
+  margin-right: 4px;
+}
+
+/* Опционально: лёгкая тень для читаемости на пёстром фоне */
+.icon-shadow {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .6));
+}

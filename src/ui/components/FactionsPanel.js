@@ -1,4 +1,5 @@
 import { Theme } from '../../infrastructure/config/ThemeConfig.js';
+import { iconImg } from '../../config/icons.js';
 
 export class FactionsPanel {
   constructor(root, { world }) {
@@ -36,7 +37,11 @@ export class FactionsPanel {
           <td>${cities} / ${villages}</td>
           <td>${generals.length} (❤ ${totalLives})</td>
           <td>${totalCards}</td>
-          <td>💰 ${pool.gold} · 🌾 ${pool.prov} · ⚔ ${pool.weapons}</td>
+          <td>
+            ${iconImg('res_gold',    { size: 11 })} ${pool.gold} ·
+            ${iconImg('res_prov',    { size: 11 })} ${pool.prov} ·
+            ${iconImg('res_weapons', { size: 11 })} ${pool.weapons}
+          </td>
         </tr>
       `;
     }).join('');

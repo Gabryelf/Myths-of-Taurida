@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="uihg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f5d57a"/><stop offset="1" stop-color="#6a4a18"/>
+      </linearGradient>
+    </defs>
+    <path d="M7 4h18M7 28h18M7 4c0 8 9 9 9 12s-9 4-9 12M25 4c0 8-9 9-9 12s9 4 9 12" fill="url(#uihg)" fill-opacity=".3" stroke="#5a4020" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M12 24c0-3 4-3 4-4s-4-1-4-4" fill="#f5d57a" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <circle cx="16" cy="9" r="1.5" fill="#f5d57a"/></svg>

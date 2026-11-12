@@ -1,5 +1,6 @@
 import { Theme } from '../../infrastructure/config/ThemeConfig.js';
 import { generalPortraitUrl } from '../../config.js';
+import { iconImg } from '../../config/icons.js';
 
 export class GeneralPanel {
   constructor(root) {
@@ -65,8 +66,9 @@ export class GeneralPanel {
   }
 
   _perkIcon(perkId) {
-    const map = { move: '👟', lives: '❤', capacity: '🃏' };
-    const key = perkId.includes('move') ? 'move' : perkId.includes('lives') ? 'lives' : 'capacity';
-    return `<span class="gp-perk" title="${perkId}">${map[key]}</span>`;
+    const iconKey = perkId.includes('move')     ? 'action_move'
+                  : perkId.includes('lives')    ? 'general_life'
+                  :                              'general_capacity';
+    return `<span class="gp-perk" title="${perkId}">${iconImg(iconKey, { size: 14 })}</span>`;
   }
 }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="ath" cx=".5" cy=".5">
+        <stop offset=".5" stop-color="#a0e8b0"/><stop offset="1" stop-color="#1e5a2c"/>
+      </radialGradient>
+    </defs>
+    <circle cx="16" cy="16" r="7" fill="url(#ath)" stroke="#0a3a14" stroke-width="1.6"/>
+    <path d="M16 1l2 6h-4zM16 31l-2-6h4zM1 16l6-2v4zM31 16l-6 2v-4zM5 5l5 3-3 3zM27 5l-5 3 3 3zM5 27l5-3-3-3zM27 27l-5-3 3-3z" fill="#5ec37a" stroke="#0a3a14" stroke-width="1"/>
+    <circle cx="16" cy="16" r="2.5" fill="#fff3d0" opacity=".6"/></svg>

@@ -2,12 +2,12 @@ import { LobbyCard } from './LobbyCard.js';
 import { CardFactory } from '../../../domain/card/CardFactory.js';
 import { CardImageLoader } from '../../../infrastructure/three/visuals/CardImageLoader.js';
 import { Theme } from '../../../infrastructure/config/ThemeConfig.js';
+import { iconImg } from '../../../config/icons.js';
 import {
   factionEmblemUrl,
   generalPortraitUrl,
 } from '../../../config.js';
 import { GENERAL_PRESETS } from '../../../domain/general/GeneralFactory.js';
-import { iconImg } from '../../../config/icons.js';
 
 const TYPE_FILTERS = [
   { id: 'warrior', label: 'Воин',      icon: 'type_warrior' },
@@ -331,8 +331,8 @@ export class LobbyScreen {
         <div class="lobby-top-left">${this._matchConfigHtml()}</div>
         <div class="lobby-logo"><img src="/promo/logo.gif" alt="TAVRIDA" /></div>
         <div class="lobby-top-right">
-          <div class="lobby-coins">💰 ${this.profile.coins}</div>
-          <div class="lobby-glory">⭐ ${this.profile.totalGlory ? this.profile.totalGlory() : 0}</div>
+        <div class="lobby-coins">${iconImg('res_gold', { size: 14 })} ${this.profile.coins}</div>
+        <div class="lobby-glory">${iconImg('ui_star',  { size: 14 })} ${this.profile.totalGlory ? this.profile.totalGlory() : 0}</div>
         </div>
       </div>
       ${this._hotseatFactionsHtml()}

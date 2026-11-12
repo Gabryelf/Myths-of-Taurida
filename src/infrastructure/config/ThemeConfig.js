@@ -60,7 +60,7 @@ export const Theme = {
   },
   fog: {
     color: 0x050508,
-    opacity: 0.05,
+    opacity: 0.2,
   },
   city: {
     radius: 1.1,

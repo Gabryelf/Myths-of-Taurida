@@ -39,8 +39,9 @@ export class HexVisual extends BaseVisual {
     plate.userData = { tile, hoverable: 'tile' };
     this.group.add(plate);
 
-    // ─── Модель гор/леса ───
-    const modelUrl = terrainModelUrl(tile.terrain);
+    // ─── Модель гор/леса (случайная из списка, детерминированно по tile.key) ───
+    const seed = hashString(tile.key);
+    const modelUrl = terrainModelUrl(tile.terrain, seed);
     if (modelUrl) {
       this._loadTerrainModel(modelUrl, tile, size, height);
     } else {
@@ -119,8 +120,13 @@ export class HexVisual extends BaseVisual {
     obj.position.z += -center.z + (cfg.offsetZ ?? 0);
     obj.position.y += (plateHeight - box1.min.y) + (cfg.offsetY ?? 0);
 
-    // 4) Поворот
-    if (cfg.rotationY) obj.rotation.y = cfg.rotationY;
+    // 4) Поворот (фиксированный или случайный по seed)
+    let rotY = cfg.rotationY || 0;
+    if (cfg.rotationYRandom) {
+      const rng = mulberry32(hashString(tile.key + ':rot'));
+      rotY += rng() * Math.PI * 2;   // 0..2π
+    }
+    obj.rotation.y = rotY;
 
     // 5) Тени и userData
     obj.traverse((c) => {

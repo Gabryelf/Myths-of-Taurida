@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="wsh" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ff8a8a"/><stop offset="1" stop-color="#6b1010"/>
+      </linearGradient>
+    </defs>
+    <path d="M16 2v22M12 5h8M12.5 24h7l-2 5h-3z" fill="url(#wsh)" stroke="#4a0808" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M4 11l6 1-1 6-5-1z" fill="#8b1a1a" stroke="#4a0808" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="7" cy="14" r="1.5" fill="#f5d57a"/>
+    <path d="M28 11l-6 1 1 6 5-1z" fill="#8b1a1a" stroke="#4a0808" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="25" cy="14" r="1.5" fill="#f5d57a"/></svg>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="wh" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#f5d57a"/><stop offset="1" stop-color="#a07c3a"/>
+      </linearGradient>
+    </defs>
+    <path d="M16 29V8" stroke="#5a4020" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M16 9c-4-1-6-3-6-7 3 0 6 2 6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M16 9c4-1 6-3 6-7-3 0-6 2-6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M16 15c-4-1-6-3-6-7 3 0 6 2 6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M16 15c4-1 6-3 6-7-3 0-6 2-6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M16 21c-4-1-6-3-6-7 3 0 6 2 6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M16 21c4-1 6-3 6-7-3 0-6 2-6 7z" fill="url(#wh)" stroke="#5a4020" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M12 22c2 2 6 2 8 0" stroke="#5a4020" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>

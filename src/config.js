@@ -19,32 +19,32 @@ export const CARD_IMAGES = {
   bosp_merchant:      'bosporian_006.png',
   bosp_king:          'bosporian_003.png',
   bosp_peltast:       'bosporian_007.png',
-  bosp_thorax:        'bosporian_008.png',
+  bosp_thorax:        'bosporian/001.png',
   bosp_priest:        'bosporian_009.png',
   bosp_scythian_ally: 'bosporian_010.png',
   bosp_trierarch:     'bosporian_011.png',
   // ═══════════════ ХЕРСОНЕС ═══════════════
-  cher_hoplite:       'hersones_001.png',
+  cher_hoplite:       'chersoness/004.png',
   cher_archer:        'chersoness/001.png',
-  cher_priest:        'hersones_003.png',
-  cher_mercenary:     'hersones_002.png',
-  cher_archon:        'hersones_005.png',
-  cher_slinger:       'hersones_006.png',
-  cher_ephebe:        'hersones_007.png',
-  cher_hetaira:       'hersones_008.png',
-  cher_hipparch:      'hersones_009.png',
-  cher_prodromos:     'hersones_010.png',
+  cher_priest:        'chersoness/011.png',
+  cher_mercenary:     'chersoness/008.png',
+  cher_archon:        'chersoness/003.png',
+  cher_slinger:       'chersoness/009.png',
+  cher_ephebe:        'chersoness/006.png',
+  cher_hetaira:       'chersoness/007.png',
+  cher_hipparch:      'chersoness/005.png',
+  cher_prodromos:     'chersoness/002.png',
   // ═══════════════ РИМ ═══════════════
-  rome_legion:        'romes_001.png',
-  rome_archer:        'romes_002.png',
-  rome_centurion:     'romes_004.png',
-  rome_siege:         'romes_005.png',
-  rome_consul:        'romes_006.png',
-  rome_veles:         'romes_007.png',
-  rome_princeps:      'romes_008.png',
-  rome_aquila:        'romes_009.png',
-  rome_praetor:       'romes_010.png',
-  rome_tribune:       'romes_011.png',
+  rome_legion:        'romes/002.png',
+  rome_archer:        'romes/007.png',
+  rome_centurion:     'romes/001.png',
+  rome_siege:         'romes/005.png',
+  rome_consul:        'romes/010.png',
+  rome_veles:         'romes/003.png',
+  rome_princeps:      'romes/004.png',
+  rome_aquila:        'romes/006.png',
+  rome_praetor:       'romes/008.png',
+  rome_tribune:       'romes/009.png',
   // ═══════════════ ГОТЫ ═══════════════
   goth_warrior:       'tauri_001.png',
   goth_berserk:       'tauri_002.png',
@@ -82,27 +82,27 @@ export const FACTION_EMBLEMS = {
 // Если файла нет — используется GENERAL_PORTRAITS[factionId] как fallback.
 export const GENERAL_PRESET_PORTRAITS = {
   scythians: [
-    'avatars/general_scythians_0.png',
-    'avatars/general_scythians_1.png',
-    'avatars/general_scythians_2.png',
+    'avatars/001.png',
+    'avatars/003.png',
+    'avatars/002.png',
   ],
   bosporus: [
     'avatars/general_bosporus_0.png',
     'avatars/general_bosporus_1.png',
-    'avatars/general_bosporus_2.png',
+    'avatars/008.png',
   ],
   chersonesos: [
-    'avatars/general_chersonesos_0.png',
-    'avatars/general_chersonesos_1.png',
-    'avatars/general_chersonesos_2.png',
+    'avatars/005.png',
+    'avatars/006.png',
+    'avatars/007.png',
   ],
   rome: [
-    'avatars/general_rome_0.png',
+    'avatars/009.png',
     'avatars/general_rome_1.png',
     'avatars/general_rome_2.png',
   ],
   goths: [
-    'avatars/general_goths_0.png',
+    'avatars/004.png',
     'avatars/general_goths_1.png',
     'avatars/general_goths_2.png',
   ],
@@ -130,50 +130,58 @@ export function factionEmblemUrl(factionId) {
 //  3D-МОДЕЛИ ГЕКСОВ
 // ═══════════════════════════════════════════
 export const MODEL_BASE = '/models/';
+
+/**
+ * Списки моделей по типу террейна.
+ * На каждый гекс выбирается ОДНА случайная модель из массива.
+ * Имена файлов — относительно MODEL_BASE (public/models/).
+ */
 export const TERRAIN_MODELS = {
-  mountain: 'rock.glb',
-  forest:   'wood.glb',
+  mountain: ['mounts.glb', 'mounts_1.glb', 'mounts_2.glb', 'mounts_3.glb', 'mounts_4.glb'],
+  forest:   ['forest.glb', 'forest_1.glb', 'forest_2.glb', 'forest_3.glb', 'forest_4.glb'],
 };
 
 /**
  * Настройки отображения моделей по типу террейна.
- * Все поля опциональны — берутся значения по умолчанию.
- *
- * scale        — пользовательский множитель к автоскейлу (1.0 = вписать ~1.4*size)
- * offsetY      — вертикальный сдвиг в мировых единицах (0 = низ на плите)
- * offsetX, offsetZ — горизонтальный сдвиг относительно центра гекса
- * rotationY    — поворот вокруг Y в радианах
- * castShadow, receiveShadow — тени
- * fitToHex     — если true, автоскейл по горизонтали ~1.4*size; если false, scale = size
+ * Общие для всех вариантов одного террейна.
  */
-export const TERRAIN_MODEL_SETTINGS = {
+ export const TERRAIN_MODEL_SETTINGS = {
   mountain: {
-    scale: 1.45,
-    offsetY: -7,
-    offsetX: 0,
-    offsetZ: 0,
+    scale: 1.45, offsetY: -10, offsetX: 0, offsetZ: 0,
     rotationY: 0,
-    castShadow: true,
-    receiveShadow: true,
-    fitToHex: true,
+    rotationYRandom: false,   
+    castShadow: true, receiveShadow: true, fitToHex: true,
   },
   forest: {
-    scale: 1.45,
-    offsetY: -7,
-    offsetX: 0,
-    offsetZ: 0,
+    scale: 1.45, offsetY: -7, offsetX: 0, offsetZ: 0,
     rotationY: 0,
-    castShadow: true,
-    receiveShadow: true,
-    fitToHex: true,
+    rotationYRandom: false,
+    castShadow: true, receiveShadow: true, fitToHex: true,
   },
 };
 
-/** URL модели для террейна или null. */
-export function terrainModelUrl(terrain) {
-  const file = TERRAIN_MODELS[terrain];
-  if (!file) return null;
-  return MODEL_BASE + file;
+/**
+ * URL всех моделей для террейна (для прогрева кэша).
+ * Возвращает массив или пустой массив.
+ */
+export function terrainModelUrls(terrain) {
+  const list = TERRAIN_MODELS[terrain];
+  if (!list || list.length === 0) return [];
+  return list.map((file) => MODEL_BASE + file);
+}
+
+/**
+ * URL модели для террейна с учётом seed.
+ * Один и тот же seed + terrain → одна и та же модель
+ * (детерминизм важен: при перестройке сцены модель не «прыгает»).
+ *
+ * seed обычно = hash(tile.key), чтобы у каждого гекса была своя модель.
+ */
+export function terrainModelUrl(terrain, seed = 0) {
+  const list = TERRAIN_MODELS[terrain];
+  if (!list || list.length === 0) return null;
+  const idx = Math.abs(seed) % list.length;
+  return MODEL_BASE + list[idx];
 }
 
 /** Настройки модели для террейна или null. */

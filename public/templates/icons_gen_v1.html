@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAVRIDA · Icon Sheet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0d12; --panel:#12161d; --panel2:#1a1f28; --border:#2a3038;
+    --gold:#d4a94c; --gold-bright:#f5d57a; --text:#e8dfc8; --muted:#8a7a58;
+    --red:#e74c3c; --green:#5ec37a; --blue:#7aa0c8; --purple:#c07ad8;
+    --radius:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;-webkit-font-smoothing:antialiased}
+  body{padding:24px 20px 80px;min-height:100vh}
+
+  /* ─── Шапка ─── */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg,rgba(10,13,18,.98),rgba(10,13,18,.92));
+    border-bottom:1px solid var(--border);
+    padding:14px 20px;margin:-24px -20px 20px;
+    backdrop-filter:blur(8px);
+  }
+  .head-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  h1{font-size:20px;color:var(--gold-bright);letter-spacing:.06em;font-weight:700}
+  h1 small{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px;letter-spacing:.04em}
+  .spacer{flex:1}
+  .btn{
+    padding:8px 16px;border-radius:var(--radius);cursor:pointer;
+    font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.04em;
+    border:1px solid var(--gold);background:linear-gradient(180deg,#3a2a10,#1a1008);
+    color:var(--gold-bright);transition:all .15s;white-space:nowrap;
+  }
+  .btn:hover{background:linear-gradient(180deg,#5a4020,#2a1a08);box-shadow:0 0 16px rgba(212,169,76,.4)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg,#8a6a30,#4a3418)}
+  .btn.primary:hover{background:linear-gradient(180deg,#a07c3a,#5a4020)}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+  .btn.ghost:hover{color:var(--gold-bright);border-color:var(--gold)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ─── Палитра ─── */
+  .palette{
+    display:none;gap:8px;flex-wrap:wrap;padding:12px 0 0;margin-top:12px;
+    border-top:1px solid var(--border);
+  }
+  .palette.open{display:flex}
+  .swatch{
+    display:flex;align-items:center;gap:8px;padding:6px 10px;
+    border:1px solid var(--border);border-radius:6px;cursor:pointer;
+    background:var(--panel2);font-size:11px;transition:all .15s;
+  }
+  .swatch:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .swatch-color{width:20px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,.15);flex-shrink:0}
+  .swatch-hex{font-family:ui-monospace,'Courier New',monospace;color:var(--muted);font-size:11px}
+  .swatch-name{color:var(--text);font-weight:700;font-size:11px}
+  .copied{color:var(--green)!important}
+
+  /* ─── Тулбар ─── */
+  .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;font-size:12px}
+  .toolbar label{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:700}
+  .seg{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:2px}
+  .seg button{
+    padding:4px 10px;border:none;background:transparent;color:var(--muted);
+    font-family:inherit;font-size:11px;cursor:pointer;border-radius:4px;transition:all .15s;
+  }
+  .seg button.active{background:var(--gold);color:#1a1008;font-weight:700}
+  .seg button:not(.active):hover{color:var(--gold-bright)}
+  input[type=search]{
+    padding:6px 12px;border:1px solid var(--border);border-radius:6px;
+    background:var(--panel);color:var(--text);font-family:inherit;font-size:12px;
+    width:220px;outline:none;transition:border .15s;
+  }
+  input[type=search]:focus{border-color:var(--gold)}
+  input[type=search]::placeholder{color:var(--muted)}
+
+  /* ─── Секции ─── */
+  .section{margin-bottom:28px}
+  .section-title{
+    display:flex;align-items:center;gap:10px;margin-bottom:12px;
+    font-size:13px;font-weight:700;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;
+    padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+  .section-title .count{
+    font-size:10px;color:var(--muted);font-weight:400;letter-spacing:.04em;
+    background:var(--panel);padding:2px 8px;border-radius:10px;
+  }
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+
+  /* ─── Карточка иконки ─── */
+  .ic{
+    position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:14px 8px 10px;background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius);cursor:pointer;transition:all .15s;
+    overflow:hidden;
+  }
+  .ic:hover{border-color:var(--gold);background:var(--panel2);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+  .ic:active{transform:translateY(0)}
+  .ic-preview{
+    width:64px;height:64px;display:flex;align-items:center;justify-content:center;
+    border-radius:8px;transition:background .15s;
+  }
+  /* Фоны для превью */
+  .bg-dark .ic-preview{background:#0a0d12}
+  .bg-gold .ic-preview{background:radial-gradient(circle at 50% 40%,#3a2a10,#1a1008)}
+  .bg-checker .ic-preview{
+    background:
+      linear-gradient(45deg,#1a1f28 25%,transparent 25%),
+      linear-gradient(-45deg,#1a1f28 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#1a1f28 75%),
+      linear-gradient(-45deg,transparent 75%,#1a1f28 75%);
+    background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;
+    background-color:#12161d;
+  }
+  .ic-preview svg{display:block;color:var(--text)}
+  .ic-key{
+    font-family:ui-monospace,'Courier New',monospace;font-size:10px;color:var(--gold-bright);
+    text-align:center;word-break:break-all;line-height:1.2;
+  }
+  .ic-desc{font-size:10px;color:var(--muted);text-align:center;line-height:1.25}
+  .ic-dl{
+    position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;
+    background:var(--panel2);border:1px solid var(--border);display:flex;
+    align-items:center;justify-content:center;font-size:11px;color:var(--muted);
+    opacity:0;transition:all .15s;
+  }
+  .ic:hover .ic-dl{opacity:1;color:var(--gold)}
+  .ic-dl:hover{background:var(--gold);color:#1a1008;border-color:var(--gold)}
+
+  /* ─── Тосты ─── */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:linear-gradient(180deg,#2a1d0f,#12100a);border:1px solid var(--gold);
+    color:var(--gold-bright);padding:12px 24px;border-radius:var(--radius);
+    font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:all .3s;
+    box-shadow:0 8px 32px rgba(0,0,0,.8);z-index:100;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{border-color:var(--red);color:#f0a0a0}
+
+  /* ─── Прогресс ─── */
+  .progress{
+    position:fixed;top:0;left:0;right:0;height:3px;z-index:200;
+    background:transparent;pointer-events:none;
+  }
+  .progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-bright));transition:width .2s}
+</style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<header>
+  <div class="head-row">
+    <h1>🎨 TAVRIDA · Icon Sheet <small>79 SVG · 32×32 · currentColor</small></h1>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="btnPalette">🎨 Палитра</button>
+    <button class="btn" id="btnCsv">⬇ CSV-реестр</button>
+    <button class="btn primary" id="btnZip">⬇ Скачать всё (ZIP)</button>
+  </div>
+  <div class="palette" id="palette"></div>
+</header>
+
+<div class="toolbar">
+  <label>Фон:</label>
+  <div class="seg" id="bgSeg">
+    <button data-bg="dark" class="active">Тёмный</button>
+    <button data-bg="gold">Золотой</button>
+    <button data-bg="checker">Шахматка</button>
+  </div>
+  <label>Размер:</label>
+  <div class="seg" id="sizeSeg">
+    <button data-size="32">32</button>
+    <button data-size="48">48</button>
+    <button data-size="64" class="active">64</button>
+    <button data-size="96">96</button>
+  </div>
+  <div class="spacer"></div>
+  <input type="search" id="search" placeholder="Поиск по ключу/описанию…">
+</div>
+
+<main id="sheet"></main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   TAVRIDA ICON SET — 79 иконок, единый стиль
+   viewBox 32×32 · stroke 2.4 · currentColor + акценты
+   ═══════════════════════════════════════════════════════════════ */
+
+const G = '#d4a94c', GB = '#f5d57a', R = '#e74c3c', GR = '#5ec37a',
+      B = '#7aa0c8', P = '#c07ad8', O = '#e67e22';
+
+const ICONS = [
+  /* ─────────── РЕСУРСЫ ─────────── */
+  { key:'res_gold', cat:'Ресурсы', desc:'Золото — стопка монет', accent:G, svg:`
+    <ellipse cx="16" cy="9" rx="8" ry="3" stroke="${G}" stroke-width="2.2" fill="${G}" fill-opacity=".18"/>
+    <path d="M8 9v5c0 1.66 3.58 3 8 3s8-1.34 8-3V9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <ellipse cx="16" cy="20" rx="8" ry="3" stroke="${G}" stroke-width="2.2" fill="${G}" fill-opacity=".3"/>
+    <path d="M8 14v5c0 1.66 3.58 3 8 3s8-1.34 8-3v-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` },
+
+  { key:'res_prov', cat:'Ресурсы', desc:'Провизия — сноп пшеницы', accent:G, svg:`
+    <path d="M16 28V10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M16 12c-3-1-5-3-5-6 3 0 5 2 5 6zM16 12c3-1 5-3 5-6-3 0-5 2-5 6z" stroke="${G}" stroke-width="2" fill="${G}" fill-opacity=".25" stroke-linejoin="round"/>
+    <path d="M16 18c-3-1-5-3-5-6 3 0 5 2 5 6zM16 18c3-1 5-3 5-6-3 0-5 2-5 6z" stroke="${G}" stroke-width="2" fill="${G}" fill-opacity=".25" stroke-linejoin="round"/>
+    <path d="M16 24c-3-1-5-3-5-6 3 0 5 2 5 6zM16 24c3-1 5-3 5-6-3 0-5 2-5 6z" stroke="${G}" stroke-width="2" fill="${G}" fill-opacity=".25" stroke-linejoin="round"/>` },
+
+  { key:'res_weapons', cat:'Ресурсы', desc:'Оружие — скрещённые мечи', accent:'#c8d0d8', svg:`
+    <path d="M6 26L26 6M10 6h16v16" stroke="#c8d0d8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M6 6L26 26M6 10v16h16" stroke="#c8d0d8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'res_coins', cat:'Ресурсы', desc:'Монеты — одиночный кружок с номиналом', accent:G, svg:`
+    <circle cx="16" cy="16" r="11" stroke="${G}" stroke-width="2.4" fill="${G}" fill-opacity=".18"/>
+    <circle cx="16" cy="16" r="7.5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.5"/>
+    <path d="M14 11.5v9M18 11.5v9M14 16h4" stroke="${GB}" stroke-width="1.8" stroke-linecap="round"/>` },
+
+  { key:'res_tactic', cat:'Ресурсы', desc:'Тактика — молния', accent:B, svg:`
+    <path d="M18 3L7 17h7l-2 12 13-15h-7l2-11z" stroke="${B}" stroke-width="2.4" stroke-linejoin="round" fill="${B}" fill-opacity=".25"/>` },
+
+  /* ─────────── ПАРАМЕТРЫ ─────────── */
+  { key:'stat_str', cat:'Параметры', desc:'Сила/здоровье карты — сердце', accent:R, svg:`
+    <path d="M16 27S4 19 4 11a6 6 0 0 1 12-2 6 6 0 0 1 12 2c0 8-12 16-12 16z" stroke="${R}" stroke-width="2.4" stroke-linejoin="round" fill="${R}" fill-opacity=".3"/>` },
+
+  { key:'stat_prov', cat:'Параметры', desc:'Провизия — колос', accent:G, svg:`
+    <path d="M16 28V9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M11 12l5-3 5 3M11 18l5-3 5 3M11 24l5-3 5 3" stroke="${G}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="${G}" fill-opacity=".2"/>` },
+
+  { key:'general_level', cat:'Параметры', desc:'Уровень генерала — шеврон', accent:GB, svg:`
+    <path d="M8 22l8-8 8 8M8 28l8-8 8 8" stroke="${GB}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M12 8l4-4 4 4" stroke="${GB}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="${GB}" fill-opacity=".3"/>` },
+
+  { key:'general_xp', cat:'Параметры', desc:'Опыт генерала — звезда', accent:GB, svg:`
+    <path d="M16 3l3.5 8.5L28 12l-6.5 6 2 9L16 22.5 8.5 27l2-9L4 12l8.5-.5z" stroke="${GB}" stroke-width="2.2" stroke-linejoin="round" fill="${GB}" fill-opacity=".3"/>` },
+
+  { key:'general_perk', cat:'Параметры', desc:'Перк — звезда в круге', accent:P, svg:`
+    <circle cx="16" cy="16" r="12" stroke="${P}" stroke-width="2.2" fill="${P}" fill-opacity=".12"/>
+    <path d="M16 7l2.5 6L25 13.5l-5 4.5 1.5 7L16 21.5 10.5 25l1.5-7-5-4.5 6.5-.5z" stroke="${GB}" stroke-width="1.8" stroke-linejoin="round" fill="${GB}" fill-opacity=".5"/>` },
+
+  { key:'general_life', cat:'Параметры', desc:'Жизнь генерала — капля', accent:R, svg:`
+    <path d="M16 3C9 12 6 17 6 21a10 10 0 0 0 20 0c0-4-3-9-10-18z" stroke="${R}" stroke-width="2.4" stroke-linejoin="round" fill="${R}" fill-opacity=".35"/>` },
+
+  { key:'general_capacity', cat:'Параметры', desc:'Вместимость колоды — веер карт', accent:B, svg:`
+    <rect x="6" y="8" width="9" height="14" rx="1.5" stroke="${B}" stroke-width="2" fill="${B}" fill-opacity=".15" transform="rotate(-15 10 15)"/>
+    <rect x="12" y="7" width="9" height="14" rx="1.5" stroke="${B}" stroke-width="2" fill="${B}" fill-opacity=".25" transform="rotate(-5 16 14)"/>
+    <rect x="17" y="8" width="9" height="14" rx="1.5" stroke="${B}" stroke-width="2" fill="${B}" fill-opacity=".35" transform="rotate(8 22 15)"/>` },
+
+  /* ─────────── ТИПЫ КАРТ ─────────── */
+  { key:'type_warrior', cat:'Типы карт', desc:'Воин — меч и щит', accent:R, svg:`
+    <path d="M16 3v20M12 6h8M13 23h6l-1.5 4h-3z" stroke="${R}" stroke-width="2.4" stroke-linejoin="round" fill="${R}" fill-opacity=".2"/>
+    <path d="M5 13l3 3 4-4" stroke="${R}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+  { key:'type_archer', cat:'Типы карт', desc:'Стрелок — лук и стрела', accent:B, svg:`
+    <path d="M26 6C14 6 6 14 6 26" stroke="${B}" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <path d="M6 6l20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M22 6h4v4M6 22v4h4" stroke="${B}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+  { key:'type_support', cat:'Типы карт', desc:'Поддержка — посох с сиянием', accent:GR, svg:`
+    <path d="M16 28V14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="16" cy="9" r="5" stroke="${GR}" stroke-width="2.2" fill="${GR}" fill-opacity=".25"/>
+    <path d="M16 2v3M16 13v-2M9 9h3M20 9h3M11.5 4.5l2 2M20.5 4.5l-2 2M11.5 13.5l2-2M20.5 13.5l-2-2" stroke="${GB}" stroke-width="1.6" stroke-linecap="round"/>` },
+
+  { key:'type_special', cat:'Типы карт', desc:'Особый — звезда в ромбе', accent:P, svg:`
+    <path d="M16 3L29 16 16 29 3 16z" stroke="${P}" stroke-width="2.4" stroke-linejoin="round" fill="${P}" fill-opacity=".2"/>
+    <path d="M16 9l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" stroke="${GB}" stroke-width="2" stroke-linejoin="round" fill="${GB}" fill-opacity=".5"/>` },
+
+  /* ─────────── РЕДКОСТИ ─────────── */
+  { key:'rarity_common', cat:'Редкости', desc:'Обычная — серый ромб', accent:'#c0c0c0', svg:`
+    <path d="M16 4L28 16 16 28 4 16z" stroke="#c0c0c0" stroke-width="2.4" stroke-linejoin="round" fill="#c0c0c0" fill-opacity=".3"/>` },
+
+  { key:'rarity_rare', cat:'Редкости', desc:'Редкая — синий ромб', accent:B, svg:`
+    <path d="M16 4L28 16 16 28 4 16z" stroke="${B}" stroke-width="2.4" stroke-linejoin="round" fill="${B}" fill-opacity=".35"/>
+    <path d="M16 10L22 16 16 22 10 16z" stroke="${B}" stroke-width="1.6" fill="${B}" fill-opacity=".3"/>` },
+
+  { key:'rarity_epic', cat:'Редкости', desc:'Эпическая — фиолетовый ромб с гранью', accent:P, svg:`
+    <path d="M16 4L28 16 16 28 4 16z" stroke="${P}" stroke-width="2.4" stroke-linejoin="round" fill="${P}" fill-opacity=".35"/>
+    <path d="M16 4v24M4 16h24" stroke="${P}" stroke-width="1.6" stroke-linecap="round"/>` },
+
+  { key:'rarity_legendary', cat:'Редкости', desc:'Легендарная — золотой ромб с сиянием', accent:GB, svg:`
+    <path d="M16 4L28 16 16 28 4 16z" stroke="${GB}" stroke-width="2.6" stroke-linejoin="round" fill="${GB}" fill-opacity=".4"/>
+    <path d="M16 10l1.5 4.5L22 16l-4.5 1.5L16 22l-1.5-4.5L10 16l4.5-1.5z" stroke="${GB}" stroke-width="1.6" stroke-linejoin="round" fill="${GB}" fill-opacity=".7"/>
+    <circle cx="16" cy="16" r="2" fill="${GB}"/>` },
+
+  /* ─────────── ЛИНИИ БОЯ ─────────── */
+  { key:'lane_defense', cat:'Линии боя', desc:'Оборона — щит', accent:GR, svg:`
+    <path d="M16 3L26 7v8c0 6-4 11-10 14-6-3-10-8-10-14V7z" stroke="${GR}" stroke-width="2.4" stroke-linejoin="round" fill="${GR}" fill-opacity=".2"/>
+    <path d="M16 9v10M11 14h10" stroke="${GR}" stroke-width="2" stroke-linecap="round"/>` },
+
+  { key:'lane_attack', cat:'Линии боя', desc:'Атака — скрещённые мечи', accent:R, svg:`
+    <path d="M8 24l16-16M24 24L8 8" stroke="${R}" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M6 6h4v4M26 6h-4v4M6 26h4v-4M26 26h-4v-4" stroke="${R}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+  { key:'lane_support', cat:'Линии боя', desc:'Поддержка — сияние', accent:GB, svg:`
+    <circle cx="16" cy="16" r="4" stroke="${GB}" stroke-width="2.2" fill="${GB}" fill-opacity=".4"/>
+    <path d="M16 4v6M16 22v6M4 16h6M22 16h6M7.5 7.5l4 4M24.5 7.5l-4 4M7.5 24.5l4-4M24.5 24.5l-4-4" stroke="${GB}" stroke-width="2" stroke-linecap="round"/>` },
+
+  /* ─────────── ТЕРРЕЙНЫ ─────────── */
+  { key:'terrain_plain', cat:'Террейны', desc:'Равнина — трава', accent:'#a8bf6a', svg:`
+    <path d="M4 24h24M8 24c0-3 2-5 4-5s4 2 4 5M16 24c0-2 1.5-4 3-4s3 2 3 4" stroke="#a8bf6a" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M10 19v-3M13 18v-2M19 20v-3" stroke="#a8bf6a" stroke-width="1.8" stroke-linecap="round"/>` },
+
+  { key:'terrain_forest', cat:'Террейны', desc:'Лес — ель', accent:GR, svg:`
+    <path d="M16 3l-6 9h3l-4 7h5l-3 5h10l-3-5h5l-4-7h3z" stroke="${GR}" stroke-width="2.2" stroke-linejoin="round" fill="${GR}" fill-opacity=".3"/>
+    <path d="M16 24v5" stroke="#5a3a20" stroke-width="2.4" stroke-linecap="round"/>` },
+
+  { key:'terrain_mountain', cat:'Террейны', desc:'Горы — пик', accent:'#8a7d6b', svg:`
+    <path d="M3 26L12 8l5 9 4-5 8 14z" stroke="#8a7d6b" stroke-width="2.2" stroke-linejoin="round" fill="#8a7d6b" fill-opacity=".25"/>
+    <path d="M12 8l2 5-2 1-2-1z" stroke="#e8dfc8" stroke-width="1.6" fill="#e8dfc8" fill-opacity=".7" stroke-linejoin="round"/>` },
+
+  { key:'terrain_steppe', cat:'Террейны', desc:'Степь — ковыль', accent:'#c0a040', svg:`
+    <path d="M4 26h24" stroke="#c0a040" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M8 26c0-5 2-8 3-10M12 26c0-6 2-9 3-11M20 26c0-5 2-8 3-10M24 26c0-6 2-9 3-11" stroke="#c0a040" stroke-width="1.8" stroke-linecap="round" fill="none"/>` },
+
+  { key:'terrain_city', cat:'Террейны', desc:'Город — башня с флагом', accent:G, svg:`
+    <path d="M8 28V12h4v-3h3v3h3v-3h3v3h3v16z" stroke="${G}" stroke-width="2.2" stroke-linejoin="round" fill="${G}" fill-opacity=".2"/>
+    <path d="M13 28v-6h6v6M16 9V5l4 1-4 2" stroke="${G}" stroke-width="1.8" stroke-linejoin="round" fill="${G}" fill-opacity=".4"/>` },
+
+  { key:'terrain_ruins', cat:'Террейны', desc:'Руины — сломанная колонна', accent:'#9a8a70', svg:`
+    <path d="M6 28h20M9 28V10h3v18M14 28V14l2-2 2 2v14M22 28V8l3 2v18" stroke="#9a8a70" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M9 10l3-4 2 3" stroke="#9a8a70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+  { key:'terrain_river', cat:'Террейны', desc:'Река — волны', accent:B, svg:`
+    <path d="M3 10c4 0 4 3 8 3s4-3 8-3 4 3 8 3M3 16c4 0 4 3 8 3s4-3 8-3 4 3 8 3M3 22c4 0 4 3 8 3s4-3 8-3 4 3 8 3" stroke="${B}" stroke-width="2.2" stroke-linecap="round" fill="none"/>` },
+
+  { key:'terrain_sea', cat:'Террейны', desc:'Море — глубокие волны', accent:'#1a4a6a', svg:`
+    <path d="M3 12c3-2 5 0 8 0s5-2 8 0 5 0 8 0M3 18c3-2 5 0 8 0s5-2 8 0 5 0 8 0M3 24c3-2 5 0 8 0s5-2 8 0 5 0 8 0" stroke="#4a8fc9" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <circle cx="24" cy="6" r="2" fill="#6ab0e0" fill-opacity=".6"/>` },
+
+  { key:'terrain_coast', cat:'Террейны', desc:'Побережье — песок и волна', accent:'#6ba8c9', svg:`
+    <path d="M3 20c3-2 5 0 8 0s5-2 8 0 5 0 8 0" stroke="#4a8fc9" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M3 26c3-1 6 0 9 0s6-1 9 0 5 0 6 0" stroke="#d4a94c" stroke-width="2.2" stroke-linecap="round" fill="none" stroke-opacity=".6"/>
+    <circle cx="8" cy="8" r="2.5" stroke="${GB}" stroke-width="1.6" fill="${GB}" fill-opacity=".4"/>` },
+
+  /* ─────────── СПОСОБНОСТИ ─────────── */
+  { key:'ability_volley', cat:'Способности', desc:'Залп — три стрелы', accent:B, svg:`
+    <path d="M4 9h18M19 6l3 3-3 3M4 16h18M19 13l3 3-3 3M4 23h18M19 20l3 3-3 3" stroke="${B}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ability_burst', cat:'Способности', desc:'Двойной удар — две молнии', accent:O, svg:`
+    <path d="M14 3L6 15h5l-2 12 10-13h-5l2-11z" stroke="${O}" stroke-width="2.2" stroke-linejoin="round" fill="${O}" fill-opacity=".25"/>
+    <path d="M24 5l-6 9h4l-1 9 8-10h-4l1-8z" stroke="${GB}" stroke-width="2" stroke-linejoin="round" fill="${GB}" fill-opacity=".3"/>` },
+
+  { key:'ability_shield', cat:'Способности', desc:'Щит — защита', accent:G, svg:`
+    <path d="M16 3L27 7v8c0 6-5 11-11 14C10 26 5 21 5 15V7z" stroke="${G}" stroke-width="2.4" stroke-linejoin="round" fill="${G}" fill-opacity=".2"/>
+    <path d="M16 10v9M12 14h8" stroke="${GB}" stroke-width="2" stroke-linecap="round"/>` },
+
+  { key:'ability_inspire', cat:'Способности', desc:'Вдохновение — восходящее солнце', accent:GB, svg:`
+    <circle cx="16" cy="20" r="6" stroke="${GB}" stroke-width="2.2" fill="${GB}" fill-opacity=".25"/>
+    <path d="M16 4v5M6 10l3 3M26 10l-3 3M3 20h4M25 20h4M9 27l2-2M23 27l-2-2" stroke="${GB}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M4 28h24" stroke="${GB}" stroke-width="2.2" stroke-linecap="round" stroke-opacity=".5"/>` },
+
+  { key:'ability_vengeance', cat:'Способности', desc:'Месть — клинок с черепом', accent:R, svg:`
+    <path d="M16 3v19M11 7h10M12 22h8l-1.5 3.5h-5z" stroke="${R}" stroke-width="2.2" stroke-linejoin="round" fill="${R}" fill-opacity=".2"/>
+    <circle cx="13.5" cy="27" r="1.2" fill="${R}"/><circle cx="18.5" cy="27" r="1.2" fill="${R}"/>` },
+
+  { key:'ability_thorns', cat:'Способности', desc:'Шипы — колючий круг', accent:GR, svg:`
+    <circle cx="16" cy="16" r="8" stroke="${GR}" stroke-width="2.2" fill="${GR}" fill-opacity=".18"/>
+    <path d="M16 2v6M16 24v6M2 16h6M24 16h6M6 6l4 4M26 6l-4 4M6 26l4-4M26 26l-4-4" stroke="${GR}" stroke-width="2.2" stroke-linecap="round"/>` },
+
+  { key:'ability_warlord', cat:'Способности', desc:'Военачальник — корона', accent:GB, svg:`
+    <path d="M4 24l3-12 5 6 4-10 4 10 5-6 3 12z" stroke="${GB}" stroke-width="2.4" stroke-linejoin="round" fill="${GB}" fill-opacity=".25"/>
+    <path d="M4 24h24M6 28h20" stroke="${GB}" stroke-width="2.2" stroke-linecap="round"/>` },
+
+  { key:'ability_poison', cat:'Способности', desc:'Яд — капля с черепом', accent:GR, svg:`
+    <path d="M16 3C10 11 7 15 7 19a9 9 0 0 0 18 0c0-4-3-8-9-16z" stroke="${GR}" stroke-width="2.2" stroke-linejoin="round" fill="${GR}" fill-opacity=".25"/>
+    <circle cx="13" cy="19" r="1.3" fill="#1a1008"/><circle cx="19" cy="19" r="1.3" fill="#1a1008"/>
+    <path d="M13 23h6" stroke="#1a1008" stroke-width="1.6" stroke-linecap="round"/>` },
+
+  { key:'ability_burn', cat:'Способности', desc:'Горение — пламя', accent:O, svg:`
+    <path d="M16 3c0 6 6 7 6 13a6 6 0 0 1-12 0c0-3 2-4 2-7 2 1 3 3 3 5 1-3 1-7 1-11z" stroke="${O}" stroke-width="2.2" stroke-linejoin="round" fill="${O}" fill-opacity=".3"/>
+    <path d="M16 20c0 2 2 3 2 5a2 2 0 0 1-4 0c0-2 2-3 2-5z" stroke="${GB}" stroke-width="1.6" fill="${GB}" fill-opacity=".6" stroke-linejoin="round"/>` },
+
+  { key:'ability_freeze', cat:'Способности', desc:'Заморозка — снежинка', accent:'#8ad0ff', svg:`
+    <path d="M16 3v26M4 10l24 12M4 22l24-12" stroke="#8ad0ff" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 6l3-3 3 3M13 26l3 3 3-3M4 13l3-1 1 3M24 22l3-1 1 3M4 19l3 1 1-3M24 10l3 1 1-3" stroke="#8ad0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  /* ─────────── UI ─────────── */
+  { key:'ui_close', cat:'UI', desc:'Закрыть', accent:'currentColor', svg:`
+    <path d="M8 8l16 16M24 8L8 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>` },
+
+  { key:'ui_back', cat:'UI', desc:'Назад', accent:'currentColor', svg:`
+    <path d="M20 6L10 16l10 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_next', cat:'UI', desc:'Вперёд', accent:'currentColor', svg:`
+    <path d="M12 6l10 10-10 10" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_check', cat:'UI', desc:'Галочка', accent:GR, svg:`
+    <path d="M5 17l7 7L27 8" stroke="${GR}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_plus', cat:'UI', desc:'Плюс', accent:GR, svg:`
+    <path d="M16 6v20M6 16h20" stroke="${GR}" stroke-width="2.8" stroke-linecap="round"/>` },
+
+  { key:'ui_minus', cat:'UI', desc:'Минус', accent:R, svg:`
+    <path d="M6 16h20" stroke="${R}" stroke-width="2.8" stroke-linecap="round"/>` },
+
+  { key:'ui_play', cat:'UI', desc:'Играть', accent:GR, svg:`
+    <path d="M9 5l18 11L9 27z" stroke="${GR}" stroke-width="2.4" stroke-linejoin="round" fill="${GR}" fill-opacity=".3"/>` },
+
+  { key:'ui_help', cat:'UI', desc:'Помощь', accent:B, svg:`
+    <circle cx="16" cy="16" r="13" stroke="${B}" stroke-width="2.2" fill="${B}" fill-opacity=".12"/>
+    <path d="M12 12a4 4 0 0 1 8 1c0 2-4 2-4 5" stroke="${B}" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <circle cx="16" cy="23" r="1.5" fill="${B}"/>` },
+
+  { key:'ui_settings', cat:'UI', desc:'Настройки — шестерёнка', accent:'currentColor', svg:`
+    <circle cx="16" cy="16" r="4" stroke="currentColor" stroke-width="2.2" fill="none"/>
+    <path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.5 6.5l3 3M22.5 22.5l3 3M6.5 25.5l3-3M22.5 9.5l3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` },
+
+  { key:'ui_mute', cat:'UI', desc:'Без звука — динамик перечёркнут', accent:R, svg:`
+    <path d="M6 12h5l6-5v18l-6-5H6z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/>
+    <path d="M22 12l6 8M28 12l-6 8" stroke="${R}" stroke-width="2.4" stroke-linecap="round"/>` },
+
+  { key:'ui_unmute', cat:'UI', desc:'Звук включён', accent:GR, svg:`
+    <path d="M6 12h5l6-5v18l-6-5H6z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" fill="currentColor" fill-opacity=".15"/>
+    <path d="M22 11c2 3 2 7 0 10M25 8c3 5 3 11 0 16" stroke="${GR}" stroke-width="2.2" stroke-linecap="round" fill="none"/>` },
+
+  { key:'ui_star', cat:'UI', desc:'Звезда', accent:GB, svg:`
+    <path d="M16 3l4 9 10 .8-7.5 6.4 2.4 9.8L16 23.5 7.1 29l2.4-9.8L2 12.8 12 12z" stroke="${GB}" stroke-width="2.2" stroke-linejoin="round" fill="${GB}" fill-opacity=".35"/>` },
+
+  { key:'ui_coin', cat:'UI', desc:'Монета', accent:G, svg:`
+    <circle cx="16" cy="16" r="11" stroke="${G}" stroke-width="2.4" fill="${G}" fill-opacity=".25"/>
+    <circle cx="16" cy="16" r="7" stroke="${GB}" stroke-width="1.6" fill="none"/>
+    <path d="M16 11v10M13 13.5h6M13 18.5h6" stroke="${GB}" stroke-width="1.8" stroke-linecap="round"/>` },
+
+  { key:'ui_hourglass', cat:'UI', desc:'Песочные часы', accent:GB, svg:`
+    <path d="M8 4h16M8 28h16M8 4c0 8 8 8 8 12s-8 4-8 12M24 4c0 8-8 8-8 12s8 4 8 12" stroke="${GB}" stroke-width="2.2" stroke-linejoin="round" fill="none"/>
+    <path d="M12 24c0-3 4-3 4-4s-4-1-4-4" stroke="${GB}" stroke-width="1.6" fill="${GB}" fill-opacity=".4" stroke-linejoin="round"/>` },
+
+  { key:'ui_flag', cat:'UI', desc:'Флаг', accent:R, svg:`
+    <path d="M7 28V4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M7 5h16l-3 5 3 5H7z" stroke="${R}" stroke-width="2.2" stroke-linejoin="round" fill="${R}" fill-opacity=".3"/>` },
+
+  { key:'ui_shield', cat:'UI', desc:'Щит', accent:B, svg:`
+    <path d="M16 3L26 7v8c0 6-4 11-10 14-6-3-10-8-10-14V7z" stroke="${B}" stroke-width="2.4" stroke-linejoin="round" fill="${B}" fill-opacity=".2"/>` },
+
+  { key:'ui_sword', cat:'UI', desc:'Меч', accent:R, svg:`
+    <path d="M16 3v20M12 6h8M13 23h6l-1.5 4h-3z" stroke="${R}" stroke-width="2.4" stroke-linejoin="round" fill="${R}" fill-opacity=".2"/>` },
+
+  { key:'ui_skull', cat:'UI', desc:'Череп', accent:'#c8d0d8', svg:`
+    <path d="M8 14a8 8 0 0 1 16 0v6l-3 2v4h-2v-3h-2v3h-2v-3h-2v3h-2v-4l-3-2z" stroke="#c8d0d8" stroke-width="2.2" stroke-linejoin="round" fill="#c8d0d8" fill-opacity=".18"/>
+    <circle cx="12.5" cy="14" r="1.8" fill="#c8d0d8"/><circle cx="19.5" cy="14" r="1.8" fill="#c8d0d8"/>
+    <path d="M15 17h2v2h-2z" fill="#c8d0d8"/>` },
+
+  { key:'ui_crown', cat:'UI', desc:'Корона', accent:GB, svg:`
+    <path d="M4 24l3-12 5 6 4-10 4 10 5-6 3 12z" stroke="${GB}" stroke-width="2.4" stroke-linejoin="round" fill="${GB}" fill-opacity=".3"/>
+    <path d="M4 24h24" stroke="${GB}" stroke-width="2.2" stroke-linecap="round"/>` },
+
+  { key:'ui_arrow_up', cat:'UI', desc:'Стрелка вверх', accent:'currentColor', svg:`
+    <path d="M16 26V6M7 15l9-9 9 9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_arrow_down', cat:'UI', desc:'Стрелка вниз', accent:'currentColor', svg:`
+    <path d="M16 6v20M7 17l9 9 9-9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_arrow_left', cat:'UI', desc:'Стрелка влево', accent:'currentColor', svg:`
+    <path d="M26 16H6M15 7l-9 9 9 9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'ui_arrow_right', cat:'UI', desc:'Стрелка вправо', accent:'currentColor', svg:`
+    <path d="M6 16h20M17 7l9 9-9 9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>` },
+
+  /* ─────────── ДЕЙСТВИЯ ─────────── */
+  { key:'action_move', cat:'Действия', desc:'Движение — след', accent:B, svg:`
+    <path d="M4 16c4-4 8-4 12 0s8 4 12 0" stroke="${B}" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <circle cx="8" cy="10" r="2" fill="${B}"/><circle cx="16" cy="8" r="1.5" fill="${B}" fill-opacity=".7"/>
+    <circle cx="24" cy="22" r="2" fill="${B}"/>` },
+
+  { key:'action_attack', cat:'Действия', desc:'Атака — меч', accent:R, svg:`
+    <path d="M16 3v20M12 6h8M13 23h6l-1.5 4h-3z" stroke="${R}" stroke-width="2.4" stroke-linejoin="round" fill="${R}" fill-opacity=".25"/>
+    <path d="M6 10l4 4M26 10l-4 4" stroke="${R}" stroke-width="2" stroke-linecap="round"/>` },
+
+  { key:'action_defend', cat:'Действия', desc:'Защита — щит с мечом', accent:GR, svg:`
+    <path d="M16 3L27 7v8c0 6-5 11-11 14C10 26 5 21 5 15V7z" stroke="${GR}" stroke-width="2.4" stroke-linejoin="round" fill="${GR}" fill-opacity=".2"/>
+    <path d="M16 9v12M12 12h8" stroke="${GR}" stroke-width="2" stroke-linecap="round"/>` },
+
+  { key:'action_heal', cat:'Действия', desc:'Лечение — крест в круге', accent:GR, svg:`
+    <circle cx="16" cy="16" r="12" stroke="${GR}" stroke-width="2.2" fill="${GR}" fill-opacity=".15"/>
+    <path d="M16 8v16M8 16h16" stroke="${GR}" stroke-width="3" stroke-linecap="round"/>` },
+
+  /* ─────────── ОРЕОЛЫ ─────────── */
+  { key:'halo_wheat', cat:'Ореолы', desc:'Пшеничные поля', accent:G, svg:`
+    <path d="M16 28V8" stroke="${G}" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M16 10c-3-1-4-3-4-5 2 0 4 2 4 5zM16 10c3-1 4-3 4-5-2 0-4 2-4 5zM16 16c-3-1-4-3-4-5 2 0 4 2 4 5zM16 16c3-1 4-3 4-5-2 0-4 2-4 5zM16 22c-3-1-4-3-4-5 2 0 4 2 4 5zM16 22c3-1 4-3 4-5-2 0-4 2-4 5z" stroke="${G}" stroke-width="1.8" fill="${G}" fill-opacity=".35" stroke-linejoin="round"/>` },
+
+  { key:'halo_pasture', cat:'Ореолы', desc:'Пастбища — конь', accent:'#8a6b2e', svg:`
+    <path d="M6 22c0-4 3-7 7-7l3-2 4 1 3-3 2 3c1 2 1 4 1 6v4h-3v-3h-2v3h-3v-3h-6v3H8v-2z" stroke="#8a6b2e" stroke-width="2.2" stroke-linejoin="round" fill="#8a6b2e" fill-opacity=".25"/>
+    <circle cx="22" cy="13" r="1" fill="#8a6b2e"/>` },
+
+  { key:'halo_mine', cat:'Ореолы', desc:'Рудник — кирка', accent:'#7a8a9a', svg:`
+    <path d="M6 26L20 12" stroke="#7a8a9a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M10 8c6-2 12 0 16 4-4-1-8-1-12 1z" stroke="#7a8a9a" stroke-width="2.2" stroke-linejoin="round" fill="#7a8a9a" fill-opacity=".3"/>
+    <circle cx="8" cy="24" r="2" fill="#7a8a9a"/>` },
+
+  { key:'halo_hunt', cat:'Ореолы', desc:'Охота — лук и мишень', accent:'#5a6b30', svg:`
+    <path d="M26 6C14 6 6 14 6 26" stroke="#5a6b30" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+    <path d="M6 6l20 20" stroke="#5a6b30" stroke-width="1.6"/>
+    <circle cx="16" cy="16" r="3" stroke="#d4a94c" stroke-width="1.8" fill="#d4a94c" fill-opacity=".4"/>` },
+
+  { key:'halo_fishery', cat:'Ореолы', desc:'Рыболовство — рыба', accent:'#3a7a9a', svg:`
+    <path d="M4 16c4-5 10-6 14-3 2-3 5-4 10-3-2 2-3 4-3 6s1 4 3 6c-5 1-8 0-10-3-4 3-10 2-14-3z" stroke="#3a7a9a" stroke-width="2.2" stroke-linejoin="round" fill="#3a7a9a" fill-opacity=".3"/>
+    <circle cx="10" cy="15" r="1.2" fill="#3a7a9a"/>` },
+
+  { key:'halo_sawmill', cat:'Ореолы', desc:'Лесопилка — бревно с пилой', accent:'#4a6b30', svg:`
+    <rect x="4" y="10" width="24" height="8" rx="4" stroke="#4a6b30" stroke-width="2.2" fill="#4a6b30" fill-opacity=".25"/>
+    <ellipse cx="8" cy="14" rx="2" ry="4" stroke="#8a6b40" stroke-width="1.6" fill="#8a6b40" fill-opacity=".4"/>
+    <ellipse cx="24" cy="14" rx="2" ry="4" stroke="#8a6b40" stroke-width="1.6" fill="#8a6b40" fill-opacity=".4"/>
+    <path d="M6 24l20-4-2 4-18 4z" stroke="#c8d0d8" stroke-width="1.8" stroke-linejoin="round" fill="#c8d0d8" fill-opacity=".5"/>` },
+
+  { key:'halo_vineyard', cat:'Ореолы', desc:'Виноградники — гроздь', accent:'#7a2a4a', svg:`
+    <path d="M16 6c-2 0-3-1-3-3" stroke="#4a6b30" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <circle cx="13" cy="11" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="19" cy="11" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="10" cy="17" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="16" cy="17" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="22" cy="17" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="13" cy="23" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>
+    <circle cx="19" cy="23" r="3" stroke="#7a2a4a" stroke-width="2" fill="#7a2a4a" fill-opacity=".35"/>` },
+
+  { key:'halo_apiary', cat:'Ореолы', desc:'Пасека — пчела', accent:'#c9a860', svg:`
+    <ellipse cx="16" cy="17" rx="7" ry="9" stroke="#c9a860" stroke-width="2.2" fill="#c9a860" fill-opacity=".3"/>
+    <path d="M9 13h14M9 17h14M9 21h14" stroke="#1a1008" stroke-width="1.8"/>
+    <path d="M12 7l-3-3M20 7l3-3" stroke="#1a1008" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="9" cy="4" r="1.2" fill="#1a1008"/><circle cx="23" cy="4" r="1.2" fill="#1a1008"/>` },
+
+  { key:'halo_salt', cat:'Ореолы', desc:'Соляные копи — кристалл', accent:'#d0d0e0', svg:`
+    <path d="M16 3l9 8-3 15-6 3-6-3-3-15z" stroke="#d0d0e0" stroke-width="2.2" stroke-linejoin="round" fill="#d0d0e0" fill-opacity=".25"/>
+    <path d="M16 3v24M7 11l9 5 9-5M10 26l6-6 6 6" stroke="#d0d0e0" stroke-width="1.6" stroke-linejoin="round" fill="none"/>` },
+
+  { key:'halo_pottery', cat:'Ореолы', desc:'Гончарные — амфора', accent:'#9a6a3a', svg:`
+    <path d="M12 3h8M13 3v3c-3 2-5 5-5 9v6c0 4 3 7 8 7s8-3 8-7v-6c0-4-2-7-5-9V3" stroke="#9a6a3a" stroke-width="2.2" stroke-linejoin="round" fill="#9a6a3a" fill-opacity=".25"/>
+    <path d="M8 15c3 0 5 1 8 1s5-1 8-1" stroke="#9a6a3a" stroke-width="1.6" fill="none"/>` },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   ПАЛИТРА
+   ═══════════════════════════════════════════════════════════════ */
+const PALETTE = [
+  { name:'Фон',        hex:'#0a0d12' },
+  { name:'Текст',      hex:'#e8dfc8' },
+  { name:'Золото',     hex:'#d4a94c' },
+  { name:'Золото ярк.',hex:'#f5d57a' },
+  { name:'Урон',       hex:'#e74c3c' },
+  { name:'Лечение',    hex:'#5ec37a' },
+  { name:'Лучники',    hex:'#7aa0c8' },
+  { name:'Спец',       hex:'#c07ad8' },
+  { name:'Скифы',      hex:'#c0392b' },
+  { name:'Боспор',     hex:'#2980b9' },
+  { name:'Херсонес',   hex:'#d4a94c' },
+  { name:'Рим',        hex:'#8b1a1a' },
+  { name:'Готы',       hex:'#7f8c8d' },
+  { name:'Тавры',      hex:'#8a4a2a' },
+  { name:'Киммерийцы', hex:'#4a3a2a' },
+];
+
+const paletteEl = document.getElementById('palette');
+paletteEl.innerHTML = PALETTE.map(p => `
+  <div class="swatch" data-hex="${p.hex}">
+    <span class="swatch-color" style="background:${p.hex}"></span>
+    <span class="swatch-name">${p.name}</span>
+    <span class="swatch-hex">${p.hex}</span>
+  </div>
+`).join('');
+paletteEl.addEventListener('click', e => {
+  const sw = e.target.closest('.swatch');
+  if (!sw) return;
+  const hex = sw.getAttribute('data-hex');
+  navigator.clipboard.writeText(hex).then(() => {
+    const h = sw.querySelector('.swatch-hex');
+    h.classList.add('copied');
+    h.textContent = '✓ скопировано';
+    setTimeout(() => { h.classList.remove('copied'); h.textContent = hex; }, 1200);
+  });
+});
+document.getElementById('btnPalette').addEventListener('click', () => {
+  paletteEl.classList.toggle('open');
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   РЕНДЕР
+   ═══════════════════════════════════════════════════════════════ */
+const sheet = document.getElementById('sheet');
+let currentBg = 'dark', currentSize = 64, searchQuery = '';
+
+function wrapSvg(svgContent) {
+  return `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">${svgContent}</svg>`;
+}
+
+function render() {
+  // группируем по категориям
+  const cats = {};
+  for (const ic of ICONS) {
+    if (!cats[ic.cat]) cats[ic.cat] = [];
+    cats[ic.cat].push(ic);
+  }
+  let html = '';
+  for (const [cat, list] of Object.entries(cats)) {
+    const filtered = list.filter(ic => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return ic.key.toLowerCase().includes(q) || ic.desc.toLowerCase().includes(q);
+    });
+    if (filtered.length === 0) continue;
+    html += `<section class="section">
+      <div class="section-title">${cat} <span class="count">${filtered.length}</span></div>
+      <div class="grid">${filtered.map(ic => `
+        <div class="ic" data-key="${ic.key}" title="Клик — скачать ${ic.key}.svg">
+          <div class="ic-dl">⬇</div>
+          <div class="ic-preview" style="width:${currentSize}px;height:${currentSize}px">
+            ${wrapSvg(ic.svg)}
+          </div>
+          <div class="ic-key">${ic.key}</div>
+          <div class="ic-desc">${ic.desc}</div>
+        </div>
+      `).join('')}</div>
+    </section>`;
+  }
+  sheet.innerHTML = html || '<div style="text-align:center;color:#8a7a58;padding:60px">Ничего не найдено</div>';
+  sheet.className = `bg-${currentBg}`;
+  // адаптируем размер svg внутри превью
+  sheet.querySelectorAll('.ic-preview svg').forEach(svg => {
+    svg.setAttribute('width', currentSize * 0.75);
+    svg.setAttribute('height', currentSize * 0.75);
+  });
+  // клики
+  sheet.querySelectorAll('.ic').forEach(el => {
+    el.addEventListener('click', () => downloadOne(el.getAttribute('data-key')));
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   СКАЧИВАНИЕ
+   ═══════════════════════════════════════════════════════════════ */
+function svgToString(key) {
+  const ic = ICONS.find(x => x.key === key);
+  if (!ic) return null;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${wrapSvg(ic.svg)}\n`;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadOne(key) {
+  const svg = svgToString(key);
+  if (!svg) return;
+  downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${key}.svg`);
+  toast(`✓ ${key}.svg`);
+}
+
+/* ─── CSV ─── */
+function buildCsv() {
+  const head = ['key','filename','category','description','accent','viewBox','style_notes'];
+  const STYLE = 'flat vector; stroke 2.4 (or 2.2 detail); rounded caps/joins; currentColor strokes; accent fill; 32x32; transparent bg; antique/scythian motif';
+  const rows = ICONS.map(ic => [
+    ic.key,
+    ic.key + '.svg',
+    ic.cat,
+    ic.desc,
+    ic.accent === 'currentColor' ? 'currentColor' : ic.accent,
+    '0 0 32 32',
+    STYLE,
+  ]);
+  return [head, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+
+document.getElementById('btnCsv').addEventListener('click', () => {
+  const csv = '\uFEFF' + buildCsv();  // BOM для Excel
+  downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'tavrida-icons.csv');
+  toast('✓ tavrida-icons.csv');
+});
+
+/* ─── ZIP ─── */
+const progressBar = document.getElementById('progressBar');
+function setProgress(p) { progressBar.style.width = (p*100) + '%'; setTimeout(()=>{ if(p>=1) progressBar.style.width='0'; }, 600); }
+
+document.getElementById('btnZip').addEventListener('click', async () => {
+  if (typeof JSZip === 'undefined') {
+    toast('JSZip недоступен — скачиваю по одной', true);
+    for (const ic of ICONS) { downloadOne(ic.key); await new Promise(r=>setTimeout(r,80)); }
+    return;
+  }
+  const zip = new JSZip();
+  const folder = zip.folder('icons');
+  ICONS.forEach((ic, i) => {
+    folder.file(`${ic.key}.svg`, svgToString(ic.key));
+    setProgress((i+1)/ICONS.length * 0.9);
+  });
+  folder.file('tavrida-icons.csv', '\uFEFF' + buildCsv());
+  folder.file('README.txt',
+`TAVRIDA · Icon Set
+=================
+${ICONS.length} SVG · viewBox 0 0 32 32 · stroke 2.4 · currentColor
+
+Подключение в проекте:
+  Положить все *.svg в public/icons/
+  Ничего в коде менять не нужно — iconUrl('res_gold') уже даёт /icons/res_gold.svg
+
+Цвета акцентов — из variables.css проекта.
+Стиль: flat vector, antique/scythian motif, gold #d4a94c accent.
+`);
+  toast('⏳ Собираю ZIP…');
+  const blob = await zip.generateAsync({ type:'blob' }, meta => setProgress(0.9 + meta.percent/1000));
+  setProgress(1);
+  downloadBlob(blob, 'tavrida-icons.zip');
+  toast(`✓ tavrida-icons.zip · ${ICONS.length} файлов`);
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   ТУЛБАР
+   ═══════════════════════════════════════════════════════════════ */
+document.getElementById('bgSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-bg]');
+  if (!btn) return;
+  document.querySelectorAll('#bgSeg button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentBg = btn.getAttribute('data-bg');
+  render();
+});
+
+document.getElementById('sizeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-size]');
+  if (!btn) return;
+  document.querySelectorAll('#sizeSeg button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSize = parseInt(btn.getAttribute('data-size'), 10);
+  render();
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   ТОСТ
+   ═══════════════════════════════════════════════════════════════ */
+let toastTimer;
+function toast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('err', isErr);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   СТАРТ
+   ═══════════════════════════════════════════════════════════════ */
+render();
+</script>
+</body>
+</html>

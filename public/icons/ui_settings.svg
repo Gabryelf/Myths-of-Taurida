@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="uis" cx=".5" cy=".4">
+        <stop offset="0" stop-color="#e8dfc8"/><stop offset="1" stop-color="#6a5a3a"/>
+      </radialGradient>
+    </defs>
+    <path d="M16 2l2.5 4.5 5-1.5.5 5 4.5 2.5-3 4 3 4-4.5 2.5-.5 5-5-1.5L16 30l-2.5-4.5-5 1.5-.5-5L3.5 19.5l3-4-3-4 4.5-2.5.5-5 5 1.5z" fill="url(#uis)" stroke="#3a2a18" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="16" cy="16" r="5" fill="#2a1a08" stroke="#3a2a18" stroke-width="1.4"/>
+    <circle cx="16" cy="16" r="2" fill="#e8dfc8"/></svg>

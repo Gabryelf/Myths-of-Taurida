@@ -10,7 +10,7 @@ import { HaloVisual } from './visuals/HaloVisual.js';
 import { HighlightService } from './HighlightService.js';
 import { Theme } from '../config/ThemeConfig.js';
 import { ModelLoader } from './ModelLoader.js';
-import { terrainModelUrl } from '../../config.js';
+import { terrainModelUrls } from '../../config.js';
 
 export class SceneBuilder {
   constructor(scene) {
@@ -33,11 +33,10 @@ export class SceneBuilder {
     this.world = world;
     this._clearAll();
 
-    const toPreload = [];
-    const mUrl = terrainModelUrl('mountain');
-    const fUrl = terrainModelUrl('forest');
-    if (mUrl) toPreload.push(mUrl);
-    if (fUrl) toPreload.push(fUrl);
+    const toPreload = [
+      ...terrainModelUrls('mountain'),
+      ...terrainModelUrls('forest'),
+    ];
     if (toPreload.length) ModelLoader.preload(toPreload);
 
     for (const tile of world.map.all()) {

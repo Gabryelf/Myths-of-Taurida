@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="uish" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#a0c8f0"/><stop offset="1" stop-color="#1a3050"/>
+      </linearGradient>
+    </defs>
+    <path d="M16 2L28 7v10c0 7-5 12-12 15C9 29 4 24 4 17V7z" fill="url(#uish)" stroke="#0a1a2a" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M16 8l1.5 4 4 .3-3 2.5 1 4L16 16l-3.5 2.8 1-4-3-2.5 4-.3z" fill="#f5d57a" opacity=".7"/></svg>

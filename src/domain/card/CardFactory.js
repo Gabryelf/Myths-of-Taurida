@@ -34,7 +34,7 @@
    // ═══════════════ ХЕРСОНЕС ═══════════════
    cher_hoplite:  { name: 'Гоплит Херсонеса', str: 2, type: 'warrior', prov: 2, ability: 'Щит', abilityKeys: ['shield'], rarity: 'common' },
    cher_archer:   { name: 'Критский лучник',  str: 1, type: 'archer',  prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
-   cher_priest:   { name: 'Жрец',             str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
+   cher_priest:   { name: 'Куратор',             str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
    cher_mercenary:{ name: 'Наёмник',          str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'rare' },
    cher_archon:   { name: 'Архонт',           str: 3, type: 'special', prov: 3, ability: 'Вдохновение + Военачальник', abilityKeys: ['inspire', 'warlord'], rarity: 'epic' },
    // ─── новые ───
@@ -48,7 +48,7 @@
    rome_legion:   { name: 'Легионер',         str: 3, type: 'warrior', prov: 2, ability: 'Щит + Шипы', abilityKeys: ['shield', 'thorns'], rarity: 'rare' },
    rome_archer:   { name: 'Римский лучник',   str: 1, type: 'archer',  prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
    rome_centurion:{ name: 'Центурион',        str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'rare' },
-   rome_siege:    { name: 'Осадная машина',   str: 2, type: 'special', prov: 3, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'epic' },
+   rome_siege:    { name: 'Всадник',   str: 2, type: 'special', prov: 3, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'epic' },
    rome_consul:   { name: 'Консул',           str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
    // ─── новые ───
    rome_veles:    { name: 'Велит',             str: 1, type: 'archer', prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
