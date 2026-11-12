@@ -13,6 +13,7 @@ import { MarketPanel } from './components/MarketPanel.js';
 import { FactionsPanel } from './components/FactionsPanel.js';
 import { GlossaryModal } from './components/GlossaryModal.js';
 import { QuickJump } from './components/QuickJump.js';
+import { iconImg } from '../config/icons.js';
 
 export class UIManager {
   constructor({
@@ -29,10 +30,10 @@ export class UIManager {
     this.onRecruit = onRecruit;
     this.onBuySettlement = null;
     this.onAttackCity = null;
-    this.onLensToggle = null;   // (kind, enabled) => void
-
+    this.onLensModeChange = null;   // (mode) => void
     this.battleController = battleController;
     this.marketController = marketController;
+    this._lensMode = 'none';
 
     this.toast = new Toast(toastRoot);
     this.tooltip = new Tooltip(root);
@@ -40,20 +41,16 @@ export class UIManager {
     this.deckPanel = new DeckPanel(root);
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
-
     this._buildHud();
-
     this.endTurnButton = new EndTurnButton(this._hudEl, () => {
       this.sound?.play('click');
       onEndTurn?.();
     });
-
     this.quickJump = new QuickJump(this.root, {
       world: this.world,
       cameraController: null,
       theme: { hexSize: 18 },
     });
-
     this.recruitModal = new RecruitModal(root, { bus });
     this.cityPanel = new CityPanel(root, { bus });
     this.battleModal = new BattleModal(root, {
@@ -69,7 +66,6 @@ export class UIManager {
     this.factionsPanel = new FactionsPanel(root, { world });
     this.glossary = new GlossaryModal(root);
     this.minimap = null;
-
     this._subscribe();
   }
 
@@ -88,8 +84,20 @@ export class UIManager {
       <div class="hud-title">ТАВРИДА · v0.1.6</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
-        <button class="hud-btn lens-btn" id="btn-lens-borders" title="Границы территорий">🗺 Границы</button>
-        <button class="hud-btn lens-btn" id="btn-lens-halos" title="Ресурсные ореолы">🌾 Ореолы</button>
+
+        <!-- ─── Мини-панель линз ─── -->
+        <div class="lens-panel" id="lens-panel" role="radiogroup" aria-label="Линзы карты">
+          <button class="lens-btn" data-lens="none"
+                  role="radio" aria-checked="true"
+                  title="Без линз">${iconImg('ui_close', { size: 14 })}<span>Без линз</span></button>
+          <button class="lens-btn" data-lens="borders"
+                  role="radio" aria-checked="false"
+                  title="Границы фракций">${iconImg('ui_flag', { size: 14 })}<span>Границы</span></button>
+          <button class="lens-btn" data-lens="halos"
+                  role="radio" aria-checked="false"
+                  title="Ресурсные ореолы">${iconImg('halo_wheat', { size: 14 })}<span>Ореолы</span></button>
+        </div>
+
         <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
         <button class="hud-btn" id="btn-market">Рынок</button>
         <button class="hud-btn" id="btn-factions">Фракции</button>
@@ -102,16 +110,16 @@ export class UIManager {
     this.resourceBar.el = hud.querySelector('#resource-bar');
     this.resourceBar.refresh();
 
-    hud.querySelector('#btn-lens-borders').addEventListener('click', (e) => {
-      const on = e.currentTarget.classList.toggle('active');
+    // ─── Обработчик мини-панели линз ───
+    const lensPanel = hud.querySelector('#lens-panel');
+    lensPanel.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-lens]');
+      if (!btn) return;
+      const mode = btn.getAttribute('data-lens');
+      this.setLensMode(mode);
       this.sound?.play('click');
-      this.onLensToggle?.('borders', on);
     });
-    hud.querySelector('#btn-lens-halos').addEventListener('click', (e) => {
-      const on = e.currentTarget.classList.toggle('active');
-      this.sound?.play('click');
-      this.onLensToggle?.('halos', on);
-    });
+
     hud.querySelector('#btn-recruit').addEventListener('click', () => {
       this.sound?.play('click');
       if (this.onHire) this.onHire();
@@ -137,6 +145,26 @@ export class UIManager {
       const muted = this.sound?.toggleMute();
       muteBtn.textContent = muted ? '🔇' : '🔊';
       muteBtn.classList.toggle('muted', !!muted);
+    });
+
+    this._lensPanel = lensPanel;
+    this._updateLensUI();
+  }
+
+  /** Установить режим линз. */
+  setLensMode(mode) {
+    if (!['none', 'borders', 'halos'].includes(mode)) mode = 'none';
+    this._lensMode = mode;
+    this._updateLensUI();
+    this.onLensModeChange?.(mode);
+  }
+
+  _updateLensUI() {
+    if (!this._lensPanel) return;
+    this._lensPanel.querySelectorAll('[data-lens]').forEach((btn) => {
+      const isActive = btn.getAttribute('data-lens') === this._lensMode;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-checked', String(isActive));
     });
   }
 
@@ -187,7 +215,6 @@ export class UIManager {
   }
 
   _subscribe() {
-    
     this.bus.on('general:selected', ({ general }) => {
       if (general) {
         this.generalPanel.show(general);
@@ -213,7 +240,6 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
-
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
       if (!tile) { this.tooltip.hide(); return; }
       this.tooltip.show(tile, screenPos);

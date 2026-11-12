@@ -64,8 +64,8 @@ export class Game {
     this.ui.onHire = () => this.openRecruitForSelected();
     this.ui.onMarket = () => this.openMarket();
     this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
-    this.ui.onLensToggle = (kind, enabled) => {
-      this.sceneBuilder.setLens(kind, enabled);
+    this.ui.onLensModeChange = (mode) => {
+      this.sceneBuilder.setLensMode(mode);
     };
 
     this.input = new InputController({

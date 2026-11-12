@@ -25,7 +25,10 @@ export class SceneBuilder {
     this._fogVisuals = new Map();
     this._borderVisual = null;
     this._haloVisual = null;
-    this._lensState = { borders: false, halos: false };
+
+    // ─── Единый режим линз: 'none' | 'borders' | 'halos' ───
+    this._lensMode = 'none';
+
     this.highlight = new HighlightService(Theme.hexSize);
   }
 
@@ -89,36 +92,49 @@ export class SceneBuilder {
     }
     this.updateFog(world);
 
+    // ─── Линзы создаются всегда, но видимость регулируется режимом ───
     this._borderVisual = new BorderVisual(world, Theme.hexSize).addTo(this.scene);
-    this._borderVisual.setVisible(this._lensState.borders);
     this._haloVisual = new HaloVisual(world, Theme.hexSize).addTo(this.scene);
-    this._haloVisual.setVisible(this._lensState.halos);
+
+    this._applyLensMode();
   }
 
-  setLens(kind, enabled) {
-    this._lensState[kind] = enabled;
-    if (kind === 'borders') {
-      this._borderVisual?.setVisible(enabled);
-      for (const v of this._tileVisuals.values()) {
-        v.setFactionRingVisible(!enabled);
-      }
+  /** Установить режим линз: 'none' | 'borders' | 'halos'. */
+  setLensMode(mode) {
+    if (!['none', 'borders', 'halos'].includes(mode)) mode = 'none';
+    this._lensMode = mode;
+    this._applyLensMode();
+  }
+
+  getLensMode() { return this._lensMode; }
+
+  /** Применить текущий режим к визуалам. */
+  _applyLensMode() {
+    const bordersOn = this._lensMode === 'borders';
+    const halosOn = this._lensMode === 'halos';
+
+    // Границы фракций
+    this._borderVisual?.setVisible(bordersOn);
+    // Ореолы (границы + иконки)
+    this._haloVisual?.setVisible(halosOn);
+
+    // При включённых границах — скрываем фракционные кольца на гексах
+    for (const v of this._tileVisuals.values()) {
+      v.setFactionRingVisible(!bordersOn && !halosOn ? true : false);
     }
-    if (kind === 'halos') this._haloVisual?.setVisible(enabled);
   }
-
-  isLensOn(kind) { return !!this._lensState[kind]; }
 
   refreshBorders() {
     if (!this._borderVisual || !this.world) return;
     this._borderVisual.refresh();
-    this._borderVisual.setVisible(this._lensState.borders);
+    this._haloVisual?.refresh();
+    this._applyLensMode();
     for (const tile of this.world.map.all()) {
       if (!tile.isLand) continue;
       const v = this._tileVisuals.get(tile.key);
       if (!v) continue;
       if (tile.factionId) v.setFactionColor(tile.factionId);
       else v.setFactionRingVisible(false);
-      if (this._lensState.borders && tile.factionId) v.setFactionRingVisible(false);
     }
   }
 
