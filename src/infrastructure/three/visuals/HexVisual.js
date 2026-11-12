@@ -23,10 +23,10 @@ export class HexVisual extends BaseVisual {
   _build() {
     const { tile, size } = this.data;
     if (!this._decorations) this._decorations = [];
-
     const t = Theme.terrain[tile.terrain] || Theme.terrain.plain;
     const height = 0.7;
 
+    // ─── Плита гекса ───
     const geo = new THREE.CylinderGeometry(size * 0.94, size * 0.94, height, 6);
     const mat = new THREE.MeshStandardMaterial({
       color: t.color, roughness: t.roughness, metalness: 0.05,
@@ -39,7 +39,7 @@ export class HexVisual extends BaseVisual {
     plate.userData = { tile, hoverable: 'tile' };
     this.group.add(plate);
 
-    // ─── Модель гор/леса (случайная из списка, детерминированно по tile.key) ───
+    // ─── Модель гор/леса ───
     const seed = hashString(tile.key);
     const modelUrl = terrainModelUrl(tile.terrain, seed);
     if (modelUrl) {
@@ -115,27 +115,55 @@ export class HexVisual extends BaseVisual {
     const box1 = new THREE.Box3().setFromObject(obj);
     const center = new THREE.Vector3();
     box1.getCenter(center);
-
     obj.position.x += -center.x + (cfg.offsetX ?? 0);
     obj.position.z += -center.z + (cfg.offsetZ ?? 0);
     obj.position.y += (plateHeight - box1.min.y) + (cfg.offsetY ?? 0);
 
-    // 4) Поворот (фиксированный или случайный по seed)
+    // 4) Поворот — фиксированный или случайный по seed (анти-клон)
     let rotY = cfg.rotationY || 0;
     if (cfg.rotationYRandom) {
       const rng = mulberry32(hashString(tile.key + ':rot'));
-      rotY += rng() * Math.PI * 2;   // 0..2π
+      rotY += rng() * Math.PI * 2;
     }
     obj.rotation.y = rotY;
 
-    // 5) Тени и userData
+    // 5) ─── НОРМАЛИЗАЦИЯ PBR-МАТЕРИАЛОВ ───
+    // Tinkercad экспортирует материалы с завышенной металличностью и
+    // низкой шероховатостью → «пластик». Принудительно приводим к
+    // природным значениям для леса/гор.
+    // В _placeTerrainModel, внутри obj.traverse
+    const isNatural = tile.terrain === 'forest' || tile.terrain === 'mountain';
+    const DARKEN = 0.55;
+
     obj.traverse((c) => {
-      if (c.isMesh) {
-        c.castShadow = cfg.castShadow !== false;
-        c.receiveShadow = cfg.receiveShadow !== false;
-        c.userData = c.userData || {};
-        c.userData.tile = tile;
-        c.userData.hoverable = 'tile';
+      if (!c.isMesh) return;
+      c.castShadow = cfg.castShadow !== false;
+      c.receiveShadow = cfg.receiveShadow !== false;
+      c.userData = c.userData || {};
+      c.userData.tile = tile;
+      c.userData.hoverable = 'tile';
+
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      for (const m of mats) {
+        if (!m) continue;
+        if (isNatural) {
+          if ('metalness' in m) m.metalness = 0.0;
+          if ('roughness' in m) m.roughness = 0.85;
+        } else {
+          if ('metalness' in m && m.metalness > 0.6) m.metalness = 0.6;
+          if ('roughness' in m && m.roughness < 0.2) m.roughness = 0.3;
+        }
+        // Затемнение (если ещё не сделано в ModelLoader)
+        // Проверяем флаг, чтобы не затемнять дважды
+        if (m.color && !m.userData?._darkened) {
+          m.color.multiplyScalar(DARKEN);
+          if (m.userData) m.userData._darkened = true;
+          else m.userData = { _darkened: true };
+        }
+        if ('emissiveIntensity' in m && m.emissiveIntensity > 0.05) {
+          m.emissiveIntensity = 0.05;
+        }
+        m.needsUpdate = true;
       }
     });
 
@@ -191,7 +219,7 @@ export class HexVisual extends BaseVisual {
       const h = size * (0.15 + rng() * 0.1);
       const trunk = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.015, size * 0.025, h, 4),
-        new THREE.MeshStandardMaterial({ color: 0x3a2010 }),
+        new THREE.MeshStandardMaterial({ color: 0x3a2010, roughness: 0.95, metalness: 0 }),
       );
       trunk.position.set(x, baseY + h / 2, z);
       this.group.add(trunk);
@@ -199,7 +227,7 @@ export class HexVisual extends BaseVisual {
       const crownColor = new THREE.Color(0x2a5a20).offsetHSL(0, 0, (rng() - 0.5) * 0.1);
       const crown = new THREE.Mesh(
         new THREE.ConeGeometry(size * 0.12, h * 1.2, 5),
-        new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.9, metalness: 0 }),
       );
       crown.position.set(x, baseY + h + h * 0.4, z);
       this.group.add(crown);
@@ -217,7 +245,8 @@ export class HexVisual extends BaseVisual {
       const rock = new THREE.Mesh(
         new THREE.ConeGeometry(size * (0.08 + rng() * 0.06), h, 5),
         new THREE.MeshStandardMaterial({
-          color: 0x7a705a, roughness: 0.95, flatShading: true,
+          color: 0x7a705a, roughness: 0.95, metalness: 0,
+          flatShading: true,
         }),
       );
       rock.position.set(x, baseY + h / 2, z);
@@ -236,7 +265,7 @@ export class HexVisual extends BaseVisual {
       const h = size * (0.04 + rng() * 0.05);
       const blade = new THREE.Mesh(
         new THREE.ConeGeometry(size * 0.02, h, 3),
-        new THREE.MeshStandardMaterial({ color, roughness: 1 }),
+        new THREE.MeshStandardMaterial({ color, roughness: 1, metalness: 0 }),
       );
       blade.position.set(x, baseY + h / 2, z);
       this.group.add(blade);
@@ -254,7 +283,7 @@ export class HexVisual extends BaseVisual {
       const h = size * (0.15 + rng() * 0.2);
       const col = new THREE.Mesh(
         new THREE.CylinderGeometry(size * 0.05, size * 0.06, h, 6),
-        new THREE.MeshStandardMaterial({ color: 0x9a8a70, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: 0x9a8a70, roughness: 0.9, metalness: 0 }),
       );
       col.position.set(x, baseY + h / 2, z);
       col.rotation.z = (rng() - 0.5) * 0.5;
@@ -285,6 +314,7 @@ function hashString(str) {
   for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
   return h >>> 0;
 }
+
 function mulberry32(seed) {
   return function () {
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;

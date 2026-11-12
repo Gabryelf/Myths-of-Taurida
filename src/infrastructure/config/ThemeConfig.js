@@ -11,35 +11,47 @@ export const Theme = {
   light: {
     ambient: {
       color: 0x6a5a4a,
-      intensity: 0.6,
+      intensity: 0.35,          // ← мягкая база (было 0.01 — фактически выкл)
     },
     sun: {
       color: 0xffe0b0,
-      intensity: 1.4,
+      intensity: 0.8,           // ← основной directional (было 0.01)
       position: { x: 20, y: 30, z: 10 },
       castShadow: true,
       shadowMapSize: 2048,
       shadowCamera: { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 100 },
       shadowBias: -0.0005,
+      normalBias: 0.02,
     },
     rim: {
       color: 0x5a7ab0,
-      intensity: 0.5,
+      intensity: 0.25,          // ← лёгкий контровой (было 0.01)
       position: { x: -18, y: 14, z: -16 },
+    },
+    hemi: {
+      skyColor: 0x8ec5e8,
+      groundColor: 0x3a2a18,
+      intensity: 0.15,          // ← было 0.5 (захардкожено) → сильно заливало
+    },
+    environment: {
+      enabled: true,
+      intensity: 0.35,          // ← ключевое: приглушает env-карту с 1.0 до 0.35
+      exposure: 0.9,            // ← чуть притемняем ACES
     },
   },
 
   hexSize: 18.0,
   terrain: {
-    plain:    { color: 0xa8bf6a, roughness: 0.95, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },
-    forest:   { color: 0x4a6b30, roughness: 1.0,  moveCost: 2, yield: { gold: 0, prov: 1, weapons: 0 } },
-    mountain: { color: 0x8a7d6b, roughness: 0.9,  moveCost: 3, yield: { gold: 0, prov: 0, weapons: 1 } },
-    steppe:   { color: 0x9cb56a, roughness: 0.95, moveCost: 1, yield: { gold: 0, prov: 1, weapons: 0 } },
-    sea:      { color: 0x1a3a5a, roughness: 0.2,  moveCost: 99, yield: { gold: 0, prov: 0, weapons: 0 } },
-    coast:    { color: 0x6ba8c9, roughness: 0.3,  moveCost: 1, yield: { gold: 1, prov: 0, weapons: 0 } },
-    city:     { color: 0xc9a860, roughness: 0.7,  moveCost: 1, yield: { gold: 2, prov: 0, weapons: 0 } },
-    ruins:    { color: 0x7a6a58, roughness: 0.95, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },
-    river:    { color: 0x4a8fc9, roughness: 0.25, moveCost: 1, yield: { gold: 0, prov: 2, weapons: 0 } },
+    // ─── Природные — тёмные, «каменные», «пыльные» оттенки ───
+    plain:    { color: 0x5a6b3a, roughness: 0.98, metalness: 0, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },   // было 0xa8bf6a → тёмно-оливковый
+    forest:   { color: 0x2e4a20, roughness: 1.0,  metalness: 0, moveCost: 2, yield: { gold: 0, prov: 1, weapons: 0 } },   // было 0x4a6b30 → темнее
+    mountain: { color: 0x5a5248, roughness: 0.95, metalness: 0, moveCost: 3, yield: { gold: 0, prov: 0, weapons: 1 } },   // было 0x8a7d6b → тёмно-серый
+    steppe:   { color: 0x5a6028, roughness: 0.98, metalness: 0, moveCost: 1, yield: { gold: 0, prov: 1, weapons: 0 } },   // было 0x9cb56a → тёмно-жёлто-зелёный
+    sea:      { color: 0x0e2238, roughness: 0.3,  metalness: 0, moveCost: 99, yield: { gold: 0, prov: 0, weapons: 0 } },  // было 0x1a3a5a → тёмнее
+    coast:    { color: 0x3a5a6a, roughness: 0.5,  metalness: 0, moveCost: 1, yield: { gold: 1, prov: 0, weapons: 0 } },   // было 0x6ba8c9 → тёмно-бирюзовый
+    city:     { color: 0x6a5a30, roughness: 0.85, metalness: 0, moveCost: 1, yield: { gold: 2, prov: 0, weapons: 0 } },   // было 0xc9a860 → тёмно-золотой
+    ruins:    { color: 0x4a3e30, roughness: 0.95, metalness: 0, moveCost: 1, yield: { gold: 0, prov: 0, weapons: 0 } },   // было 0x7a6a58 → тёмно-коричневый
+    river:    { color: 0x2a4a6a, roughness: 0.35, metalness: 0, moveCost: 1, yield: { gold: 0, prov: 2, weapons: 0 } },   // было 0x4a8fc9 → тёмно-синий
   },
   terrainName: {
     plain: 'Равнина', forest: 'Лес', mountain: 'Горы', steppe: 'Степь',
@@ -71,7 +83,9 @@ export const Theme = {
     roadColor: 0x8a7040,
   },
   sea: {
-    colorDeep: 0x081a2e, colorShallow: 0x1a4a6a, colorFoam: 0x9ac8dc,
+    colorDeep: 0x0a2a4a,       // было 0x081a2e → светлее
+    colorShallow: 0x1a6a9a,    // было 0x1a4a6a → заметно светлее
+    colorFoam: 0xc0e8f0,       // было 0x9ac8dc → почти белая пена
     sunDirection: { x: 20, y: 30, z: 10 },
     waveScale: 0.18, waveSpeed: 0.7, waveHeight: 0.35, specularity: 32,
     size: 600, y: -0.35,
