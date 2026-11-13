@@ -15,7 +15,6 @@ export class RecruitService {
     if (!city || city.factionId !== factionId) {
       return { ok: false, reason: 'Найм только в своих городах и деревнях' };
     }
-    // Ограничения по редкости в поселениях
     const restr = city.recruitRestrictions;
     const def = CardFactory.defForKey(cardKey);
     if (!def) return { ok: false, reason: 'Неизвестная карта' };
@@ -23,13 +22,11 @@ export class RecruitService {
     if (rarityOrder[def.rarity] > rarityOrder[restr.maxRarity]) {
       return { ok: false, reason: `В поселении нельзя нанимать ${restr.maxRarity}` };
     }
-
     const pool = this.world.recruitPools.get(factionId);
     if (!pool) return { ok: false, reason: 'Нет пула найма' };
     if (!pool.available.find((c) => c.key === cardKey)) {
       return { ok: false, reason: 'Этой карты нет в пуле найма' };
     }
-
     const card = CardFactory.create(cardKey);
     const usedPoints = this.world.recruitPointsUsed(factionId);
     const needPoints = this.economy.recruitPointsFor(card);
@@ -57,20 +54,32 @@ export class RecruitService {
     if (!tile?.isCity) return { ok: false, reason: 'Найм полководца только в городе' };
     const city = this.world.getCity(tile.cityId);
     if (!city || city.factionId !== factionId) return { ok: false, reason: 'Чужой город' };
-    const generalCount = this.world.generals.filter((g) => g.factionId === factionId).length;
-    const maxGenerals = Math.max(
-      1,
-      this.world.cities.filter((c) => c.factionId === factionId && c.isCity).length + 1,
-    );
+
+    const generalCount = this.world.generals.filter(
+      (g) => g.factionId === factionId && g.alive
+    ).length;
+    const myCities = this.world.cities.filter(
+      (c) => c.factionId === factionId && c.isCity
+    ).length;
+    // Максимум = городов + 1, при большом золоте — ещё +1
+    const pool = this.world.resourcePools.get(factionId);
+    let maxGenerals = Math.max(1, myCities + 1);
+    if (pool && pool.gold >= 150) maxGenerals += 1;
+
     if (generalCount >= maxGenerals) {
       return { ok: false, reason: `Максимум полководцев: ${maxGenerals}` };
     }
-    const pool = this.world.resourcePools.get(factionId);
-    if (!pool.canAfford({ gold: 30, prov: 0, weapons: 0 })) {
+    if (!pool || !pool.canAfford({ gold: 30, prov: 0, weapons: 0 })) {
       return { ok: false, reason: 'Нужно 30 золота' };
     }
     pool.spend({ gold: 30 });
-    const gen = GeneralFactory.createForFaction({ factionId, hex: tile.hex });
+
+    // ─── Передаём всех генералов, чтобы фабрика нашла свободный слот ───
+    const gen = GeneralFactory.createForFaction({
+      factionId,
+      hex: tile.hex,
+      existingGenerals: this.world.generals,
+    });
     this.world.generals.push(gen);
     return { ok: true, general: gen };
   }

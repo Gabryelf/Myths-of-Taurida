@@ -318,7 +318,7 @@ export class Game {
       text: `${general.name} атакует ${enemyName}. Потрачено ${cost} очка движения.`,
       confirmText: 'Атаковать', cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost),
-      onCancel: () => {},
+      onCancel: () => { },
     });
   }
 
@@ -329,7 +329,7 @@ export class Game {
       text: `${general.name} атакует ${city.name} (${defenderName}). Генерал-защитник будет обороняться. Потрачено ${cost} очка движения.`,
       confirmText: 'Напасть', cancelText: 'Отмена',
       onConfirm: () => this._executeBattle(general, tile, cost, city.neutralFaction || 'tauri'),
-      onCancel: () => {},
+      onCancel: () => { },
     });
   }
 
@@ -349,7 +349,7 @@ export class Game {
         new ConfirmDialog(document.getElementById('ui-root'), {
           title: `Атаковать ${kind}?`,
           text: `${general.name} может атаковать ${city.name}. Потратится ${cost} очка движения.` +
-                (canBuy ? ' Или купить за 40 💰 (только для поселения).' : ''),
+            (canBuy ? ' Или купить за 40 💰 (только для поселения).' : ''),
           confirmText: 'Атаковать',
           cancelText: canBuy ? 'Купить / Отмена' : 'Отмена',
           onConfirm: () => this._executeBattle(general, tile, cost, defenderFactionId),
@@ -360,7 +360,7 @@ export class Game {
                 text: `Купить поселение за 40 золота? Генерал-защитник исчезнет.`,
                 confirmText: 'Купить', cancelText: 'Отмена',
                 onConfirm: () => this.buySettlement(city.id),
-                onCancel: () => {},
+                onCancel: () => { },
               });
             }
           },
@@ -425,23 +425,42 @@ export class Game {
     const fromKey = general.hex.key;
     general.spendMove(distance);
     general.moveTo(tile.hex);
-    if (!tile.factionId) {
-      const city = tile.cityId ? this.world.getCity(tile.cityId) : null;
-      if (!city || city.factionId === general.factionId) tile.setFaction(general.factionId);
+
+    // ─── Захват гекса: ЛЮБОЙ не-свой (и не город) ───
+    const captured = this.world.captureTile(tile, general.factionId);
+    if (captured) {
+        this.bus.emit('tile:captured', {
+            tile,
+            factionId: general.factionId,
+            by: general.id,
+        });
     }
+
     this.world.recomputeVisibility();
     this.sceneBuilder.updateFog(this.world);
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.sceneBuilder.setMovementOverlays(null, false);
     this.sceneBuilder.setAttackOverlays(null, false);
     this.sceneBuilder.setGeneralSelected(general.id, false);
+
+    if (captured) {
+        // Перекрасить гекс на сцене
+        const v = this.sceneBuilder._tileVisuals.get(tile.key);
+        if (v && typeof v.setFactionColor === 'function') {
+            v.setFactionColor(general.factionId);
+            v.setFactionRingVisible(true);
+        }
+    }
     this.sceneBuilder.refreshBorders();
+
     this.selectedGeneralId = null;
-    this.bus.emit('general:moved', { general, fromKey, toKey: tile.key, cost: distance });
+    this.bus.emit('general:moved', {
+        general, fromKey, toKey: tile.key, cost: distance, captured,
+    });
     this.ui.quickJump?.refreshMinimap();
     if (general.movePoints > 0) this._selectGeneral(general);
     else this._updateHireButton();
-  }
+}
 
   _executeBattle(general, tile, cost, defenderFactionOverride = null) {
     this._pendingBattleCost = cost ?? 1;
@@ -494,7 +513,6 @@ export class Game {
     else if (winner === 'defender') this._applyDefenderVictory(attackerGen, defenderGen, targetTile);
     if (winner !== 'draw') this.bus.emit('toast:show', { text: playerWon ? 'Победа!' : 'Поражение' });
     else this.bus.emit('toast:show', { text: 'Ничья' });
-    // Связность
     const connEvents = this.world.connectivity.enforceForAll();
     for (const ev of connEvents) {
       if (ev.text) this.bus.emit('notification:show', {
@@ -564,6 +582,7 @@ export class Game {
     if (this.world) this.world.selectedGeneralId = this.selectedGeneralId;
     this.ui.openCityPanel({ tile, city, world: this.world });
   }
+
   openMarket() { if (this.world) this.ui.marketPanel.open(); }
 
   openRecruitForSelected() {
@@ -615,10 +634,33 @@ export class Game {
   }
 
   endTurn() {
-    if (this._aiBusy || !this.world) return;
+    // ─── ОТЛАДКА ───
+    console.log('=== Game.endTurn() ===');
+    console.log('  _aiBusy:', this._aiBusy, 'world:', !!this.world);
+
+    if (!this.world) { console.warn('  ABORT: no world'); return; }
+    if (this._aiBusy) {
+      console.warn('  FORCE RESET _aiBusy');
+      this._aiBusy = false;
+      this.turnManager.isRunning = false;
+    }
+
     const cfg = this.profile.matchConfig || { mode: 'ai' };
     if (cfg.mode === 'hotseat') { this._endTurnForHotseat(); return; }
+
+    // Сброс movePoints у всех генералов
+    console.log('  Before world.endTurn:');
+    for (const g of this.world.generals) {
+      console.log(`    ${g.id} faction=${g.factionId} hex=${g.hex.key} mp=${g.movePoints}/${g.maxMovePoints} alive=${g.alive}`);
+    }
+
     this.world.endTurn();
+
+    console.log('  After world.endTurn:');
+    for (const g of this.world.generals) {
+      console.log(`    ${g.id} faction=${g.factionId} hex=${g.hex.key} mp=${g.movePoints}/${g.maxMovePoints} alive=${g.alive}`);
+    }
+
     this._selectGeneral(null);
     this.sceneBuilder.updateGeneralPositions(this.world);
     this.bus.emit('turn:ended', { turn: this.world.turn });
@@ -675,71 +717,179 @@ export class Game {
     if (isFirstHuman) this._runAITurns();
   }
 
+  /**
+   * Запуск AI-цикла. Полностью защищён от залипаний.
+   */
   async _runAITurns() {
-    if (!this.world) return;
+    // ─── ОТЛАДКА ───
+    console.log('=== Game._runAITurns() START ===');
+    console.log('  world:', !!this.world, '_aiBusy:', this._aiBusy);
+
+    if (!this.world) {
+      console.warn('  ABORT: no world');
+      return;
+    }
+
+    // Принудительный сброс, если залипло
+    if (this._aiBusy) {
+      console.warn('  FORCE RESET _aiBusy at start');
+      this._aiBusy = false;
+      this.turnManager.isRunning = false;
+    }
+
     const humanFactions = this._humanFactions || [this.world.playerFactionId];
     const aiFactionIds = this.world.factions
       .filter((f) => !f.neutral && !f.eliminated && !humanFactions.includes(f.id))
       .map((f) => f.id);
-    if (aiFactionIds.length === 0) { this._afterAITurns(); return; }
+
+    console.log('  humanFactions:', humanFactions);
+    console.log('  aiFactionIds:', aiFactionIds);
+
+    if (aiFactionIds.length === 0) {
+      console.log('  no AI factions, _afterAITurns');
+      this._afterAITurns();
+      return;
+    }
+
     this._aiBusy = true;
     this.ui.turnIndicator.show('Ход противника…');
     this.sound.play('turn');
 
-    // ─── Пошаговое исполнение ботов ───
-    const battleStep = await this.turnManager.runAITurns(aiFactionIds, {
-      onAITurnStart: (id) => this.ui.turnIndicator.show(`Ход: ${id}`),
-      onAIStep: (step) => this._onAIStep(step),
-      onAITurnEnd: () => this.sceneBuilder.refreshBorders(),
-    });
+    try {
+      console.log('  Calling turnManager.runAITurns...');
+      const battleStep = await this.turnManager.runAITurns(aiFactionIds, {
+        onAITurnStart: (id) => {
+          console.log(`  [Game] onAITurnStart: ${id}`);
+          const f = this.world.factions.find((x) => x.id === id);
+          this.ui.turnIndicator.show(`Ход: ${f?.name || id}`);
+        },
+        onAIStep: (step) => {
+          console.log(`  [Game] onAIStep:`, step.action, step.generalId, step.fromHex?.key, '→', step.toHex?.key);
+          try { this._onAIStep(step); }
+          catch (e) { console.error('  [Game._onAIStep] CRASH:', e, step); }
+        },
+        onAITurnEnd: () => {
+          console.log('  [Game] onAITurnEnd');
+          this.sceneBuilder.refreshBorders();
+        },
+      });
 
-    if (battleStep) {
-      this.ui.turnIndicator.hide();
-      const result = await this.battleController.autoResolve({
-        attackerGen: battleStep.general,
-        targetTile: battleStep.targetTile,
-        defenderFactionId: battleStep.defenderFactionId || 'goths',
-        playerSide: 'defender',
-      });
-      const atkName = battleStep.general?.name || 'Противник';
-      const winner = result.winner === 'attacker' ? atkName : 'защитник';
-      const targetCity = battleStep.targetTile?.cityId
-        ? this.world.getCity(battleStep.targetTile.cityId)
-        : null;
-      const place = targetCity?.name || 'территория';
-      this.bus.emit('notification:show', {
-        text: `${atkName} атаковал ${place}: победа ${winner}`,
-        kind: result.winner === 'attacker' ? 'danger' : 'success',
-      });
-    } else {
+      console.log('  turnManager returned:', battleStep ? `battle at ${battleStep.targetTile?.key}` : 'null');
+
+      if (battleStep) {
+        this.ui.turnIndicator.hide();
+
+        // ─── Защита: battleStep.general должен быть ───
+        if (!battleStep.general) {
+          console.error('  [Game] battleStep without general! Using fallback.', battleStep);
+          // Пытаемся найти по generalId
+          battleStep.general = this.world.generals.find(
+            (g) => g.id === battleStep.generalId
+          );
+        }
+
+        if (!battleStep.general) {
+          console.error('  [Game] CRITICAL: no general for battle. Skipping.');
+          this._afterAITurns();
+        } else {
+          try {
+            const result = await this.battleController.autoResolve({
+              attackerGen: battleStep.general,
+              targetTile: battleStep.targetTile,
+              defenderFactionId: battleStep.defenderFactionId || 'goths',
+              playerSide: 'defender',
+            });
+            const atkName = battleStep.general?.name || 'Противник';
+            const winner = result.winner === 'attacker' ? atkName : 'защитник';
+            const targetCity = battleStep.targetTile?.cityId
+              ? this.world.getCity(battleStep.targetTile.cityId)
+              : null;
+            const place = targetCity?.name || 'территория';
+            this.bus.emit('notification:show', {
+              text: `${atkName} атаковал ${place}: победа ${winner}`,
+              kind: result.winner === 'attacker' ? 'danger' : 'success',
+            });
+          } catch (e) {
+            console.error('  autoResolve CRASH:', e);
+            // ─── ВАЖНО: даже при ошибке боя считаем ход использованным ───
+            battleStep.general.movePoints = 0;
+            this._afterAITurns();
+          }
+        }
+      }
+    } catch (e) {
+      console.error('  _runAITurns CRASH:', e);
       this.ui.turnIndicator.hide();
       this._afterAITurns();
+    } finally {
+      this._aiBusy = false;
+      console.log('=== Game._runAITurns() END, _aiBusy=false ===');
     }
-    this._aiBusy = false;
   }
 
-  /** Обработка шага бота: обновление сцены, границ, тумана. */
   _onAIStep(step) {
     if (!this.world) return;
-    if (step.action === 'move') {
-      // Проверим, есть ли генерал на fromHex (если null — берём по generalId)
-      const gen = step.generalId
-        ? this.world.generals.find((g) => g.id === step.generalId)
-        : null;
-      if (gen) {
-        this.sceneBuilder.updateGeneralPositions(this.world);
+    try {
+      if (step.action === 'move') {
+        const gen = step.generalId
+          ? this.world.generals.find((g) => g.id === step.generalId)
+          : null;
+        if (gen) {
+          this.sceneBuilder.updateGeneralPositions(this.world);
+        }
+        if (step.captured && step.toHex) {
+          const tile = this.world.map.get(step.toHex.q, step.toHex.r);
+          if (tile) {
+            const v = this.sceneBuilder._tileVisuals.get(tile.key);
+            if (v && typeof v.setFactionColor === 'function') {
+              if (tile.factionId) v.setFactionColor(tile.factionId);
+              v.setFactionRingVisible(true);
+            }
+          }
+        }
+        this.sceneBuilder.refreshBorders();
+        this.world.recomputeVisibility();
+        this.sceneBuilder.updateFog(this.world);
+        this.bus.emit('ai:step:move', { step });
+      } else if (step.action === 'attack-city' || step.action === 'attack') {
+        const gen = step.generalId
+          ? this.world.generals.find((g) => g.id === step.generalId)
+          : null;
+        if (gen) this.sceneBuilder.updateGeneralPositions(this.world);
+        this.sceneBuilder.refreshBorders();
+        this.bus.emit('ai:step:attack', { step });
+      } else if (step.action === 'recruit') {
+        this.bus.emit('notification:show', {
+          text: 'Противник нанял карту',
+          kind: 'info',
+        });
+      } else if (step.action === 'hire-general') {
+        this.sceneBuilder.rebuild(this.world);
+        this.sceneBuilder.updateFog(this.world);
+        this.input.setPickables(this.sceneBuilder.getPickables());
+        this.bus.emit('notification:show', {
+          text: 'Противник нанял полководца',
+          kind: 'danger',
+        });
       }
-      this.sceneBuilder.refreshBorders();
-      this.world.recomputeVisibility();
-      this.sceneBuilder.updateFog(this.world);
-      this.bus.emit('ai:step:move', { step });
-    } else if (step.action === 'attack-city') {
-      this.sceneBuilder.refreshBorders();
-      this.bus.emit('ai:step:attack-city', { step });
+      else if (step.action === 'buy-settlement') {
+        this.bus.emit('notification:show', {
+            text: `Противник купил поселение «${step.cityName}»`,
+            kind: 'danger',
+        });
+        this.sceneBuilder.rebuild(this.world);
+        this.sceneBuilder.updateFog(this.world);
+        this.sceneBuilder.updateCityFaction(this.world);
+        this.sceneBuilder.refreshBorders();
+        this.input.setPickables(this.sceneBuilder.getPickables());
+      }
+    } catch (e) {
+      console.error('[Game._onAIStep]', e, step);
     }
   }
 
   _afterAITurns() {
+    console.log('=== Game._afterAITurns() ===');
     if (!this.world) return;
     const humans = this._humanFactions || [];
     if (humans.length > 0) {
@@ -767,5 +917,6 @@ export class Game {
     };
     tick();
   }
+
   stop() { this._running = false; }
 }

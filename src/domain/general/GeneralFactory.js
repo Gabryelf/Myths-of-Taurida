@@ -37,9 +37,48 @@ export const GENERAL_PRESETS = {
 let _nextId = 1;
 
 export class GeneralFactory {
-  static createForFaction({ factionId, hex, presetIndex = 0 }) {
-    const presets = GENERAL_PRESETS[factionId] || [{ name: `Вождь ${factionId}`, move: 3, lives: 3 }];
-    const preset = presets[presetIndex] || presets[0];
+  /**
+   * Создать генерала, выбрав СВОБОДНЫЙ presetIndex (не занятый живым генералом).
+   * Павшие генералы освобождают свои слоты.
+   *
+   * @param {Object} opts
+   * @param {string} opts.factionId
+   * @param {Object} opts.hex
+   * @param {number} [opts.presetIndex] — если передан, используется принудительно
+   * @param {General[]} [opts.existingGenerals] — все генералы мира (для поиска свободного слота)
+   */
+  static createForFaction({ factionId, hex, presetIndex = null, existingGenerals = [] }) {
+    const presets = GENERAL_PRESETS[factionId] || [
+      { name: `Вождь ${factionId}`, move: 3, lives: 3 },
+    ];
+
+    let finalIndex;
+    if (presetIndex !== null && presetIndex !== undefined) {
+      finalIndex = presetIndex;
+    } else {
+      // Ищем свободный presetIndex
+      const usedIndices = new Set(
+        existingGenerals
+          .filter((g) => g.factionId === factionId && g.alive)
+          .map((g) => g.presetIndex ?? 0)
+      );
+      finalIndex = -1;
+      for (let i = 0; i < presets.length; i++) {
+        if (!usedIndices.has(i)) {
+          finalIndex = i;
+          break;
+        }
+      }
+      // Если все слоты заняты — берём presetIndex умершего генерала
+      if (finalIndex === -1) {
+        const deadWithSlot = existingGenerals.find(
+          (g) => g.factionId === factionId && !g.alive
+        );
+        finalIndex = deadWithSlot?.presetIndex ?? 0;
+      }
+    }
+
+    const preset = presets[finalIndex] || presets[0];
     const gen = new General({
       id: `gen_${_nextId++}`,
       name: preset.name,
@@ -50,8 +89,7 @@ export class GeneralFactory {
       lives: preset.lives,
       maxLives: preset.lives,
     });
-    // пробрасываем индекс — GeneralVisual использует его для портрета
-    gen.presetIndex = presetIndex;
+    gen.presetIndex = finalIndex;
     return gen;
   }
 
@@ -59,6 +97,7 @@ export class GeneralFactory {
     const presets = GENERAL_PRESETS[factionId] || [];
     return presets[index] || presets[0] || null;
   }
+
   static nameForFaction(factionId) {
     const presets = GENERAL_PRESETS[factionId] || [];
     return presets[0]?.name || null;

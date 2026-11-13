@@ -39,17 +39,14 @@ export class World {
     this.recruitPointsUsedMap = new Map();
     this.recruit = new RecruitService({ economy: this.economy, world: this });
     this.market = new Market({ world: this });
-    // ─── Новые сервисы v0.2.0 ───
     this.connectivity = new ConnectivityService({ world: this });
     this.roadService = new RoadService({ world: this });
     this.cityDefense = new CityDefense({ world: this });
-    // ─── Ореолы ───
     this.halos = [];
     this.haloByCell = new Map();
     this.haloById = new Map();
     this.onFactionEliminated = null;
     this.winner = null;
-    // Защитники отколовшихся городов
     this._rebelDefenders = new Map();
   }
 
@@ -108,10 +105,12 @@ export class World {
     if (!tile) return null;
     return this.haloById.get(this.haloByCell.get(tile.key)) || null;
   }
+
   haloTiles(halo) {
     if (!halo) return [];
     return halo.cells.map((k) => this.map.getByKey(k)).filter(Boolean);
   }
+
   isHaloMonopoly(halo, factionId) {
     if (!halo || !factionId) return false;
     const tiles = this.haloTiles(halo);
@@ -187,46 +186,43 @@ export class World {
     for (const f of this.factions) {
       const pool = new RecruitPool({ factionId: f.id });
       this.recruitPools.set(f.id, pool);
-      if (f.id === this.playerFactionId) {
+      // ─── Стартовые карты получают ВСЕ фракции (и игрок, и боты) ───
+      if (!f.neutral) {
         pool.addStarterCards(2);
-      } else if (!f.neutral) {
-        pool.addTurnIncome(this);
+        // Боты дополнительно получают прирост, как после «нулевого хода»
+        if (f.id !== this.playerFactionId) {
+          pool.addTurnIncome(this);
+        }
       }
     }
   }
 
   get playerFaction() { return this.factions.find((f) => f.isPlayer) || null; }
+
   get playerGeneral() {
     if (!this.playerFactionId) return null;
     return this.generals.find((g) => g.factionId === this.playerFactionId) || null;
   }
+
   getGeneralAt(hex) {
     return this.generals.find((g) => g.alive && g.hex.key === hex.key) || null;
   }
+
   getCity(cityId) { return this.cities.find((c) => c.id === cityId) || null; }
+
   getCityAt(hex) {
     const tile = this.map.get(hex.q, hex.r);
     if (!tile?.cityId) return null;
     return this.getCity(tile.cityId);
   }
 
-  /**
-   * Защитник поселения/города.
-   *  - Для нейтральных деревень — из NeutralDefenders (preset)
-   *  - Для отколовшихся городов — из this._rebelDefenders
-   *  - Для обычных городов — гарнизон (CityDefense), генерала нет
-   */
   getSettlementDefender(city) {
     if (!city) return null;
     const tile = city.tileKey ? this.map.getByKey(city.tileKey) : null;
     if (!tile) return null;
-
-    // 1. Отколовшийся город
     if (this._rebelDefenders.has(city.id)) {
       return this._rebelDefenders.get(city.id);
     }
-
-    // 2. Нейтральная деревня
     if (city.settlement && city.neutralFaction) {
       const preset = pickDefenderPreset(city, city.neutralFaction);
       if (!preset) {
@@ -254,7 +250,6 @@ export class World {
         isSettlementDefender: true,
       };
     }
-
     return null;
   }
 
@@ -264,7 +259,7 @@ export class World {
       try {
         const def = CardFactory.defForKey(key);
         if (def) out.push(CardFactory.create(key));
-      } catch (_) {}
+      } catch (_) { }
     }
     return out;
   }
@@ -276,20 +271,17 @@ export class World {
   }
 
   recomputeVisibility() { this.visibility.recompute(); }
+
   recruitPointsUsed(factionId) { return this.recruitPointsUsedMap.get(factionId) || 0; }
+
   markRecruitPointsUsed(factionId, pts) {
     this.recruitPointsUsedMap.set(factionId, this.recruitPointsUsed(factionId) + pts);
   }
 
-  /**
-   * Конец хода: доход, ореолы, рынок, оборона, связность.
-   */
   endTurn() {
     this.turn += 1;
     for (const g of this.generals) g.resetTurn();
     this.recruitPointsUsedMap.clear();
-
-    // Доход и рынок обычных фракций
     for (const f of this.factions) {
       if (f.eliminated || f.neutral) continue;
       const pool = this.resourcePools.get(f.id);
@@ -305,25 +297,18 @@ export class World {
         });
       }
     }
-
-    // Нейтральные торговцы
     for (const fid of ['tauri', 'cimmerians']) {
       this.market.autoCreateOffers(fid);
     }
     this.market.sweepNeutralOffers();
-
-    // Оборона городов
     for (const f of this.factions) {
       if (f.eliminated || f.neutral) continue;
       this.cityDefense.regenForFaction(f.id);
     }
-
-    // Связность
     const connectivityEvents = this.connectivity.enforceForAll();
     for (const ev of connectivityEvents) {
       this.onConnectivityEvent?.(ev);
     }
-
     this._aiMarketTurn();
     this._checkElimination();
   }
@@ -349,10 +334,12 @@ export class World {
   startBattle({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
     return BattleFactory.create({ attackerGen, targetTile, defenderFactionId, world: this, playerSide });
   }
+
   getRecruitPool(factionId) {
     const pool = this.recruitPools.get(factionId);
     return pool ? pool.available : [];
   }
+
   returnCardToPool(factionId, cardKey) {
     this.recruitPools.get(factionId)?.returnCard(cardKey);
   }
@@ -364,15 +351,13 @@ export class World {
     if (!tile) return { ok: false, reason: 'Нет гекса' };
     city.factionId = newFactionId;
     city.neutralFaction = null;
-    city.settlement = false;
+    city.settlement = false;   // ← ключевое
     tile.setFaction(newFactionId);
-    // Оборона ослаблена
     this.cityDefense.onCapture(cityId);
-    // Удалить защитника-отколовшегося
     this._rebelDefenders.delete(cityId);
     return { ok: true, city, tile };
   }
-
+  
   buySettlement(cityId, factionId, price = 40) {
     const city = this.getCity(cityId);
     if (!city) return { ok: false, reason: 'Нет поселения' };
@@ -383,6 +368,24 @@ export class World {
     }
     pool.spend({ gold: price });
     return this.captureCity(cityId, factionId);
+  }
+
+  /**
+  * Захват обычного гекса (не города).
+  * Возвращает true, если гекс был захвачен (был не нашим).
+  *
+  * Правила:
+  *  - Города НЕ захватываются этим методом (только через бой/покупку).
+  *  - Уже наш гекс — no-op, возвращает false.
+  *  - Морской/невалидный — false.
+  */
+  captureTile(tile, factionId) {
+    if (!tile) return false;
+    if (!tile.isLand) return false;
+    if (tile.cityId) return false;              // город — только через бой
+    if (tile.factionId === factionId) return false;
+    tile.setFaction(factionId);
+    return true;
   }
 
   _checkElimination() {
