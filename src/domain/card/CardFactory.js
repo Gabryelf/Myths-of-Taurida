@@ -23,12 +23,12 @@
    bosp_archer:   { name: 'Греческий лучник', str: 1, type: 'archer',  prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
    bosp_cavalry:  { name: 'Кавалерия',        str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'common' },
    bosp_merchant: { name: 'Купец',            str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'common' },
-   bosp_king:     { name: 'Царь Боспора',     str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
+   bosp_king:     { name: 'Олигарх Боспора',     str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
    // ─── новые ───
    bosp_peltast:  { name: 'Пелтаст',           str: 1, type: 'archer', prov: 1, ability: 'Залп + Яд', abilityKeys: ['volley', 'poison'], rarity: 'rare' },
    bosp_thorax:   { name: 'Торит',             str: 2, type: 'warrior', prov: 2, ability: 'Щит', abilityKeys: ['shield'], rarity: 'common' },
-   bosp_priest:   { name: 'Жрец Деметры',      str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
-   bosp_scythian_ally: { name: 'Союзный скиф',  str: 2, type: 'warrior', prov: 2, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'epic' },
+   bosp_priest:   { name: 'Жрица Деметры',      str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
+   bosp_scythian_ally: { name: 'Степная союзница',  str: 2, type: 'warrior', prov: 2, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'epic' },
    bosp_trierarch: { name: 'Триерарх',         str: 3, type: 'special', prov: 3, ability: 'Щит + Военачальник', abilityKeys: ['shield', 'warlord'], rarity: 'epic' },
  
    // ═══════════════ ХЕРСОНЕС ═══════════════
@@ -66,7 +66,7 @@
    // ─── новые ───
    goth_spearman:{ name: 'Копейщик',           str: 2, type: 'warrior', prov: 2, ability: 'Щит', abilityKeys: ['shield'], rarity: 'common' },
    goth_rider:   { name: 'Готский всадник',    str: 2, type: 'warrior', prov: 2, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'rare' },
-   goth_wolf:    { name: 'Волк',               str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'rare' },
+   goth_wolf:    { name: 'Застрельщик',               str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'rare' },
    goth_seer:    { name: 'Провидец',           str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
    goth_warlord: { name: 'Готский воевода',    str: 3, type: 'special', prov: 3, ability: 'Военачальник + Месть', abilityKeys: ['warlord', 'vengeance'], rarity: 'epic' },
  };

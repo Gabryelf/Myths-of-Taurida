@@ -13,16 +13,16 @@ export const CARD_IMAGES = {
   scyth_bear:         'skithian/002.png',
   scyth_king:         'skithian/001.png',
   // ═══════════════ БОСПОР ═══════════════
-  bosp_hoplite:       'bosporian_001.png',
-  bosp_archer:        'bosporian_004.png',
-  bosp_cavalry:       'bosporian_005.png',
-  bosp_merchant:      'bosporian_006.png',
-  bosp_king:          'bosporian_003.png',
-  bosp_peltast:       'bosporian_007.png',
+  bosp_hoplite:       'bosporian/002.png',
+  bosp_archer:        'bosporian/011.png',
+  bosp_cavalry:       'bosporian/003.png',
+  bosp_merchant:      'bosporian/004.png',
+  bosp_king:          'bosporian/005.png',
+  bosp_peltast:       'bosporian/006.png',
   bosp_thorax:        'bosporian/001.png',
-  bosp_priest:        'bosporian_009.png',
-  bosp_scythian_ally: 'bosporian_010.png',
-  bosp_trierarch:     'bosporian_011.png',
+  bosp_priest:        'bosporian/009.png',
+  bosp_scythian_ally: 'bosporian/008.png',
+  bosp_trierarch:     'bosporian/010.png',
   // ═══════════════ ХЕРСОНЕС ═══════════════
   cher_hoplite:       'chersoness/004.png',
   cher_archer:        'chersoness/001.png',
@@ -46,16 +46,16 @@ export const CARD_IMAGES = {
   rome_praetor:       'romes/008.png',
   rome_tribune:       'romes/009.png',
   // ═══════════════ ГОТЫ ═══════════════
-  goth_warrior:       'tauri_001.png',
-  goth_berserk:       'tauri_002.png',
-  goth_archer:        'tauri_004.png',
-  goth_chieftain:     'tauri_005.png',
-  goth_shaman:        'tauri_006.png',
-  goth_spearman:      'tauri_007.png',
-  goth_rider:         'tauri_008.png',
-  goth_wolf:          'tauri_009.png',
-  goth_seer:          'tauri_010.png',
-  goth_warlord:       'tauri_011.png',
+  goth_warrior:       'gothian/004.png',
+  goth_berserk:       'gothian/003.png',
+  goth_archer:        'gothian/005.png',
+  goth_chieftain:     'gothian/006.png',
+  goth_shaman:        'gothian/002.png',
+  goth_spearman:      'gothian/007.png',
+  goth_rider:         'gothian/001.png',
+  goth_wolf:          'gothian/008.png',
+  goth_seer:          'gothian/009.png',
+  goth_warlord:       'gothian/010.png',
 };
 
 // ─── Общие портреты фракций (fallback) ───
@@ -75,7 +75,7 @@ export const FACTION_EMBLEMS = {
   rome:        'factions/rome.png',
   goths:       'factions/goths.png',
   tauri:       'factions/tauri.png',
-  cimmerians:  'factions/cimmerians.png',
+  cimmerians:  'factions/tauri_2.png',
 };
 
 // ─── Портреты полководцев по фракциям и индексам ───
@@ -87,8 +87,8 @@ export const GENERAL_PRESET_PORTRAITS = {
     'avatars/002.png',
   ],
   bosporus: [
-    'avatars/general_bosporus_0.png',
-    'avatars/general_bosporus_1.png',
+    'avatars/010.png',
+    'avatars/011.png',
     'avatars/008.png',
   ],
   chersonesos: [
@@ -97,14 +97,14 @@ export const GENERAL_PRESET_PORTRAITS = {
     'avatars/007.png',
   ],
   rome: [
+    'avatars/012.png',
     'avatars/009.png',
-    'avatars/general_rome_1.png',
-    'avatars/general_rome_2.png',
+    'avatars/013.png',
   ],
   goths: [
     'avatars/004.png',
-    'avatars/general_goths_1.png',
-    'avatars/general_goths_2.png',
+    'avatars/014.png',
+    'avatars/015.png',
   ],
 };
 
