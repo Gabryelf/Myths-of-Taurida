@@ -42,6 +42,12 @@ export class SceneBuilder {
     ];
     if (toPreload.length) ModelLoader.preload(toPreload);
 
+    // ─── Прогрев моделей генералов ───
+    import('../../config.js').then(({ generalModelUrls }) => {
+      const urls = generalModelUrls();
+      if (urls.length) ModelLoader.preload(urls);
+    }).catch(() => {});
+
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
       const v = new HexVisual(tile, Theme.hexSize);
