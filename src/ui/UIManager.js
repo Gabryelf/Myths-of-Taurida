@@ -81,7 +81,7 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.1.6</div>
+      <div class="hud-title">ТАВРИДА · v0.2.0</div>
       <div class="hud-right">
         <div class="resource-bar" id="resource-bar"></div>
 
@@ -225,6 +225,14 @@ export class UIManager {
       }
     });
     this.bus.on('general:moved', () => this.generalPanel.refresh());
+    this.bus.on('general:no-move-points', ({ general, needed, have }) => {
+      if (!general || !needed) return;
+      // Проксируем в DOM-событие для GeneralPanel
+      const ev = new CustomEvent('general:no-move-points-ui', {
+        detail: { needed, have },
+      });
+      document.dispatchEvent(ev);
+    });
     this.bus.on('resources:changed', () => {
       const factionId = this.world?.playerFactionId;
       if (!factionId) return;

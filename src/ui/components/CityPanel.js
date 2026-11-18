@@ -58,10 +58,14 @@ export class CityPanel {
       factionId: this._world.playerFactionId,
       tileKey: this._tile.key,
     });
-    if (!result.ok) { this.bus.emit('toast:show', { text: result.reason }); return; }
+    if (!result.ok) {
+      this.bus.emit('toast:show', { text: result.reason });
+      return;
+    }
     this.bus.emit('resources:changed', { factionId: this._world.playerFactionId });
     this.bus.emit('toast:show', { text: `Нанят: ${result.general.name}` });
-    this.bus.emit('world:generalsChanged', {});
+    // ─── Новое: сцена должна обновиться ───
+    this.bus.emit('world:generalsChanged', { general: result.general });
     this._render();
   }
 
@@ -208,16 +212,16 @@ export class CityPanel {
            🏛 Купить поселение · 40${iconImg('res_gold', { size: 12 })}
          </button>`
       : (!isMine && city.settlement
-          ? `<div class="cp-hint">Покупка недоступна: деревня не граничит с вашей территорией</div>`
-          : '');
+        ? `<div class="cp-hint">Покупка недоступна: деревня не граничит с вашей территорией</div>`
+        : '');
 
     const attackHtml = canAttackHere
       ? `<button class="btn primary cp-attack-btn" data-attack-city="1">
            ⚔ Атаковать · ${attackCost}${iconImg('action_move', { size: 12 })}
          </button>`
       : (!isMine
-          ? `<div class="cp-hint">Выберите полководца в радиусе, чтобы атаковать</div>`
-          : '');
+        ? `<div class="cp-hint">Выберите полководца в радиусе, чтобы атаковать</div>`
+        : '');
 
     const defenseSection = isMine ? this._renderDefenseSection() : '';
     const defenderSection = !isMine ? this._renderDefenderSection() : '';

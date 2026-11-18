@@ -70,17 +70,17 @@ const DEFS = {
   goth_seer: { name: 'Провидец', str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
   goth_warlord: { name: 'Готский воевода', str: 3, type: 'special', prov: 3, ability: 'Военачальник + Месть', abilityKeys: ['warlord', 'vengeance'], rarity: 'epic' },
   // ═══════════════ ТАВРЫ (нейтралы — защита поселений) ═══════════════
-  tauri_spear: { name: 'Таврский копейщик', str: 2, type: 'warrior', prov: 2, ability: 'Щит', abilityKeys: ['shield'], rarity: 'common' },
+  tauri_spear: { name: 'Конвоир', str: 2, type: 'warrior', prov: 2, ability: 'Щит', abilityKeys: ['shield'], rarity: 'common' },
   tauri_hunter: { name: 'Тавр-охотник', str: 1, type: 'archer', prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
-  tauri_skirmisher: { name: 'Таврский застрельщик', str: 1, type: 'archer', prov: 1, ability: 'Залп + Яд', abilityKeys: ['volley', 'poison'], rarity: 'rare' },
-  tauri_shaman: { name: 'Таврский шаман', str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
-  tauri_chief: { name: 'Таврский вождь', str: 3, type: 'special', prov: 3, ability: 'Военачальник + Месть', abilityKeys: ['warlord', 'vengeance'], rarity: 'epic' },
+  tauri_skirmisher: { name: 'Таврский легкий пехотинец', str: 1, type: 'archer', prov: 1, ability: 'Залп + Яд', abilityKeys: ['volley', 'poison'], rarity: 'rare' },
+  tauri_shaman: { name: 'Береговой шаман', str: 1, type: 'support', prov: 1, ability: 'Вдохновение', abilityKeys: ['inspire'], rarity: 'rare' },
+  tauri_chief: { name: 'Старейшина тавров', str: 3, type: 'special', prov: 3, ability: 'Военачальник + Месть', abilityKeys: ['warlord', 'vengeance'], rarity: 'epic' },
   // ═══════════════ КИММЕРИЙЦЫ (нейтралы — защита поселений) ═══════════════
   cimm_horseman: { name: 'Киммерийский всадник', str: 2, type: 'warrior', prov: 2, ability: 'Двойной удар', abilityKeys: ['burst'], rarity: 'rare' },
-  cimm_raider: { name: 'Киммерийский налётчик', str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'common' },
-  cimm_archer: { name: 'Киммерийский лучник', str: 1, type: 'archer', prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
-  cimm_shaman: { name: 'Киммерийский шаман', str: 1, type: 'support', prov: 1, ability: 'Вдохновение + Яд', abilityKeys: ['inspire', 'poison'], rarity: 'epic' },
-  cimm_khan: { name: 'Киммерийский хан', str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
+  cimm_raider: { name: 'Налётчик', str: 2, type: 'warrior', prov: 2, ability: 'Месть', abilityKeys: ['vengeance'], rarity: 'common' },
+  cimm_archer: { name: 'Стрелец', str: 1, type: 'archer', prov: 1, ability: 'Залп', abilityKeys: ['volley'], rarity: 'common' },
+  cimm_shaman: { name: 'Степной шаман', str: 1, type: 'support', prov: 1, ability: 'Вдохновение + Яд', abilityKeys: ['inspire', 'poison'], rarity: 'epic' },
+  cimm_khan: { name: 'Верховная жрица', str: 3, type: 'special', prov: 3, ability: 'Военачальник + Вдохновение', abilityKeys: ['warlord', 'inspire'], rarity: 'legendary' },
 };
 
 let _nextId = 1;

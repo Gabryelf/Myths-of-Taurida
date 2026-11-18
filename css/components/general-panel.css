@@ -135,3 +135,37 @@
         font-size: 11px;
     }
 }
+
+.general-panel.gp-flash-error {
+    animation: gpError 0.5s ease;
+    border-color: #e74c3c;
+    box-shadow: 0 0 24px rgba(231, 76, 60, 0.6);
+}
+@keyframes gpError {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+.general-panel .gp-no-points {
+    position: absolute;
+    top: -30px;
+    left: 0;
+    right: 0;
+    background: rgba(231, 76, 60, 0.95);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    z-index: 5;
+    animation: gpNoPoints 1.6s ease forwards;
+}
+@keyframes gpNoPoints {
+    0% { opacity: 0; transform: translateY(4px); }
+    15% { opacity: 1; transform: translateY(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+}

@@ -8,7 +8,26 @@ export class GeneralPanel {
     this.el.className = 'general-panel';
     root.appendChild(this.el);
     this._general = null;
+    this._flashTimer = null;
+    // Подписка на «не хватает очков»
+    document.addEventListener('general:no-move-points-ui', (e) => this._flashNoMovePoints(e.detail));
   }
+
+  _flashNoMovePoints({ needed, have }) {
+    // Показываем всплывающее сообщение
+    const toast = document.createElement('div');
+    toast.className = 'gp-no-points';
+    toast.textContent = `Нужно ${needed} очков, есть ${have}`;
+    this.el.appendChild(toast);
+    // Подсветка полосы движения
+    this.el.classList.add('gp-flash-error');
+    clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(() => {
+      this.el.classList.remove('gp-flash-error');
+      toast.remove();
+    }, 1600);
+  }
+
 
   show(general) {
     if (!general) { this.hide(); return; }

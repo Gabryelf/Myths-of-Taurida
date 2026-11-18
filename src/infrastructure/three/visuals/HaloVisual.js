@@ -125,6 +125,13 @@ export class HaloVisual {
     sprite.renderOrder = 12;
     this._iconsGroup.add(sprite);
 
+    sprite.userData = {
+      haloIcon: true,
+      haloId: halo.id,
+      haloType: halo.type,
+      halo,           // ссылка на объект ореола
+    };
+
     // Нарисовать сразу (фон + обводка), чтобы не было пустого круга
     this._drawIconBackground(canvas, color);
     tex.needsUpdate = true;

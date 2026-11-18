@@ -102,7 +102,7 @@ export class InputController {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       const key = e.key.toLowerCase();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
-           '+', '-', '=', '_'].includes(key)) {
+        '+', '-', '=', '_'].includes(key)) {
         this._keys.add(key);
         e.preventDefault();
       }
@@ -118,9 +118,9 @@ export class InputController {
         const k = this._keys;
         let dx = 0, dy = 0;
         const speed = 3;
-        if (k.has('w') || k.has('arrowup'))    dy -= speed;
-        if (k.has('s') || k.has('arrowdown'))  dy += speed;
-        if (k.has('a') || k.has('arrowleft'))  dx -= speed;
+        if (k.has('w') || k.has('arrowup')) dy -= speed;
+        if (k.has('s') || k.has('arrowdown')) dy += speed;
+        if (k.has('a') || k.has('arrowleft')) dx -= speed;
         if (k.has('d') || k.has('arrowright')) dx += speed;
         if (dx !== 0 || dy !== 0) this._cameraController.pan(dx * 2, dy * 2);
         if (k.has('+') || k.has('=')) this._cameraController.zoom(-60);
@@ -137,40 +137,32 @@ export class InputController {
     this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     if (this._pickables.length === 0) {
-      return { tile: null, general: null, city: null, hoverType: null };
+      return { tile: null, general: null, city: null, halo: null, hoverType: null };
     }
     const hits = this.raycaster.intersectObjects(this._pickables, true);
-    let tile = null, general = null, city = null, hoverType = null;
+    let tile = null, general = null, city = null, halo = null, hoverType = null;
     for (const h of hits) {
       let cur = h.object;
       while (cur) {
         const ud = cur.userData;
+        if (ud?.haloIcon && !halo) {
+          halo = ud.halo;
+          hoverType = 'haloIcon';
+        }
         if (ud?.hoverable === 'general' && !general) {
           general = ud.general;
           hoverType = 'general';
         }
         if (ud?.hoverable === 'city' && !city) {
           city = ud.city;
-          if (!general) hoverType = 'city';
+          if (!general && !halo) hoverType = 'city';
         }
         if (ud?.tile && !tile) tile = ud.tile;
         cur = cur.parent;
       }
-      if (general && tile && city) break;
+      if (general && tile && city && halo) break;
     }
-    // ─── Fallback: если нашли город, но не нашли его tile (перекрытие) ───
-    if (city && !tile && city.tileKey) {
-      // Найдём tile по city.tileKey через world? Нет — InputController не знает о world.
-      // Решение: искать по всем pickables userData.tile с совпадающим cityId.
-      for (const obj of this._pickables) {
-        const ud = obj.userData;
-        if (ud?.tile && ud.tile.cityId === city.id) {
-          tile = ud.tile;
-          break;
-        }
-      }
-    }
-    return { tile, general, city, hoverType };
+    return { tile, general, city, halo, hoverType };
   }
 
   _handleClick(e) {
@@ -179,14 +171,14 @@ export class InputController {
   }
 
   _handleHover(e) {
-    const { tile, hoverType, general } = this._pick(e.clientX, e.clientY);
-    const key = `${hoverType || 'none'}:${general?.id || ''}:${tile?.key || ''}`;
+    const { tile, hoverType, general, halo } = this._pick(e.clientX, e.clientY);
+    const key = `${hoverType || 'none'}:${general?.id || ''}:${halo?.id || ''}:${tile?.key || ''}`;
     if (key === this._lastHoverKey) return;
     this._lastHoverKey = key;
     let cursor = 'default';
-    if (hoverType === 'general' || hoverType === 'city') cursor = 'pointer';
+    if (hoverType === 'general' || hoverType === 'city' || hoverType === 'haloIcon') cursor = 'pointer';
     else if (this._isDragging) cursor = 'grabbing';
     this.canvas.style.cursor = cursor;
-    this.onTileHover?.(tile, { x: e.clientX, y: e.clientY }, { hoverType, general });
+    this.onTileHover?.(tile, { x: e.clientX, y: e.clientY }, { hoverType, general, halo });
   }
 }

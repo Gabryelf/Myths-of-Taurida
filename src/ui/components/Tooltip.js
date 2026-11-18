@@ -29,6 +29,57 @@ export class Tooltip {
     this._visible = false;
   }
 
+  _renderHalo(halo) {
+    const type = HALO_TYPES[halo.type];
+    if (!type) return '';
+    const tiles = this._world ? this._world.haloTiles(halo) : [];
+    const owners = new Set(tiles.map((t) => t.factionId).filter(Boolean));
+    const city = halo.anchorCityId && this._world
+      ? this._world.getCity(halo.anchorCityId)
+      : null;
+    const haloColor = '#' + (halo.color ?? type.color).toString(16).padStart(6, '0');
+
+    let statusHtml;
+    if (owners.size === 0) {
+      statusHtml = '<div class="tt-halo-status tt-halo-neutral">Ничей</div>';
+    } else if (owners.size === 1) {
+      const only = [...owners][0];
+      const ownerName = Theme.factionName[only] || only;
+      statusHtml = `<div class="tt-halo-status tt-halo-monopoly">
+            ${iconImg('ui_check', { size: 11 })} Монополия: ${ownerName}
+        </div>`;
+    } else {
+      const list = [...owners].map((f) => Theme.factionName[f] || f).join(', ');
+      statusHtml = `<div class="tt-halo-status tt-halo-contested">
+            ${iconImg('ui_skull', { size: 11 })} Разделён: ${list}
+        </div>`;
+    }
+
+    return `
+      <div class="tt-halo-title" style="color:${haloColor}">
+        <span class="tt-halo-dot" style="background:${haloColor}"></span>
+        ${type.icon} ${type.name}
+      </div>
+      <div class="tt-row"><span>Доход</span><b>
+        ${iconImg('res_gold', { size: 11 })}${type.yield.gold}
+        ${iconImg('res_prov', { size: 11 })}${type.yield.prov}
+        ${iconImg('res_weapons', { size: 11 })}${type.yield.weapons}
+      </b></div>
+      <div class="tt-row"><span>Гексов</span><b>${tiles.length}</b></div>
+      ${city ? `<div class="tt-row"><span>Якорь</span><b>${city.name}</b></div>` : ''}
+      ${statusHtml}
+    `;
+  }
+
+  showHalo(halo, screenPos) {
+    if (!halo) { this.hide(); return; }
+    this.el.innerHTML = this._renderHalo(halo);
+    this.el.style.left = `${screenPos.x + 18}px`;
+    this.el.style.top = `${screenPos.y + 18}px`;
+    this.el.classList.add('visible');
+    this._visible = true;
+  }
+
   _render(tile) {
     const terrainName = Theme.terrainName[tile.terrain] || tile.terrain;
     const factionName = tile.factionId

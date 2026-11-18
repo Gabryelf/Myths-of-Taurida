@@ -57,17 +57,17 @@ export const CARD_IMAGES = {
   goth_seer: 'gothian/009.png',
   goth_warlord: 'gothian/010.png',
   // ═══════════════ ТАВРЫ (нейтралы) ═══════════════
-  tauri_spear: 'tauri/tauri_spear.png',
-  tauri_hunter: 'tauri/tauri_hunter.png',
-  tauri_skirmisher: 'tauri/tauri_skirmisher.png',
-  tauri_shaman: 'tauri/tauri_shaman.png',
-  tauri_chief: 'tauri/tauri_chief.png',
+  tauri_spear: 'tauri/001.png',
+  tauri_hunter: 'tauri/002.png',
+  tauri_skirmisher: 'tauri/003.png',
+  tauri_shaman: 'tauri/004.png',
+  tauri_chief: 'tauri/005.png',
   // ═══════════════ КИММЕРИЙЦЫ (нейтралы) ═══════════════
-  cimm_horseman: 'tauri/cimm_horseman.png',
-  cimm_raider: 'tauri/cimm_raider.png',
-  cimm_archer: 'tauri/cimm_archer.png',
-  cimm_shaman: 'tauri/cimm_shaman.png',
-  cimm_khan: 'tauri/cimm_khan.png',
+  cimm_horseman: 'cimmerian/002.png',
+  cimm_raider: 'cimmerian/003.png',
+  cimm_archer: 'cimmerian/001.png',
+  cimm_shaman: 'cimmerian/004.png',
+  cimm_khan: 'cimmerian/005.png',
 };
 
 // ─── Общие портреты фракций (fallback) ───
