@@ -16,7 +16,6 @@ export class BattleController {
     });
     this.battle = battle;
     battle._aiInstance = new BattleAI(battle);
-
     if (humanSides) {
       this.humanSides = humanSides;
     } else {
@@ -26,7 +25,6 @@ export class BattleController {
         defender: battle.defenderGen?.factionId === playerFaction,
       };
     }
-
     // ─── Стартовая сторона: первая человеческая, иначе attacker ───
     if (this.humanSides.attacker) {
       this.activeSide = 'attacker';
@@ -35,39 +33,27 @@ export class BattleController {
     } else {
       this.activeSide = 'attacker';
     }
-
-    // ─── Battle.currentHumanSide = кто изначально играет ───
+    // Battle.currentHumanSide = кто изначально играет.
     // Используется Battle.isActiveTurn для проверок selectCard/playCard.
-    // Для хода ИИ это поле выставляем в ТЕКУЩУЮ ИИ-сторону,
-    // чтобы Battle._emit — но НЕ как humanSide. См. ниже метод _scheduleIfNeeded.
     battle.currentHumanSide = this.activeSide;
-
     this.bus.emit('battle:started', { battle });
     this._scheduleIfNeeded();
     return battle;
   }
 
+  /** Единственная точка записи хода: activeSide + (для человека) currentHumanSide. */
+  _setTurn(side, isHuman) {
+    this.activeSide = side;
+    if (isHuman) this.battle.currentHumanSide = side;
+  }
+
   _scheduleIfNeeded() {
     if (!this.battle || this.battle.finished) return;
-
     const turn = this.battle.turn;
     const isHuman = this.humanSides[turn];
-
-    if (isHuman) {
-      // Ход человека
-      this.activeSide = turn;
-      this.battle.currentHumanSide = turn;
-      this.bus.emit('battle:updated', { battle: this.battle });
-      return;
-    }
-
-    // Ход ИИ
-    this.activeSide = turn;
-    // ─── ВАЖНО: НЕ выставляем battle.currentHumanSide в 'defender', иначе
-    // Battle.isActiveTurn = true, и Battle.aiTurn() выйдет без хода. ───
-    // Оставляем currentHumanSide на предыдущем «человеке».
+    this._setTurn(turn, isHuman);
     this.bus.emit('battle:updated', { battle: this.battle });
-    this._scheduleAI();
+    if (!isHuman) this._scheduleAI();
   }
 
   selectCard(card) {

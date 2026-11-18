@@ -7,7 +7,7 @@ import { Theme } from '../infrastructure/config/ThemeConfig.js';
 export class TurnOrchestrator {
   constructor({
     world, bus, turnManager, profile, ui, sound, sceneBuilder,
-    cameraController, input, selection, movementController, battleController,
+    cameraController, input, selection, movementController, battleController, sceneSync,
   }) {
     this.world = world;
     this.bus = bus;
@@ -21,6 +21,7 @@ export class TurnOrchestrator {
     this.selection = selection;
     this.movement = movementController;
     this.battleController = battleController;
+    this.sceneSync = sceneSync;
     this.humanFactions = [];
     this.playerFactionId = null;
     this._aiBusy = false;
@@ -87,13 +88,8 @@ export class TurnOrchestrator {
     }
 
     this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: nextId });
+    this.sceneSync.run(this.world, { factionId: nextId });
     this.ui.quickJump?.setWorld(this.world);
-    this.ui.quickJump?.refreshMinimap();
     this.selection.updateHireButton();
 
     const f = this.world.factions.find((x) => x.id === nextId);
@@ -219,10 +215,8 @@ export class TurnOrchestrator {
           text: 'Противник нанял карту',
           kind: 'info',
         });
-      } else if (step.action === 'hire-general') {
-        this.sceneBuilder.rebuild(this.world);
-        this.sceneBuilder.updateFog(this.world);
-        this.input.setPickables(this.sceneBuilder.getPickables());
+    } else if (step.action === 'hire-general') {
+        this.sceneSync.run(this.world, { resources: false });
         this.bus.emit('notification:show', {
           text: 'Противник нанял полководца',
           kind: 'danger',
@@ -232,12 +226,9 @@ export class TurnOrchestrator {
           text: `Противник купил поселение «${step.cityName}»`,
           kind: 'danger',
         });
-        this.sceneBuilder.rebuild(this.world);
-        this.sceneBuilder.updateFog(this.world);
-        this.sceneBuilder.updateCityFaction(this.world);
-        this.sceneBuilder.refreshBorders();
-        this.input.setPickables(this.sceneBuilder.getPickables());
+        this.sceneSync.run(this.world, { resources: false });
       }
+
     } catch (e) {
       console.error('[TurnOrchestrator.onAIStep]', e, step);
     }
@@ -251,13 +242,8 @@ export class TurnOrchestrator {
       this.playerFactionId = humans[0];
     }
     this.world.recomputeVisibility();
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
+    this.sceneSync.run(this.world);
     this.selection.updateHireButton();
   }
+
 }

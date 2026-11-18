@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../ui/components/ConfirmDialog.js';
  * Клики по городам и покупка поселений.
  */
 export class CityInteractionService {
-  constructor({ world, bus, battleOrchestrator, selection, ui, sceneBuilder, cameraController, input, sound }) {
+  constructor({ world, bus, battleOrchestrator, selection, ui, sceneBuilder, cameraController, input, sound, sceneSync }) {
     this.world = world;
     this.bus = bus;
     this.battleOrchestrator = battleOrchestrator;
@@ -14,18 +14,17 @@ export class CityInteractionService {
     this.cameraController = cameraController;
     this.input = input;
     this.sound = sound;
+    this.sceneSync = sceneSync;
   }
 
   handleCityClick(tile, city) {
     const playerFactionId = this.world.playerFactionId;
     const isMine = city.factionId === playerFactionId;
-
     if (isMine) {
       this.openCity(tile, city);
       this.selection.selectGeneral(null);
       return;
     }
-
     const general = this.selection.getSelectedGeneral();
     if (general && this.world.movement.canAttack(general, tile)) {
       const cost = this.world.movement.attackCostTo(general, tile);
@@ -34,13 +33,12 @@ export class CityInteractionService {
         : (city.factionId || 'goths');
       const kind = city.settlement ? 'поселение' : city.isCity ? 'город' : 'деревню';
       const canBuy = city.settlement;
-
       new ConfirmDialog(document.getElementById('ui-root'), {
         title: `Атаковать ${kind}?`,
         text: `${general.name} может атаковать ${city.name}. Потратится ${cost} очка движения.` +
               (canBuy ? ' Или купить за 40 💰 (только для поселения).' : ''),
         confirmText: 'Атаковать',
-        cancelText: canBuy ? 'Купить / Отмена' : 'Отмена',
+        cancelText: canBuy ? 'Купить…' : 'Отмена',
         onConfirm: () => this.battleOrchestrator.executeBattle(
           general, tile, cost, defenderFactionId, this.selection
         ),
@@ -58,7 +56,6 @@ export class CityInteractionService {
       });
       return;
     }
-
     this.openCity(tile, city);
     this.selection.selectGeneral(null);
   }
@@ -97,12 +94,6 @@ export class CityInteractionService {
     }
     this.bus.emit('toast:show', { text: `🏛 Куплено: ${city.name} (-40💰)` });
     this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
+    this.sceneSync.run(this.world);
   }
 }

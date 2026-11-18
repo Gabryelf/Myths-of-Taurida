@@ -27,6 +27,8 @@ import { BattleOrchestrator } from '../application/BattleOrchestrator.js';
 import { CityInteractionService } from '../application/CityInteractionService.js';
 import { TileInteractionService } from '../application/TileInteractionService.js';
 import { TurnOrchestrator } from '../application/TurnOrchestrator.js';
+import { SceneSync } from '../application/SceneSync.js';
+
 
 const FACTION_IDS = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
 
@@ -218,13 +220,22 @@ export class Game {
       input: this.input, ui: this.ui, bus: this.bus,
     });
 
+    this.sceneSync = new SceneSync({
+      sceneBuilder: this.sceneBuilder,
+      input: this.input,
+      ui: this.ui,
+      bus: this.bus,
+    });
+
     this.battleOrchestrator = new BattleOrchestrator({
       world: this.world, bus: this.bus, battleController: this.battleController,
       sceneBuilder: this.sceneBuilder, cameraController: this.cameraController,
       input: this.input, ui: this.ui, sound: this.sound,
       profile: this.profile, humanFactions: this._humanFactions,
       pendingBattle: { cost: 0, defenderFactionId: null },
+      sceneSync: this.sceneSync,
     });
+
     this.battleOrchestrator.onMatchFinished = () => this._finishMatchRewards();
     this.battleOrchestrator.onAfterAITurns = () => {
       if (this.turnOrchestrator?.isBusy) this.turnOrchestrator.afterAITurns();
@@ -237,7 +248,9 @@ export class Game {
       sceneBuilder: this.sceneBuilder,
       cameraController: this.cameraController,
       input: this.input, sound: this.sound,
+      sceneSync: this.sceneSync,
     });
+
 
     this.tileService = new TileInteractionService({
       world: this.world, bus: this.bus,
@@ -254,7 +267,9 @@ export class Game {
       sceneBuilder: this.sceneBuilder, cameraController: this.cameraController,
       input: this.input, selection: this.selection,
       movementController: this.movement, battleController: this.battleController,
+      sceneSync: this.sceneSync,
     });
+
     this.turnOrchestrator.setHumanFactions(this._humanFactions, firstFaction);
     this.turnOrchestrator.onMatchFinished = () => this._finishMatchRewards();
 
@@ -278,11 +293,8 @@ export class Game {
     // ─── Найм генерала → перестроить сцену ───
     this.bus.on('world:generalsChanged', ({ general }) => {
       if (!this.world) return;
-      this.sceneBuilder.rebuild(this.world);
-      this.sceneBuilder.updateFog(this.world);
-      this.sceneBuilder.updateCityFaction(this.world);
-      this.sceneBuilder.refreshBorders();
-      this.input.setPickables(this.sceneBuilder.getPickables());
+      this.world.recomputeVisibility();
+      this.sceneSync.run(this.world, { resources: false });
       this.world.recomputeVisibility();
       if (general) {
         this.cameraController.centerOn(general.hex, Theme.hexSize);
