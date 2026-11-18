@@ -141,27 +141,43 @@ export class InputController {
     }
     const hits = this.raycaster.intersectObjects(this._pickables, true);
     let tile = null, general = null, city = null, halo = null, hoverType = null;
+
     for (const h of hits) {
       let cur = h.object;
       while (cur) {
         const ud = cur.userData;
+        // ─── Иконка ореола ───
         if (ud?.haloIcon && !halo) {
           halo = ud.halo;
+          // Приоритет haloIcon — если попали в спрайт, это главное
           hoverType = 'haloIcon';
         }
         if (ud?.hoverable === 'general' && !general) {
           general = ud.general;
-          hoverType = 'general';
+          // general имеет приоритет над city, но НЕ над haloIcon
+          if (hoverType !== 'haloIcon') hoverType = 'general';
         }
         if (ud?.hoverable === 'city' && !city) {
           city = ud.city;
-          if (!general && !halo) hoverType = 'city';
+          if (!general && hoverType !== 'haloIcon') hoverType = 'city';
         }
         if (ud?.tile && !tile) tile = ud.tile;
         cur = cur.parent;
       }
       if (general && tile && city && halo) break;
     }
+
+    // Fallback: если нашли город, но не нашли его tile
+    if (city && !tile && city.tileKey) {
+      for (const obj of this._pickables) {
+        const ud = obj.userData;
+        if (ud?.tile && ud.tile.cityId === city.id) {
+          tile = ud.tile;
+          break;
+        }
+      }
+    }
+
     return { tile, general, city, halo, hoverType };
   }
 

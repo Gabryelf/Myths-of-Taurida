@@ -98,20 +98,16 @@ export class HaloVisual {
       anchorTile = this.world.map.getByKey(halo.cells[0]);
     }
     if (!anchorTile) return;
-
     const { x, z } = anchorTile.hex.toWorld(this.size);
-    const iconKey = `halo_${halo.type}`;   // halo_wheat, halo_pasture, ...
-    const svgUrl = iconUrl(iconKey);       // /icons/halo_wheat.svg?v=v2
-
-    // Создаём спрайт сразу с заглушкой (пустой canvas),
-    // затем асинхронно подгружаем SVG и обновляем материал.
+    const iconKey = `halo_${halo.type}`;
+    const svgUrl = iconUrl(iconKey);
+  
+    // Создаём спрайт сразу с заглушкой (пустой canvas)
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
-
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
-
     const mat = new THREE.SpriteMaterial({
       map: tex,
       transparent: true,
@@ -123,29 +119,28 @@ export class HaloVisual {
     const scale = this.size * 0.45;
     sprite.scale.set(scale, scale, 1);
     sprite.renderOrder = 12;
-    this._iconsGroup.add(sprite);
-
+  
+    // ─── ВАЖНО: помечаем спрайт для InputController ───
     sprite.userData = {
       haloIcon: true,
       haloId: halo.id,
       haloType: halo.type,
-      halo,           // ссылка на объект ореола
+      halo,               // ссылка на объект ореола
     };
-
-    // Нарисовать сразу (фон + обводка), чтобы не было пустого круга
+  
+    this._iconsGroup.add(sprite);
+  
+    // Нарисовать сразу (фон + обводка)
     this._drawIconBackground(canvas, color);
     tex.needsUpdate = true;
-
-    // Асинхронно подгрузить SVG и отрисовать поверх
+  
+    // Асинхронно подгрузить SVG
     this._loadSvgImage(svgUrl).then((img) => {
       if (this._disposed) return;
       if (!img) return;
-      // Перерисовываем: фон + SVG
       this._drawIconWithSvg(canvas, color, img);
       tex.needsUpdate = true;
-    }).catch(() => {
-      // Если SVG не загрузился — оставляем фон без иконки
-    });
+    }).catch(() => {});
   }
 
   /** Загрузка SVG как Image с кэшем. */

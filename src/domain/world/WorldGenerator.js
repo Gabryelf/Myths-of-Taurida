@@ -22,19 +22,19 @@ export class WorldGenerator {
     const cities = CityFactory.createAll();
     const occupiedTiles = new Set();
 
-    // ─── Размещаем КАЖДЫЙ город (6 городов + 2 деревни + 6 поселений = 14) ───
     for (let i = 0; i < cities.length; i++) {
       const def = TAURIDA_CITIES[i];
       if (!def) break;
 
-      // Ищем ближайший свободный от городов сухой гекс
+      // 1) Ближайший свободный (радиус 3)
       let tile = this._findNearestFreeLand(map, def.q, def.r, occupiedTiles, 0, 3);
+      // 2) Шире (радиус 14)
+      if (!tile) tile = this._findNearestFreeLand(map, def.q, def.r, occupiedTiles, 0, 14);
+      // 3) Fallback: любой свободный гекс на карте
+      if (!tile) tile = this._findAnyFreeLand(map, occupiedTiles);
+
       if (!tile) {
-        // Fallback — обычный поиск без ограничений (страховка)
-        tile = this._findNearestFreeLand(map, def.q, def.r, occupiedTiles, 0, 14);
-      }
-      if (!tile) {
-        console.warn(`[WorldGenerator] Не удалось разместить город ${def.name}`);
+        console.warn(`[WorldGenerator] Не удалось разместить город ${def.name} — нет свободных гексов`);
         continue;
       }
 
@@ -52,8 +52,10 @@ export class WorldGenerator {
   }
 
   /**
-   * Найти ближайший СВОБОДНЫЙ от городов сухой гекс
-   * на расстоянии от minDist до maxDist от (q,r).
+   * BFS от (q, r): ближайший свободный СУХОЙ гекс в радиусе [minDist, maxDist].
+   *
+   * Ключевое: НЕ отсекаем по map.has — иначе не выйдем из «моря»,
+   * если стартовый гекс не существует в map.
    */
   _findNearestFreeLand(map, q, r, occupied, minDist = 0, maxDist = 14) {
     const visited = new Set();
@@ -63,9 +65,12 @@ export class WorldGenerator {
       const key = `${cur.q},${cur.r}`;
       if (visited.has(key)) continue;
       visited.add(key);
+
       const t = map.get(cur.q, cur.r);
       if (t && t.isLand && cur.d >= minDist && !occupied.has(t.key)) return t;
+
       if (cur.d >= maxDist) continue;
+
       for (const d of [
         { q: cur.q + 1, r: cur.r },
         { q: cur.q + 1, r: cur.r - 1 },
@@ -75,36 +80,18 @@ export class WorldGenerator {
         { q: cur.q, r: cur.r + 1 },
       ]) {
         const k = `${d.q},${d.r}`;
-        if (visited.has(k) || !map.has(d.q, d.r)) continue;
+        if (visited.has(k)) continue;
+        // ─── УБРАНО: if (!map.has(d.q, d.r)) continue; ───
         queue.push({ q: d.q, r: d.r, d: cur.d + 1 });
       }
     }
     return null;
   }
 
-  _findNearestLand(map, q, r, maxDist = 8) {
-    const visited = new Set();
-    let queue = [{ q, r, d: 0 }];
-    while (queue.length) {
-      const cur = queue.shift();
-      const key = `${cur.q},${cur.r}`;
-      if (visited.has(key)) continue;
-      visited.add(key);
-      const t = map.get(cur.q, cur.r);
-      if (t && t.isLand) return t;
-      if (cur.d >= maxDist) continue;
-      for (const d of [
-        { q: cur.q + 1, r: cur.r },
-        { q: cur.q + 1, r: cur.r - 1 },
-        { q: cur.q, r: cur.r - 1 },
-        { q: cur.q - 1, r: cur.r },
-        { q: cur.q - 1, r: cur.r + 1 },
-        { q: cur.q, r: cur.r + 1 },
-      ]) {
-        const k = `${d.q},${d.r}`;
-        if (visited.has(k) || !map.has(d.q, d.r)) continue;
-        queue.push({ q: d.q, r: d.r, d: cur.d + 1 });
-      }
+  /** Любой свободный сухой гекс на карте (fallback). */
+  _findAnyFreeLand(map, occupied) {
+    for (const t of map.all()) {
+      if (t.isLand && !occupied.has(t.key)) return t;
     }
     return null;
   }

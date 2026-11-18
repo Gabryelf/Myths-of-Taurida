@@ -11,7 +11,6 @@ import { RecruitController } from '../application/RecruitController.js';
 import { BattleController } from '../application/BattleController.js';
 import { TurnManager } from '../domain/ai/TurnManager.js';
 import { SoundManager } from '../infrastructure/audio/SoundManager.js';
-import { ConfirmDialog } from '../ui/components/ConfirmDialog.js';
 import { MarketController } from '../application/MarketController.js';
 import { LobbyScreen } from '../ui/components/lobby/LobbyScreen.js';
 import { SummonModal } from '../ui/components/lobby/SummonModal.js';
@@ -20,6 +19,14 @@ import { createStarterProfile } from '../domain/collection/PlayerProfileFactory.
 import { DeckRepository } from '../domain/deck/DeckRepository.js';
 import { RewardService } from '../domain/match/RewardService.js';
 import { NotificationCenter } from '../ui/components/NotificationCenter.js';
+
+// ─── Сервисы ───
+import { SelectionController } from '../application/SelectionController.js';
+import { MovementController } from '../application/MovementController.js';
+import { BattleOrchestrator } from '../application/BattleOrchestrator.js';
+import { CityInteractionService } from '../application/CityInteractionService.js';
+import { TileInteractionService } from '../application/TileInteractionService.js';
+import { TurnOrchestrator } from '../application/TurnOrchestrator.js';
 
 const FACTION_IDS = ['scythians', 'bosporus', 'chersonesos', 'rome', 'goths'];
 
@@ -40,42 +47,50 @@ export class Game {
     this.world = null;
     this._humanFactions = [];
     this._playerFactionId = null;
+
     this.renderer = new Renderer(canvas);
     this.cameraController = new CameraController(this.renderer.camera, this.renderer.renderer);
     this.sceneBuilder = new SceneBuilder(this.renderer.scene);
     this.sound = new SoundManager();
+
     this.ui = new UIManager({
       root: uiRoot, toastRoot, bus: this.bus, world: null,
-      onEndTurn: () => this.endTurn(),
+      onEndTurn: () => this.turnOrchestrator?.endTurn(),
       onRecruit: (key) => this.recruitController?.tryRecruit(key),
       battleController: null, marketController: null, sound: this.sound,
     });
     this.ui.onHire = () => this.openRecruitForSelected();
     this.ui.onMarket = () => this.openMarket();
-    this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
-    this.ui.onLensModeChange = (mode) => this.sceneBuilder.setLensMode(mode);
+    this.ui.onBuySettlement = (cityId) => this.cityService?.buySettlement(cityId);
+    this.ui.onLensModeChange = (mode) => {
+      this.sceneBuilder.setLensMode(mode);
+      this.input.setPickables(this.sceneBuilder.getPickables());
+    };
+
     this.input = new InputController({
       canvas, camera: this.renderer.camera,
-      onTileClick: (tile, hitGeneral, hitCity) => this._onTileClick(tile, hitGeneral, hitCity),
-      onTileHover: (tile, screenPos, meta) => this._onTileHover(tile, screenPos, meta),
+      onTileClick: (tile, hitGeneral, hitCity) => this.tileService?.onTileClick(tile, hitGeneral, hitCity),
+      onTileHover: (tile, screenPos, meta) => this.tileService?.onTileHover(tile, screenPos, meta),
     });
     this.input.attachCameraController(this.cameraController);
+
     this.notifications = new NotificationCenter(uiRoot, { max: 8 });
     this.bus.on('toast:show', ({ text }) => this.notifications.push({ text, kind: 'info' }));
     this.bus.on('notification:show', ({ text, kind }) => this.notifications.push({ text, kind }));
-    this.bus.on('battle:finished', (r) => this._onBattleFinished(r));
+    this.bus.on('battle:finished', (r) => this.battleOrchestrator?.onBattleFinished(r));
     this.bus.on('battle:started', () => this.sound.play('play'));
-    this.selectedGeneralId = null;
-    this.selectedTileKey = null;
-    this._pendingBattleCost = 0;
-    this._pendingBattleDefenderFactionId = null;
-    this._hoveredGeneralId = null;
-    this._hoveredCityId = null;
+
     this._running = false;
-    this._aiBusy = false;
-    this._moving = false;
     this.lobby = null;
     this.summonModal = null;
+
+    // ─── Сервисы уровня мира ───
+    this.selection = null;
+    this.movement = null;
+    this.battleOrchestrator = null;
+    this.cityService = null;
+    this.tileService = null;
+    this.turnOrchestrator = null;
   }
 
   start(_factionId = 'scythians') {
@@ -163,6 +178,7 @@ export class Game {
     const firstFaction = cfg.mode === 'hotseat' ? activeFactions[0] : factionId;
     this._playerFactionId = firstFaction;
     const playerDeck = this.deckRepo.getDeck(firstFaction);
+
     this.world = new World({
       seed: 1337, radius: 14, playerDeck,
       playerGeneralPreset: this.profile.starterGeneralByFaction?.[firstFaction] ?? 0,
@@ -183,15 +199,71 @@ export class Game {
         });
       }
     };
+
+    // ─── Контроллеры ───
     this.turnManager = new TurnManager({ world: this.world, bus: this.bus });
     this.recruitController = new RecruitController({ world: this.world, bus: this.bus });
     this.marketController = new MarketController({ world: this.world, bus: this.bus });
     this.battleController = new BattleController({ world: this.world, bus: this.bus });
+
+    // ─── Сервисы ───
+    this.selection = new SelectionController({
+      world: this.world, bus: this.bus,
+      sceneBuilder: this.sceneBuilder, cameraController: this.cameraController, ui: this.ui,
+    });
+
+    this.movement = new MovementController({
+      world: this.world, sceneBuilder: this.sceneBuilder,
+      cameraController: this.cameraController,
+      input: this.input, ui: this.ui, bus: this.bus,
+    });
+
+    this.battleOrchestrator = new BattleOrchestrator({
+      world: this.world, bus: this.bus, battleController: this.battleController,
+      sceneBuilder: this.sceneBuilder, cameraController: this.cameraController,
+      input: this.input, ui: this.ui, sound: this.sound,
+      profile: this.profile, humanFactions: this._humanFactions,
+      pendingBattle: { cost: 0, defenderFactionId: null },
+    });
+    this.battleOrchestrator.onMatchFinished = () => this._finishMatchRewards();
+    this.battleOrchestrator.onAfterAITurns = () => {
+      if (this.turnOrchestrator?.isBusy) this.turnOrchestrator.afterAITurns();
+    };
+
+    this.cityService = new CityInteractionService({
+      world: this.world, bus: this.bus,
+      battleOrchestrator: this.battleOrchestrator,
+      selection: this.selection, ui: this.ui,
+      sceneBuilder: this.sceneBuilder,
+      cameraController: this.cameraController,
+      input: this.input, sound: this.sound,
+    });
+
+    this.tileService = new TileInteractionService({
+      world: this.world, bus: this.bus,
+      sceneBuilder: this.sceneBuilder,
+      cameraController: this.cameraController, input: this.input,
+      selection: this.selection, movementController: this.movement,
+      battleOrchestrator: this.battleOrchestrator,
+      cityService: this.cityService, ui: this.ui,
+    });
+
+    this.turnOrchestrator = new TurnOrchestrator({
+      world: this.world, bus: this.bus, turnManager: this.turnManager,
+      profile: this.profile, ui: this.ui, sound: this.sound,
+      sceneBuilder: this.sceneBuilder, cameraController: this.cameraController,
+      input: this.input, selection: this.selection,
+      movementController: this.movement, battleController: this.battleController,
+    });
+    this.turnOrchestrator.setHumanFactions(this._humanFactions, firstFaction);
+    this.turnOrchestrator.onMatchFinished = () => this._finishMatchRewards();
+
+    // ─── UI-связки ───
     this.ui.setWorld(this.world);
     this.ui.battleController = this.battleController;
     this.ui.marketController = this.marketController;
-    this.ui.onBuySettlement = (cityId) => this.buySettlement(cityId);
-    this.ui.onAttackCity = (cityId, defenderFactionId) => this._attackCityById(cityId, defenderFactionId);
+    this.ui.onBuySettlement = (cityId) => this.cityService.buySettlement(cityId);
+    this.ui.onAttackCity = (cityId, defenderFactionId) => this.cityService.attackCityById(cityId, defenderFactionId);
     if (this.ui.battleModal) this.ui.battleModal.controller = this.battleController;
     if (this.ui.marketPanel) {
       this.ui.marketPanel.controller = this.marketController;
@@ -203,7 +275,7 @@ export class Game {
       this.ui.quickJump.cameraController = this.cameraController;
     }
 
-    // ─── Подписка: найм генерала → перестроить сцену ───
+    // ─── Найм генерала → перестроить сцену ───
     this.bus.on('world:generalsChanged', ({ general }) => {
       if (!this.world) return;
       this.sceneBuilder.rebuild(this.world);
@@ -214,7 +286,7 @@ export class Game {
       this.world.recomputeVisibility();
       if (general) {
         this.cameraController.centerOn(general.hex, Theme.hexSize);
-        this._selectGeneral(general);
+        this.selection.selectGeneral(general);
       }
     });
 
@@ -238,549 +310,27 @@ export class Game {
     if (!localStorage.getItem('tavrida_tutorial_v1')) {
       this.ui.showTutorial(() => { this.input.setPickables(this.sceneBuilder.getPickables()); });
     }
-    this._updateHireButton();
+    this.selection.updateHireButton();
     this.bus.emit('game:started', { faction: factionId });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  КЛИКИ И НАВЕДЕНИЕ
-  // ═══════════════════════════════════════════════════════════
+  // ─── Публичные API ───
 
-  _onTileClick(tile, hitGeneral, hitCity) {
-    if (!this.world || this._moving) return;
-    const playerFactionId = this.world.playerFactionId;
+  openMarket() { if (this.world) this.ui.marketPanel.open(); }
 
-    // ─── Клик по генералу ───
-    if (hitGeneral) {
-      if (hitGeneral.factionId !== playerFactionId) {
-        // Чужой генерал
-        if (this.selectedGeneralId) {
-          const mine = this.world.generals.find((g) => g.id === this.selectedGeneralId);
-          if (mine && mine.factionId === playerFactionId) {
-            const enemyTile = this.world.map.get(hitGeneral.hex.q, hitGeneral.hex.r);
-            if (enemyTile && this.world.movement.canAttack(mine, enemyTile)) {
-              const dist = this.world.movement.attackCostTo(mine, enemyTile);
-              this._confirmAttack(mine, enemyTile, dist);
-              return;
-            }
-          }
-        }
-        this.bus.emit('toast:show', { text: 'Это полководец другой фракции' });
-        return;
-      }
-      // Свой генерал: если уже выбран — только центрируем камеру, не снимаем
-      if (this.selectedGeneralId === hitGeneral.id) {
-        this.cameraController.centerOn(hitGeneral.hex, Theme.hexSize);
-        return;
-      }
-      this._selectGeneral(hitGeneral);
+  openRecruitForSelected() {
+    if (!this.world) return;
+    const general = this.selection.getSelectedGeneral();
+    if (!general) {
+      this.bus.emit('toast:show', { text: 'Сначала выберите полководца' });
       return;
     }
-
-    // ─── Клик по городу/деревне ───
-    if (hitCity && tile?.cityId) {
-      this._handleCityClick(tile, hitCity);
+    const own = this.selection.isGeneralInOwnCity(general);
+    if (!own) {
+      this.bus.emit('toast:show', { text: 'Полководец должен стоять в вашем городе/деревне' });
       return;
     }
-
-    // ─── Клик по гексу ───
-    if (!tile) {
-      // Клик «в пустоту» — не снимаем выбор
-      return;
-    }
-
-    if (this.selectedGeneralId) {
-      const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
-      if (general && general.alive) {
-        // Враг на гексе?
-        const enemyGen = this.world.getGeneralAt(tile.hex);
-        if (enemyGen && enemyGen.factionId !== general.factionId) {
-          if (this.world.movement.canAttack(general, tile)) {
-            const dist = this.world.movement.attackCostTo(general, tile);
-            this._confirmAttack(general, tile, dist);
-            return;
-          }
-          this.bus.emit('toast:show', { text: 'Слишком далеко — не дойти до врага' });
-          return;
-        }
-        // Чужой город без генерала?
-        if (tile.cityId) {
-          const city = this.world.getCity(tile.cityId);
-          if (city && city.factionId !== general.factionId && city.factionId !== null) {
-            this.bus.emit('toast:show', { text: `Сначала победите защитников ${city.name}` });
-            return;
-          }
-          if (city && city.factionId === null && city.settlement) {
-            if (this.world.movement.canAttack(general, tile)) {
-              const dist = this.world.movement.attackCostTo(general, tile);
-              this._confirmSettlementAttack(general, tile, city, dist);
-            } else {
-              this.bus.emit('toast:show', { text: `Сначала победите или купите ${city.name}` });
-            }
-            return;
-          }
-        }
-        // Обычный гекс — двигаем
-        if (this.world.movement.canMove(general, tile)) {
-          this._executeMove(general, tile);
-          return;
-        }
-        // Не хватает очков
-        const needed = this.world.movement.costTo(general, tile);
-        if (needed != null && needed > general.movePoints) {
-          this.bus.emit('general:no-move-points', {
-            general, needed, have: general.movePoints,
-          });
-        }
-        return;
-      }
-    }
-    // Не выбран генерал — просто тык по гексу, ничего не делаем
-  }
-
-  _onTileHover(tile, screenPos, meta = {}) {
-    if (this._hoveredGeneralId) {
-      this.sceneBuilder.setGeneralHovered(this._hoveredGeneralId, false);
-      this._hoveredGeneralId = null;
-    }
-    if (this._hoveredCityId) {
-      this.sceneBuilder.setCityHovered(this._hoveredCityId, false);
-      this._hoveredCityId = null;
-    }
-    if (meta.hoverType === 'general' && meta.general) {
-      this._hoveredGeneralId = meta.general.id;
-      this.sceneBuilder.setGeneralHovered(this._hoveredGeneralId, true);
-    } else if (meta.hoverType === 'city' && tile?.cityId) {
-      this._hoveredCityId = tile.cityId;
-      this.sceneBuilder.setCityHovered(this._hoveredCityId, true);
-    }
-    this.sceneBuilder.highlight.setHovered(tile ? tile.key : null);
-
-    // ─── Тултип только для ореола ───
-    if (meta.hoverType === 'haloIcon' && meta.halo) {
-      this.bus.emit('halo:hovered', { halo: meta.halo, screenPos });
-    } else {
-      this.bus.emit('halo:hovered', { halo: null, screenPos });
-    }
-    // tile:hovered больше не эмитим — тултип гекса убран
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  ДИАЛОГИ АТАКИ
-  // ═══════════════════════════════════════════════════════════
-
-  _confirmAttack(general, tile, cost) {
-    const enemy = this.world.getGeneralAt(tile.hex);
-    const enemyName = enemy?.name || 'Вражеский полководец';
-    let defenderFactionId = enemy?.factionId;
-    if (!defenderFactionId && tile.cityId) {
-      const city = this.world.getCity(tile.cityId);
-      defenderFactionId = city?.settlement
-        ? (city.neutralFaction || 'tauri')
-        : (city?.factionId || null);
-    }
-    if (!defenderFactionId) defenderFactionId = tile.factionId || null;
-
-    new ConfirmDialog(document.getElementById('ui-root'), {
-      title: 'Начать бой?',
-      text: `${general.name} атакует ${enemyName}. Потрачено ${cost} очка движения.`,
-      confirmText: 'Атаковать', cancelText: 'Отмена',
-      onConfirm: () => this._executeBattle(general, tile, cost, defenderFactionId),
-      onCancel: () => {},
-    });
-  }
-
-  _confirmSettlementAttack(general, tile, city, cost) {
-    const defenderName = city.neutralFaction === 'cimmerians' ? 'Киммерийцы' : 'Тавры';
-    new ConfirmDialog(document.getElementById('ui-root'), {
-      title: 'Напасть на поселение?',
-      text: `${general.name} атакует ${city.name} (${defenderName}). Генерал-защитник будет обороняться. Потрачено ${cost} очка движения.`,
-      confirmText: 'Напасть', cancelText: 'Отмена',
-      onConfirm: () => this._executeBattle(general, tile, cost, city.neutralFaction || 'tauri'),
-      onCancel: () => {},
-    });
-  }
-
-  _handleCityClick(tile, city) {
-    const playerFactionId = this.world.playerFactionId;
-    const isMine = city.factionId === playerFactionId;
-    if (isMine) {
-      this._openCity(tile, city);
-      this._selectGeneral(null);
-      return;
-    }
-    if (this.selectedGeneralId) {
-      const general = this.world.generals.find((g) => g.id === this.selectedGeneralId);
-      if (general && this.world.movement.canAttack(general, tile)) {
-        const cost = this.world.movement.attackCostTo(general, tile);
-        const defenderFactionId = city.settlement
-          ? (city.neutralFaction || 'tauri')
-          : (city.factionId || 'goths');
-        const kind = city.settlement ? 'поселение' : city.isCity ? 'город' : 'деревню';
-        const canBuy = city.settlement;
-        new ConfirmDialog(document.getElementById('ui-root'), {
-          title: `Атаковать ${kind}?`,
-          text: `${general.name} может атаковать ${city.name}. Потратится ${cost} очка движения.` +
-                (canBuy ? ' Или купить за 40 💰 (только для поселения).' : ''),
-          confirmText: 'Атаковать',
-          cancelText: canBuy ? 'Купить / Отмена' : 'Отмена',
-          onConfirm: () => this._executeBattle(general, tile, cost, defenderFactionId),
-          onCancel: () => {
-            if (canBuy) {
-              new ConfirmDialog(document.getElementById('ui-root'), {
-                title: `Купить ${city.name}?`,
-                text: `Купить поселение за 40 золота? Генерал-защитник исчезнет.`,
-                confirmText: 'Купить', cancelText: 'Отмена',
-                onConfirm: () => this.buySettlement(city.id),
-                onCancel: () => {},
-              });
-            }
-          },
-        });
-        return;
-      }
-    }
-    this._openCity(tile, city);
-    this._selectGeneral(null);
-  }
-
-  _attackCityById(cityId, defenderFactionId) {
-    const city = this.world.getCity(cityId);
-    if (!city || !city.tileKey) return;
-    const tile = this.world.map.getByKey(city.tileKey);
-    if (!tile) return;
-    const general = this.selectedGeneralId
-      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
-      : null;
-    if (!general) { this.bus.emit('toast:show', { text: 'Сначала выберите полководца' }); return; }
-    if (!this.world.movement.canAttack(general, tile)) {
-      this.bus.emit('toast:show', { text: 'Слишком далеко' });
-      return;
-    }
-    const cost = this.world.movement.attackCostTo(general, tile);
-    this._executeBattle(general, tile, cost, defenderFactionId);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  ВЫБОР
-  // ═══════════════════════════════════════════════════════════
-
-  _selectGeneral(general) {
-    if (general && general.factionId !== this.world.playerFactionId) general = null;
-    if (this.selectedGeneralId) this.sceneBuilder.setGeneralSelected(this.selectedGeneralId, false);
-    this.selectedGeneralId = general ? general.id : null;
-    this.selectedTileKey = null;
-    this.sceneBuilder.highlight.setSelected(null);
-    if (general) {
-      this.sceneBuilder.setGeneralSelected(general.id, true);
-      this.cameraController.centerOn(general.hex, Theme.hexSize);
-      const moves = this.world.movement.reachableForMove(general);
-      const attacks = this.world.movement.reachableForAttack(general);
-      this.sceneBuilder.setMovementOverlays(moves, true);
-      this.sceneBuilder.setAttackOverlays(attacks, true);
-      this.bus.emit('general:selected', { general });
-    } else {
-      this.sceneBuilder.setMovementOverlays(null, false);
-      this.sceneBuilder.setAttackOverlays(null, false);
-      this.bus.emit('general:selected', { general: null });
-    }
-    this._updateHireButton();
-  }
-
-  _selectTile(tile) {
-    this.selectedTileKey = tile ? tile.key : null;
-    if (!tile) { this.sceneBuilder.highlight.setSelected(null); return; }
-    this.cameraController.centerOn(tile.hex, Theme.hexSize);
-    const neighbors = tile.hex.neighbors()
-      .map((n) => this.world.map.get(n.q, n.r))
-      .filter((t) => t && t.isLand)
-      .map((t) => t.key);
-    this.sceneBuilder.highlight.setSelected(tile.key, neighbors);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  ПОШАГОВОЕ ДВИЖЕНИЕ
-  // ═══════════════════════════════════════════════════════════
-
-  async _executeMove(general, targetTile) {
-    if (!this.world || !general || !targetTile) return;
-    if (this._moving) return;
-    this._moving = true;
-    const factionId = general.factionId;
-
-    // Скрываем подсветки на время движения
-    this.sceneBuilder.setMovementOverlays(null, false);
-    this.sceneBuilder.setAttackOverlays(null, false);
-    this.sceneBuilder.setGeneralSelected(general.id, false);
-
-    const path = this._findPath(general, targetTile);
-    if (!path || path.length === 0) {
-      this.bus.emit('toast:show', { text: 'Нет пути' });
-      this._moving = false;
-      this._selectGeneral(general);
-      return;
-    }
-
-    for (let i = 0; i < path.length; i++) {
-      const step = path[i];
-      const tile = step.tile;
-      const cost = step.cost;
-
-      if (general.movePoints < cost) {
-        this.bus.emit('toast:show', { text: 'Не хватает очков движения' });
-        this.bus.emit('general:no-move-points', {
-          general, needed: cost, have: general.movePoints,
-        });
-        break;
-      }
-
-      general.spendMove(cost);
-      const fromHex = general.hex;
-      general.moveTo(tile.hex);
-
-      const captured = this.world.captureTile(tile, factionId);
-      this._animateGeneralMove(general, fromHex, tile.hex);
-
-      if (captured) {
-        const v = this.sceneBuilder._tileVisuals.get(tile.key);
-        if (v && typeof v.setFactionColor === 'function') {
-          v.setFactionColor(factionId);
-          v.setFactionRingVisible(true);
-        }
-        this.world.recomputeVisibility();
-        this.sceneBuilder.updateFog(this.world);
-        this.sceneBuilder.refreshBorders();
-        this.bus.emit('tile:captured', { tile, factionId, by: general.id });
-      }
-
-      await this._sleep(280);
-    }
-
-    this.sceneBuilder.updateGeneralPositions(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.world.recomputeVisibility();
-    this.sceneBuilder.updateFog(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.ui.quickJump?.refreshMinimap();
-    this.bus.emit('general:moved', { general });
-    this._moving = false;
-
-    // Генерал остаётся выбранным, если ещё есть очки
-    if (general.movePoints > 0 && general.alive) {
-      this._selectGeneral(general);
-    } else {
-      this._selectGeneral(null);
-    }
-    this._updateHireButton();
-  }
-
-  _sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
-  _findPath(general, targetTile) {
-    const start = general.hex;
-    if (start.key === targetTile.key) return [];
-    const queue = [{ hex: start, prev: null }];
-    const visited = new Set([start.key]);
-    let goalNode = null;
-    while (queue.length > 0) {
-      const cur = queue.shift();
-      for (const n of cur.hex.neighbors()) {
-        if (visited.has(n.key)) continue;
-        const t = this.world.map.get(n.q, n.r);
-        if (!t || !t.isLand) continue;
-        const occ = this.world.getGeneralAt(n);
-        if (occ && occ.id !== general.id) continue;
-        if (this.world.movement.isForeignCityTile(t, general.factionId)) continue;
-        visited.add(n.key);
-        const node = { hex: n, prev: cur, tile: t };
-        if (n.key === targetTile.key) {
-          goalNode = node;
-          break;
-        }
-        queue.push(node);
-      }
-      if (goalNode) break;
-    }
-    if (!goalNode) return null;
-    const path = [];
-    let node = goalNode;
-    while (node && node.hex.key !== start.key) {
-      path.unshift({
-        tile: node.tile,
-        cost: this.world.movement.tileCost(node.tile),
-      });
-      node = node.prev;
-    }
-    return path;
-  }
-
-  _animateGeneralMove(general, fromHex, toHex) {
-    const visual = this.sceneBuilder._generalVisuals.get(general.id);
-    if (!visual) return;
-    const from = fromHex.toWorld(Theme.hexSize);
-    const to = toHex.toWorld(Theme.hexSize);
-    const dx = to.x - from.x;
-    const dz = to.z - from.z;
-    const angle = Math.atan2(dx, dz);
-    const startX = from.x;
-    const startZ = from.z;
-    const startTime = performance.now();
-    const duration = 260;
-    const tick = (now) => {
-      const t = Math.min(1, (now - startTime) / duration);
-      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      const x = startX + dx * ease;
-      const z = startZ + dz * ease;
-      visual.group.position.set(x, 0, z);
-      visual.group.rotation.y = angle;
-      if (t < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        visual.group.position.set(to.x, 0, to.z);
-        visual.group.rotation.y = angle;
-      }
-    };
-    requestAnimationFrame(tick);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  БОЙ
-  // ═══════════════════════════════════════════════════════════
-
-  _executeBattle(general, tile, cost, defenderFactionOverride = null) {
-    this._pendingBattleCost = cost ?? 1;
-
-    let defenderFactionId = defenderFactionOverride;
-    if (!defenderFactionId) {
-      const enemyGen = this.world.getGeneralAt(tile.hex);
-      if (enemyGen) {
-        defenderFactionId = enemyGen.factionId;
-      } else if (tile.cityId) {
-        const city = this.world.getCity(tile.cityId);
-        defenderFactionId = city?.settlement
-          ? (city.neutralFaction || 'tauri')
-          : (city?.factionId || null);
-      } else {
-        defenderFactionId = tile.factionId || null;
-      }
-    }
-    if (!defenderFactionId) {
-      this.bus.emit('toast:show', { text: 'Некого атаковать' });
-      return;
-    }
-    this._pendingBattleDefenderFactionId = defenderFactionId;
-
-    this.sceneBuilder.setMovementOverlays(null, false);
-    this.sceneBuilder.setAttackOverlays(null, false);
-    this.sceneBuilder.setGeneralSelected(general.id, false);
-    this.selectedGeneralId = null;
-    this.bus.emit('general:selected', { general: null });
-    this._updateHireButton();
-
-    const cfg = this.profile.matchConfig || { mode: 'ai' };
-    const humans = this._humanFactions || [];
-    const attackerHuman = humans.includes(general.factionId);
-    const defenderHuman = cfg.mode === 'hotseat' ? humans.includes(defenderFactionId) : false;
-    const playerSide = attackerHuman ? 'attacker' : 'defender';
-    this.battleController.open({
-      attackerGen: general, targetTile: tile, defenderFactionId, playerSide,
-      humanSides: { attacker: attackerHuman, defender: defenderHuman },
-    });
-  }
-
-  _onBattleFinished(result) {
-    const { winner, targetTile, attackerGen, defenderGen, playerSide, activeSide, humanSides } = result;
-    const cost = this._pendingBattleCost || 0;
-    this._pendingBattleCost = 0;
-    this._pendingBattleDefenderFactionId = null;
-
-    const side = activeSide || playerSide || 'attacker';
-    const isHumanFight = humanSides?.attacker || humanSides?.defender;
-    let playerWon = false;
-    if (isHumanFight) {
-      playerWon = (side === 'attacker' && winner === 'attacker') || (side === 'defender' && winner === 'defender');
-    } else {
-      playerWon = (playerSide === 'attacker' && winner === 'attacker') || (playerSide === 'defender' && winner === 'defender');
-    }
-
-    const playerGen = side === 'attacker' ? attackerGen : defenderGen;
-    if (playerGen && playerWon) {
-      const events = playerGen.addXp(10);
-      for (const ev of events) {
-        if (ev.kind === 'level') {
-          this.bus.emit('toast:show', { text: `⭐ ${playerGen.name}: уровень ${ev.level}!` });
-          this.sound.play('victory');
-        } else if (ev.kind === 'perk') {
-          this.bus.emit('toast:show', { text: `🏅 Новый перк: ${ev.perkName}` });
-        }
-      }
-      this.bus.emit('general:selected', { general: playerGen });
-    }
-    if (playerWon) this.sound.play('victory');
-    else if (winner !== 'draw') this.sound.play('defeat');
-
-    if (winner === 'attacker') this._applyAttackerVictory(attackerGen, defenderGen, targetTile);
-    else if (winner === 'defender') this._applyDefenderVictory(attackerGen, defenderGen, targetTile);
-
-    if (winner !== 'draw') this.bus.emit('toast:show', { text: playerWon ? 'Победа!' : 'Поражение' });
-    else this.bus.emit('toast:show', { text: 'Ничья' });
-
-    const connEvents = this.world.connectivity.enforceForAll();
-    for (const ev of connEvents) {
-      if (ev.text) this.bus.emit('notification:show', {
-        text: ev.text,
-        kind: ev.type === 'city' ? 'danger' : 'info',
-      });
-    }
-    this.world._checkElimination();
-    if (this.world.winner) this._finishMatchRewards();
-
-    this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
-    this._updateHireButton();
-    if (this._aiBusy) this._afterAITurns();
-  }
-
-  _applyAttackerVictory(attackerGen, defenderGen, targetTile) {
-    if (!attackerGen || !targetTile) return;
-    // Убить всех вражеских генералов на гексе
-    const enemyGenOnTile = this.world.getGeneralAt(targetTile.hex);
-    if (enemyGenOnTile && enemyGenOnTile.id !== attackerGen.id
-        && enemyGenOnTile.factionId !== attackerGen.factionId) {
-      enemyGenOnTile.lives = 0;
-    }
-    if (defenderGen && defenderGen.id !== attackerGen.id
-        && defenderGen.factionId !== attackerGen.factionId) {
-      defenderGen.lives = 0;
-    }
-    const capturedCity = targetTile.cityId ? this.world.getCity(targetTile.cityId) : null;
-    if (capturedCity) {
-      if (capturedCity.factionId !== attackerGen.factionId) {
-        this.world.captureCity(capturedCity.id, attackerGen.factionId);
-        this.bus.emit('toast:show', { text: `🏛 Захвачен ${capturedCity.name}` });
-      }
-    } else {
-      targetTile.setFaction(attackerGen.factionId);
-    }
-    attackerGen.moveTo(targetTile.hex);
-    const cost = this._pendingBattleCost || 0;
-    if (cost > 0) attackerGen.spendMove(cost);
-  }
-
-  _applyDefenderVictory(attackerGen, defenderGen, targetTile) {
-    if (!attackerGen) return;
-    attackerGen.lives = Math.max(0, attackerGen.lives - 1);
-    const cost = this._pendingBattleCost || 0;
-    if (cost > 0) attackerGen.spendMove(cost);
-    // targetTile не трогаем — гекс остаётся у защитника
+    this.ui.openRecruitModal({ factionId: this.world.playerFactionId, general, world: this.world });
   }
 
   _finishMatchRewards() {
@@ -802,294 +352,6 @@ export class Game {
       this._humanFactions = [];
       this._showLobby();
     }, 1500);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  ГОРОДА
-  // ═══════════════════════════════════════════════════════════
-
-  _openCity(tile, city) {
-    if (this.world) this.world.selectedGeneralId = this.selectedGeneralId;
-    this.ui.openCityPanel({ tile, city, world: this.world });
-  }
-
-  openMarket() { if (this.world) this.ui.marketPanel.open(); }
-
-  openRecruitForSelected() {
-    if (!this.world) return;
-    const general = this.selectedGeneralId
-      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
-      : null;
-    if (!general) { this.bus.emit('toast:show', { text: 'Сначала выберите полководца' }); return; }
-    const own = this._isGeneralInOwnCity(general);
-    if (!own) {
-      this.bus.emit('toast:show', { text: 'Полководец должен стоять в вашем городе/деревне' });
-      return;
-    }
-    this.ui.openRecruitModal({ factionId: this.world.playerFactionId, general, world: this.world });
-  }
-
-  _isGeneralInOwnCity(general) {
-    if (!general || !this.world) return null;
-    const tile = this.world.map.get(general.hex.q, general.hex.r);
-    if (!tile?.cityId) return null;
-    const city = this.world.getCity(tile.cityId);
-    if (!city || city.factionId !== general.factionId) return null;
-    return { tile, city };
-  }
-
-  _updateHireButton() {
-    const general = this.selectedGeneralId && this.world
-      ? this.world.generals.find((g) => g.id === this.selectedGeneralId)
-      : null;
-    const own = general ? this._isGeneralInOwnCity(general) : null;
-    this.ui.setHireEnabled(!!own);
-  }
-
-  buySettlement(cityId) {
-    if (!this.world) return;
-    const city = this.world.getCity(cityId);
-    if (!city || !city.settlement) return;
-    const res = this.world.buySettlement(cityId, this.world.playerFactionId, 40);
-    if (!res.ok) { this.bus.emit('toast:show', { text: res.reason }); return; }
-    this.bus.emit('toast:show', { text: `🏛 Куплено: ${city.name} (-40💰)` });
-    this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  ХОДЫ
-  // ═══════════════════════════════════════════════════════════
-
-  endTurn() {
-    if (!this.world) return;
-    if (this._moving) return;
-    if (this._aiBusy) {
-      this._aiBusy = false;
-      if (this.turnManager) this.turnManager.isRunning = false;
-    }
-    const cfg = this.profile.matchConfig || { mode: 'ai' };
-    if (cfg.mode === 'hotseat') { this._endTurnForHotseat(); return; }
-
-    this.world.endTurn();
-    this._selectGeneral(null);
-    this.sceneBuilder.updateGeneralPositions(this.world);
-    this.bus.emit('turn:ended', { turn: this.world.turn });
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
-    this._runAITurns();
-  }
-
-  _endTurnForHotseat() {
-    const humans = this._humanFactions || [];
-    if (humans.length < 2) { this.world.endTurn(); this._runAITurns(); return; }
-    this._selectGeneral(null);
-    const nextId = this.world.nextHumanFaction(humans);
-    const isFirstHuman = humans[0] === nextId && this.world.playerFactionId === humans[humans.length - 1];
-    this.world.switchToFaction(nextId);
-    this._playerFactionId = nextId;
-    this.profile.lastPlayedFaction = nextId;
-    if (isFirstHuman) {
-      this.world.turn += 1;
-      for (const g of this.world.generals) g.resetTurn();
-      this.world.recruitPointsUsedMap.clear();
-      for (const f of this.world.factions) {
-        if (f.eliminated || f.neutral) continue;
-        const pool = this.world.resourcePools.get(f.id);
-        const income = this.world.economy.computeIncome(this.world, f.id);
-        pool.add(income);
-        this.world.recruitPools.get(f.id)?.addTurnIncome(this.world);
-        const created = this.world.market.autoCreateOffers(f.id);
-        for (const offer of created) {
-          const label = offer.goods === 'weapons' ? 'оружия' : 'провизии';
-          this.bus.emit('toast:show', {
-            text: `Излишки ${label} ушли на рынок: ${offer.amount} за ${offer.price}💰`,
-          });
-        }
-      }
-      this.world._aiMarketTurn();
-      this.world._checkElimination();
-      this.bus.emit('turn:ended', { turn: this.world.turn });
-    }
-    this.world.recomputeVisibility();
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: nextId });
-    this.ui.quickJump?.setWorld(this.world);
-    this.ui.quickJump?.refreshMinimap();
-    this._updateHireButton();
-    const f = this.world.factions.find((x) => x.id === nextId);
-    this.bus.emit('toast:show', { text: `Ход: ${f?.name || nextId}` });
-    this.sound.play('turn');
-    this.ui.turnIndicator.show(`Ход: ${f?.name || nextId}`);
-    setTimeout(() => this.ui.turnIndicator.hide(), 1500);
-    if (isFirstHuman) this._runAITurns();
-  }
-
-  async _runAITurns() {
-    if (!this.world) return;
-    if (this._aiBusy) {
-      this._aiBusy = false;
-      if (this.turnManager) this.turnManager.isRunning = false;
-    }
-
-    const humanFactions = this._humanFactions || [this.world.playerFactionId];
-    const aiFactionIds = this.world.factions
-      .filter((f) => !f.neutral && !f.eliminated && !humanFactions.includes(f.id))
-      .map((f) => f.id);
-
-    if (aiFactionIds.length === 0) {
-      this._afterAITurns();
-      return;
-    }
-
-    this._aiBusy = true;
-    this.ui.turnIndicator.show('Ход противника…');
-    this.sound.play('turn');
-
-    try {
-      const battleStep = await this.turnManager.runAITurns(aiFactionIds, {
-        onAITurnStart: (id) => {
-          const f = this.world.factions.find((x) => x.id === id);
-          this.ui.turnIndicator.show(`Ход: ${f?.name || id}`);
-        },
-        onAIStep: (step) => {
-          try { this._onAIStep(step); }
-          catch (e) { console.error('[Game._onAIStep]', e, step); }
-        },
-        onAITurnEnd: () => this.sceneBuilder.refreshBorders(),
-      });
-
-      if (battleStep) {
-        this.ui.turnIndicator.hide();
-        if (!battleStep.general) {
-          battleStep.general = this.world.generals.find((g) => g.id === battleStep.generalId);
-        }
-        if (!battleStep.general) {
-          console.error('[Game] battleStep without general');
-          this._afterAITurns();
-        } else {
-          try {
-            const result = await this.battleController.autoResolve({
-              attackerGen: battleStep.general,
-              targetTile: battleStep.targetTile,
-              defenderFactionId: battleStep.defenderFactionId || 'goths',
-              playerSide: 'defender',
-            });
-            const atkName = battleStep.general?.name || 'Противник';
-            const winner = result.winner === 'attacker' ? atkName : 'защитник';
-            const targetCity = battleStep.targetTile?.cityId
-              ? this.world.getCity(battleStep.targetTile.cityId)
-              : null;
-            const place = targetCity?.name || 'территория';
-            this.bus.emit('notification:show', {
-              text: `${atkName} атаковал ${place}: победа ${winner}`,
-              kind: result.winner === 'attacker' ? 'danger' : 'success',
-            });
-          } catch (e) {
-            console.error('[Game._runAITurns autoResolve]', e);
-            battleStep.general.movePoints = 0;
-            this._afterAITurns();
-          }
-        }
-      } else {
-        this.ui.turnIndicator.hide();
-        this._afterAITurns();
-      }
-    } catch (e) {
-      console.error('[Game._runAITurns]', e);
-      this.ui.turnIndicator.hide();
-      this._afterAITurns();
-    } finally {
-      this._aiBusy = false;
-    }
-  }
-
-  _onAIStep(step) {
-    if (!this.world) return;
-    try {
-      if (step.action === 'move') {
-        const gen = step.generalId
-          ? this.world.generals.find((g) => g.id === step.generalId)
-          : null;
-        if (gen && step.fromHex && step.toHex) {
-          // Анимация поворота
-          this._animateGeneralMove(gen, step.fromHex, step.toHex);
-        }
-        if (step.captured && step.toHex) {
-          const tile = this.world.map.get(step.toHex.q, step.toHex.r);
-          if (tile) {
-            const v = this.sceneBuilder._tileVisuals.get(tile.key);
-            if (v && typeof v.setFactionColor === 'function') {
-              if (tile.factionId) v.setFactionColor(tile.factionId);
-              v.setFactionRingVisible(true);
-            }
-          }
-        }
-        this.sceneBuilder.refreshBorders();
-        this.world.recomputeVisibility();
-        this.sceneBuilder.updateFog(this.world);
-        this.bus.emit('ai:step:move', { step });
-      } else if (step.action === 'attack-city' || step.action === 'attack') {
-        const gen = step.generalId
-          ? this.world.generals.find((g) => g.id === step.generalId)
-          : null;
-        if (gen) this.sceneBuilder.updateGeneralPositions(this.world);
-        this.sceneBuilder.refreshBorders();
-        this.bus.emit('ai:step:attack', { step });
-      } else if (step.action === 'recruit') {
-        this.bus.emit('notification:show', {
-          text: 'Противник нанял карту',
-          kind: 'info',
-        });
-      } else if (step.action === 'hire-general') {
-        this.sceneBuilder.rebuild(this.world);
-        this.sceneBuilder.updateFog(this.world);
-        this.input.setPickables(this.sceneBuilder.getPickables());
-        this.bus.emit('notification:show', {
-          text: 'Противник нанял полководца',
-          kind: 'danger',
-        });
-      } else if (step.action === 'buy-settlement') {
-        this.bus.emit('notification:show', {
-          text: `Противник купил поселение «${step.cityName}»`,
-          kind: 'danger',
-        });
-        this.sceneBuilder.rebuild(this.world);
-        this.sceneBuilder.updateFog(this.world);
-        this.sceneBuilder.updateCityFaction(this.world);
-        this.sceneBuilder.refreshBorders();
-        this.input.setPickables(this.sceneBuilder.getPickables());
-      }
-    } catch (e) {
-      console.error('[Game._onAIStep]', e, step);
-    }
-  }
-
-  _afterAITurns() {
-    if (!this.world) return;
-    const humans = this._humanFactions || [];
-    if (humans.length > 0) {
-      this.world.switchToFaction(humans[0]);
-      this._playerFactionId = humans[0];
-    }
-    this.world.recomputeVisibility();
-    this.sceneBuilder.updateFog(this.world);
-    this.sceneBuilder.rebuild(this.world);
-    this.sceneBuilder.updateCityFaction(this.world);
-    this.sceneBuilder.refreshBorders();
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.bus.emit('resources:changed', { factionId: this.world.playerFactionId });
-    this.ui.quickJump?.refreshMinimap();
-    this._updateHireButton();
   }
 
   _loop() {

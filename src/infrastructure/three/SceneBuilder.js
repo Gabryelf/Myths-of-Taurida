@@ -118,15 +118,16 @@ export class SceneBuilder {
   _applyLensMode() {
     const bordersOn = this._lensMode === 'borders';
     const halosOn = this._lensMode === 'halos';
-
-    // Границы фракций
+  
+    // Границы фракций — только в режиме 'borders'
     this._borderVisual?.setVisible(bordersOn);
-    // Ореолы (границы + иконки)
+    // Иконки ореолов — только в режиме 'halos'
     this._haloVisual?.setVisible(halosOn);
-
-    // При включённых границах — скрываем фракционные кольца на гексах
+  
+    // ─── Кольца фракций на гексах — ТОЛЬКО в режиме 'borders' ───
+    // В 'none' и 'halos' — колец нет.
     for (const v of this._tileVisuals.values()) {
-      v.setFactionRingVisible(!bordersOn && !halosOn ? true : false);
+      v.setFactionRingVisible(bordersOn);
     }
   }
 
@@ -134,7 +135,7 @@ export class SceneBuilder {
     if (!this._borderVisual || !this.world) return;
     this._borderVisual.refresh();
     this._haloVisual?.refresh();
-    this._applyLensMode();
+  
     for (const tile of this.world.map.all()) {
       if (!tile.isLand) continue;
       const v = this._tileVisuals.get(tile.key);
@@ -142,6 +143,9 @@ export class SceneBuilder {
       if (tile.factionId) v.setFactionColor(tile.factionId);
       else v.setFactionRingVisible(false);
     }
+  
+    // ─── ВАЖНО: _applyLensMode ПОСЛЕ цикла, чтобы перекрыть setFactionColor ───
+    this._applyLensMode();
   }
 
   updateFog(world) {
@@ -235,6 +239,12 @@ export class SceneBuilder {
     }
     for (const v of this._cityVisuals.values()) {
       v.group.traverse((c) => { if (c.isMesh || c.isSprite) arr.push(c); });
+    }
+    // ─── Иконки ореолов (только если линза «Ореолы» включена) ───
+    if (this._haloVisual && this._haloVisual.group.visible) {
+      this._haloVisual._iconsGroup.traverse((c) => {
+        if (c.isSprite) arr.push(c);
+      });
     }
     return arr;
   }

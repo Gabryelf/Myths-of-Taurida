@@ -75,7 +75,9 @@ export class GeneralVisual {
     this.group.add(this._selRing);
 
     this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
-    this._light.position.set(shiftX, size * 0.4, shiftZ);
+    this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
+    this._light.castShadow = false;             // ← не отбрасывает тени
+    this._light.decay = 0;                      // ← без затухания (дешевле)
     this.group.add(this._light);
 
     this._hoverLight = new THREE.PointLight(0x58a6ff, 0, size * 3);

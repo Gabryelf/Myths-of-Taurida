@@ -156,7 +156,7 @@ export class UIManager {
     if (!['none', 'borders', 'halos'].includes(mode)) mode = 'none';
     this._lensMode = mode;
     this._updateLensUI();
-    this.onLensModeChange?.(mode);
+    this.onLensModeChange?.(mode);   // ← вызывает sceneBuilder.setLensMode
   }
 
   _updateLensUI() {
@@ -248,9 +248,15 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
+    // ─── Тултип гекса убран, оставлен только для ореола ───
     this.bus.on('tile:hovered', ({ tile, screenPos }) => {
-      if (!tile) { this.tooltip.hide(); return; }
-      this.tooltip.show(tile, screenPos);
+      if (!tile) { /* ничего */ }
+    });
+
+    // ─── Тултип ореола ───
+    this.bus.on('halo:hovered', ({ halo, screenPos }) => {
+      if (!halo) { this.tooltip.hide(); return; }
+      this.tooltip.showHalo(halo, screenPos);
     });
   }
 }
