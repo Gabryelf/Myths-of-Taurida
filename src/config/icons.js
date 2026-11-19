@@ -1,13 +1,6 @@
-// src/config/icons.js
-// ═══════════════════════════════════════════════════════════
-//  ИКОНКИ. SVG-файлы в public/icons/.
-//  Единственное объявление iconImg/iconUrl в проекте.
-// ═══════════════════════════════════════════════════════════
-
 export const ICON_BASE = '/icons/';
 const ICON_VERSION = 'v2';
 
-/** Реестр ключей (для IDE-подсказок; рендер работает и без него). */
 export const ICON = {
   res_gold: 'res_gold', res_prov: 'res_prov', res_weapons: 'res_weapons',
   res_coins: 'res_coins', res_tactic: 'res_tactic',
@@ -24,11 +17,23 @@ export const ICON = {
   terrain_mountain: 'terrain_mountain', terrain_steppe: 'terrain_steppe',
   terrain_city: 'terrain_city', terrain_ruins: 'terrain_ruins',
   terrain_river: 'terrain_river', terrain_sea: 'terrain_sea', terrain_coast: 'terrain_coast',
+  // старые способности
   ability_volley: 'ability_volley', ability_burst: 'ability_burst',
   ability_shield: 'ability_shield', ability_inspire: 'ability_inspire',
   ability_vengeance: 'ability_vengeance', ability_thorns: 'ability_thorns',
   ability_warlord: 'ability_warlord', ability_poison: 'ability_poison',
   ability_burn: 'ability_burn', ability_freeze: 'ability_freeze',
+  // новые способности
+  ability_rally: 'ability_rally',
+  ability_pierce: 'ability_pierce',
+  ability_guard: 'ability_guard',
+  ability_surge: 'ability_surge',
+  ability_lifesteal: 'ability_lifesteal',
+  ability_cleanse: 'ability_cleanse',
+  ability_taunt: 'ability_taunt',
+  ability_fortify: 'ability_fortify',
+  ability_swift: 'ability_swift',
+  ability_lastStand: 'ability_lastStand',
   ui_close: 'ui_close', ui_back: 'ui_back', ui_next: 'ui_next',
   ui_check: 'ui_check', ui_plus: 'ui_plus', ui_minus: 'ui_minus',
   ui_play: 'ui_play', ui_help: 'ui_help', ui_settings: 'ui_settings',
@@ -45,7 +50,6 @@ export const ICON = {
   halo_salt: 'halo_salt', halo_pottery: 'halo_pottery',
 };
 
-/** Эмодзи-fallback, только если SVG не загрузился (404). */
 export const ICON_FALLBACK = {
   res_gold: '💰', res_prov: '🌾', res_weapons: '⚔', res_coins: '💿', res_tactic: '⚡',
   stat_str: '❤', stat_prov: '🌾',
@@ -64,6 +68,9 @@ export const ICON_FALLBACK = {
   ability_volley: '➹', ability_burst: '⚡', ability_shield: '🛡', ability_inspire: '✨',
   ability_vengeance: '✗', ability_thorns: '❋', ability_warlord: '♛', ability_poison: '☠',
   ability_burn: '🔥', ability_freeze: '❄',
+  ability_rally: '🤝', ability_pierce: '🎯', ability_guard: '🛡', ability_surge: '🌊',
+  ability_lifesteal: '🩸', ability_cleanse: '✨', ability_taunt: '💢', ability_fortify: '🏰',
+  ability_swift: '⚡', ability_lastStand: '💀',
   halo_wheat: '🌾', halo_pasture: '🐎', halo_mine: '⛏', halo_hunt: '🏹',
   halo_fishery: '🐟', halo_sawmill: '🌲', halo_vineyard: '🍇', halo_apiary: '🐝',
   halo_salt: '🧂', halo_pottery: '⚱',

@@ -6,6 +6,7 @@ export class BattleController {
     this.bus = bus;
     this.battle = null;
     this._aiScheduled = false;
+    this._aiBusy = false;
     this.activeSide = null;
     this.humanSides = { attacker: false, defender: false };
   }
@@ -26,12 +27,8 @@ export class BattleController {
         defender: battle.defenderGen?.factionId === playerFaction,
       };
     }
-    // ─── Владение ходом теперь живёт в домене: Battle сам пересчитывает
-    // turnOwnership при каждой смене хода. Контроллер только сообщает,
-    // какие стороны человеческие ───
     battle.humanSides = this.humanSides;
 
-    // ─── Стартовая сторона для UI: первая человеческая, иначе attacker ───
     if (this.humanSides.attacker) {
       this.activeSide = 'attacker';
     } else if (this.humanSides.defender) {
@@ -46,7 +43,6 @@ export class BattleController {
     return battle;
   }
 
-  /** Единая точка записи хода на стороне контроллера. */
   _setTurn(side, isHuman) {
     this.activeSide = side;
     if (isHuman) this.battle.currentHumanSide = side;
@@ -97,38 +93,103 @@ export class BattleController {
     this._scheduleIfNeeded();
   }
 
+  /**
+   * Пошаговый ИИ.
+   * Каждый такт — 1 карта или завершение хода.
+   * Задержка 800–1200 мс, чтобы игрок видел процесс.
+   */
   _scheduleAI() {
     if (!this.battle) return;
     if (this.battle.finished) return;
     if (this._aiScheduled) return;
     this._aiScheduled = true;
+    this._aiBusy = false;
+
+    const startDelay = 700 + Math.random() * 300;   // 700–1000 мс перед первым тактом
     setTimeout(() => {
       this._aiScheduled = false;
-      if (!this.battle || this.battle.finished) return;
-      // Ход человека — не вмешиваемся
-      if (this.humanSides[this.battle.turn] === true) {
-        this._scheduleIfNeeded();
-        return;
-      }
-      const aiSide = this.battle.turn;
-      // currentHumanSide = сторона ИИ — на неё ориентируются UI и логика
-      // колонок во время хода ИИ. Защита от «ИИ играет на ходу человека»
-      // теперь держится на battle.turnOwnership, а не на этом поле.
-      this.battle.currentHumanSide = aiSide;
-      try {
-        this.battle.aiTurn();
-      } catch (e) {
-        console.error('[AI]', e);
-        // страховка — если AI упал, принудительно завершаем ход
+      this._runAIStep();
+    }, startDelay);
+  }
+
+  _runAIStep() {
+    if (!this.battle || this.battle.finished) return;
+    if (this.humanSides[this.battle.turn] === true) {
+      this._scheduleIfNeeded();
+      return;
+    }
+
+    const b = this.battle;
+    const aiSide = b.turn;
+    b.currentHumanSide = aiSide;
+
+    let played = false;
+    try {
+      played = b._aiInstance?._stepSingle
+        ? b._aiInstance._stepSingle()
+        : this._fallbackAIStep(aiSide);
+    } catch (e) {
+      console.error('[AI step]', e);
+      played = false;
+    }
+
+    this.bus.emit('battle:updated', { battle: b });
+
+    if (b.finished) return;
+
+    if (played) {
+      // Ещё есть чем ходить — следующий такт через 800–1200 мс
+      this._aiScheduled = true;
+      const nextDelay = 800 + Math.random() * 400;
+      setTimeout(() => {
+        this._aiScheduled = false;
+        this._runAIStep();
+      }, nextDelay);
+    } else {
+      // Ход закончен — пауза и завершение
+      this._aiScheduled = true;
+      setTimeout(() => {
+        this._aiScheduled = false;
+        if (!this.battle || this.battle.finished) return;
         try {
-          if (this.battle && !this.battle.finished) {
-            this.battle._endTurn(this.battle.turn);
-          }
-        } catch (_) { }
+          this.battle.currentHumanSide = this.battle.turn;
+          this.battle._endTurn(this.battle.turn);
+        } catch (e) {
+          console.error('[AI endTurn]', e);
+        }
+        this.bus.emit('battle:updated', { battle: this.battle });
+        if (!this.battle.finished) this._scheduleIfNeeded();
+      }, 600);
+    }
+  }
+
+  _fallbackAIStep(side) {
+    const b = this.battle;
+    const d = b[side];
+    const priorities = [
+      ['support', 'support'],
+      ['warrior', 'defense'],
+      ['archer', 'attack'],
+      ['special', 'attack'],
+    ];
+    for (const [type, lane] of priorities) {
+      const card = d.hand.find((c) => c.type === type && b.costFor(c, side) <= d.tacticPoints);
+      if (!card) continue;
+      const cost = b.costFor(card, side);
+      for (let i = 0; i < 3; i++) {
+        if (d.board.isEmpty(lane, i)) {
+          d.tacticPoints -= cost;
+          d.board.place(lane, i, card);
+          d.hand = d.hand.filter((c) => c.id !== card.id);
+          b._log(`Враг: ${card.name} → ${lane} (-${cost}⚡)`);
+          b._emit('card:played', { card, side, lane, index: i });
+          b._checkLineBonus();
+          b._checkColumnBonus();
+          return true;
+        }
       }
-      this.bus.emit('battle:updated', { battle: this.battle });
-      if (!this.battle.finished) this._scheduleIfNeeded();
-    }, 700);
+    }
+    return false;
   }
 
   async autoResolve({ attackerGen, targetTile, defenderFactionId, playerSide = 'attacker' }) {
@@ -138,7 +199,7 @@ export class BattleController {
     battle._aiInstance = new BattleAI(battle);
     const oldHuman = this.humanSides;
     this.humanSides = { attacker: false, defender: false };
-    battle.humanSides = this.humanSides; // владение — ИИ с обеих сторон
+    battle.humanSides = this.humanSides;
     this.activeSide = null;
     battle.currentHumanSide = playerSide;
     await battle.autoPlay(null, 0);
@@ -178,6 +239,8 @@ export class BattleController {
     this.battle = null;
     this.activeSide = null;
     this.humanSides = { attacker: false, defender: false };
+    this._aiScheduled = false;
+    this._aiBusy = false;
     this.bus.emit('battle:finished', result);
   }
 

@@ -26,6 +26,8 @@ export class BattleModal {
     this._resultScreen = null;
     this._previewPanel = null;
     this._imgLoader = new CardImageLoader();
+    this._logOpen = false;
+    this._lastTactic = {};   // { attacker: 3, defender: 2 }
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-modal-overlay';
@@ -43,9 +45,18 @@ export class BattleModal {
       if (battle.finished && !this._resultScreen) this._showResult(battle);
     });
 
+    this.bus.on('card:played', ({ card, side, lane, index }) => {
+      // Анимируем только карты ВРАГА (свои игрок и так видит)
+      if (side === this._currentSide()) return;
+      if (!this._battle || this._battle.finished) return;
+      this._showCardCastAnimation(card, side, lane, index);
+    });
+
     this.bus.on('battle:started', ({ battle }) => {
       this._battle = battle;
       this._autoPlayActive = false;
+      this._logOpen = false;
+      this._lastTactic = {};
       this._closeResult();
       this.overlay.querySelectorAll('.battle-result-overlay').forEach((e) => e.remove());
       this._background?.destroy();
@@ -73,10 +84,11 @@ export class BattleModal {
       this._autoPlayActive = false;
       this._resultScreen = null;
       this._previewPanel = null;
+      this._logOpen = false;
+      this._lastTactic = {};
     });
   }
 
-  /** Текущая «человеческая» сторона. */
   _currentSide() {
     const c = this.controller;
     if (c.activeSide) return c.activeSide;
@@ -141,6 +153,11 @@ export class BattleModal {
     if (action === 'skip-turn') { if (isHuman) this.controller.skipTurn(); return; }
     if (action === 'retreat')   { if (isHuman) this.controller.retreat(); return; }
     if (action === 'auto-play') { this._startAutoPlay(); return; }
+    if (action === 'toggle-log') {
+      this._logOpen = !this._logOpen;
+      this._render();
+      return;
+    }
     const cell = e.target.closest?.('.cell');
     if (cell) {
       const s = cell.getAttribute('data-side');
@@ -211,12 +228,31 @@ export class BattleModal {
     const colInfo = b.getColumnBonusInfoFor(side);
     const enemyColInfo = b.getColumnBonusInfoFor(enemySide);
 
+    // ─── Максимум тактики: 1 + 3 (support) + 1 ───
+    const maxTactic = 5;
+    const playerPct = Math.min(100, Math.round((data.tacticPoints / maxTactic) * 100));
+    const enemyPct = Math.min(100, Math.round((enemyData.tacticPoints / maxTactic) * 100));
+
+    // ─── Анимация «потратил тактику» ───
+    const prevPlayer = this._lastTactic[side] ?? data.tacticPoints;
+    const prevEnemy = this._lastTactic[enemySide] ?? enemyData.tacticPoints;
+    const playerSpent = prevPlayer > data.tacticPoints;
+    const enemySpent = prevEnemy > enemyData.tacticPoints;
+    this._lastTactic[side] = data.tacticPoints;
+    this._lastTactic[enemySide] = enemyData.tacticPoints;
+
     this.el.innerHTML = `
       <div class="battle-top">
         <div class="battle-hero enemy-hero">
           ${this._portraitHtml(enemyData.gen, 'enemy')}
-          <div class="hero-name">${enemyData.gen.name}</div>
-          <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
+          <div class="hero-info">
+            <div class="hero-name">${enemyData.gen.name}</div>
+            <div class="bh-lives">${this._livesHtml(enemyData.lives, enemyData.maxLives)}</div>
+            <div class="hero-tactic-mini ${enemyData.tacticPoints <= 1 ? 'low' : ''}">
+              <div class="hero-tactic-fill" style="width:${enemyPct}%"></div>
+              <span>⚡ ${enemyData.tacticPoints}</span>
+            </div>
+          </div>
         </div>
         <div class="battle-title">
           ⚔ Бой · ход ${b.turnCount}
@@ -224,12 +260,21 @@ export class BattleModal {
         </div>
         <div class="battle-hero player-hero">
           ${this._portraitHtml(data.gen, 'player')}
-          <div class="hero-name">${data.gen.name}</div>
-          <div class="bh-lives">${this._livesHtml(data.lives, data.maxLives)}</div>
+          <div class="hero-info">
+            <div class="hero-name">${data.gen.name}</div>
+            <div class="bh-lives">${this._livesHtml(data.lives, data.maxLives)}</div>
+            <div class="hero-tactic-mini ${data.tacticPoints <= 1 ? 'low' : ''}">
+              <div class="hero-tactic-fill" style="width:${playerPct}%"></div>
+              <span>⚡ ${data.tacticPoints}</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="battle-main">
-        <div class="battle-preview-panel-root" id="battle-preview-panel-root"></div>
+        <div class="battle-left-column">
+          <div class="battle-preview-panel-root" id="battle-preview-panel-root"></div>
+          ${this._logOpen ? this._logPanelHtml(b) : ''}
+        </div>
         <div class="battle-arena">
           <div class="battle-field battle-field-enemy">
             ${this._boardHtml(enemySide, enemyData, enemyLineInfo, enemyColInfo)}
@@ -239,29 +284,36 @@ export class BattleModal {
           </div>
         </div>
         <div class="battle-side-right">
-          <div class="tactic-points">⚡ <span class="pt-val">${data.tacticPoints}</span></div>
           <div class="deck-counter">Колода: ${data.deck.length}</div>
           <div class="battle-hand-root" id="battle-hand-root"></div>
           <div class="battle-controls">
             <button class="btn-end-turn" data-action="end-turn" ${isHuman ? '' : 'disabled'}>Конец хода</button>
             <button class="btn-skip"     data-action="skip-turn" ${isHuman ? '' : 'disabled'}>Пропустить</button>
             <button class="btn-auto"     data-action="auto-play" ${this._autoPlayActive ? 'disabled' : ''}>⚡ Авто-бой</button>
+            <button class="btn-log"      data-action="toggle-log">📜 ${this._logOpen ? 'Скрыть лог' : 'Лог'}</button>
             <button class="btn-retreat"  data-action="retreat" ${isHuman ? '' : 'disabled'}>Отступить</button>
           </div>
-          <div class="battle-log-side">${this._logHtml(b.log)}</div>
         </div>
       </div>
     `;
 
+    // ─── Анимация потраченной тактики ───
+    if (playerSpent) this._flashTactic('player');
+    if (enemySpent) this._flashTactic('enemy');
+
+    // ─── Левая колонка: превью ───
     const previewRoot = this.el.querySelector('#battle-preview-panel-root');
-    this._previewPanel = new BattlePreviewPanel(previewRoot);
-    this._previewPanel.setImageLoader(this._imgLoader);
-    this._previewPanel.setPseudoHand(enemyData.hand.length);
-    if (b.selectedCard && isHuman) {
-      const cost = b.costFor(b.selectedCard, side);
-      this._previewPanel.showCard(b.selectedCard, { effectiveCost: cost });
+    if (previewRoot) {
+      this._previewPanel = new BattlePreviewPanel(previewRoot);
+      this._previewPanel.setImageLoader(this._imgLoader);
+      this._previewPanel.setPseudoHand(enemyData.hand.length);
+      if (b.selectedCard && isHuman) {
+        const cost = b.costFor(b.selectedCard, side);
+        this._previewPanel.showCard(b.selectedCard, { effectiveCost: cost });
+      }
     }
 
+    // ─── Правая колонка: своя рука ───
     const handRoot = this.el.querySelector('#battle-hand-root');
     this._hand = new BattleHand(handRoot);
     this._hand.setData(
@@ -285,6 +337,31 @@ export class BattleModal {
       }
       requestAnimationFrame(() => this._visualLayer?.flush());
     }
+  }
+
+  _flashTactic(who) {
+    setTimeout(() => {
+      const selector = who === 'player' ? '.player-hero .hero-tactic-mini' : '.enemy-hero .hero-tactic-mini';
+      const el = this.el.querySelector(selector);
+      if (!el) return;
+      el.classList.add('tactic-spent');
+      setTimeout(() => el.classList.remove('tactic-spent'), 500);
+    }, 30);
+  }
+
+  _logPanelHtml(b) {
+    const entries = b.log.slice().reverse()
+      .map((l) => `<div class="blf-entry ${l.type}">${l.msg}</div>`)
+      .join('');
+    return `
+      <div class="battle-log-full">
+        <div class="blf-header">
+          <span>📜 Лог боя</span>
+          <button class="blf-close" data-action="toggle-log" title="Скрыть">✕</button>
+        </div>
+        <div class="blf-list">${entries || '<div class="blf-entry info">Пока пусто</div>'}</div>
+      </div>
+    `;
   }
 
   _portraitHtml(gen, cls) {
@@ -333,8 +410,27 @@ export class BattleModal {
     ).join('');
   }
 
-  _logHtml(log) {
-    const last = log.slice(-5).reverse();
-    return last.map((l) => `<div class="log-entry ${l.type}">${l.msg}</div>`).join('');
+  _showCardCastAnimation(card, side, lane, index) {
+    if (!this._imgLoader) return;
+    const url = this._imgLoader.getUrl(card.imageKey);
+  
+    const cast = document.createElement('div');
+    cast.className = 'card-cast-anim';
+    if (url) cast.style.backgroundImage = `url("${url}")`;
+    cast.innerHTML = `<div class="cc-name">${card.name}</div>`;
+    this.el.appendChild(cast);
+  
+    // Через 600 мс — «приземление» в ячейку
+    setTimeout(() => {
+      cast.classList.add('landing');
+      const targetCell = this.el.querySelector(
+        `.cell[data-side="${side}"][data-lane="${lane}"][data-idx="${index}"]`
+      );
+      if (targetCell) {
+        targetCell.classList.add('card-landing');
+        setTimeout(() => targetCell.classList.remove('card-landing'), 500);
+      }
+      setTimeout(() => cast.remove(), 500);
+    }, 600);
   }
 }

@@ -60,108 +60,161 @@
     }
 }
 
-/* ─── Снаряды ─── */
-.projectile {
-    position: absolute;
-    pointer-events: none;
-    z-index: 40;
-    transform-origin: 0 50%;
-}
-
+/* ─── Стрела (лучше видна) ─── */
+/* ─── Стрела (лучше видна) ─── */
 .projectile.proj-archer {
-    height: 3px;
-    background: linear-gradient(90deg, #d4a94c, #f5d57a, #fff3d0);
+    height: 4px;
+    background: linear-gradient(90deg, #d4a94c, #f5d57a, #fff3d0, #f5d57a);
     border-radius: 2px;
-    box-shadow: 0 0 6px rgba(245, 213, 122, 0.9);
+    box-shadow: 0 0 10px rgba(245, 213, 122, 1), 0 0 20px rgba(245, 213, 122, 0.6);
+    transform-origin: 0 50%;
     transform: scaleX(0);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1);
-    margin-top: -1.5px;
-}
-
-.projectile.proj-warrior {
-    width: 18px;
-    height: 18px;
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.6, 1);
+    margin-top: -2px;
+    z-index: 50;
+  }
+  
+  /* ─── Удар воина (крупнее) ─── */
+  .projectile.proj-warrior {
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: radial-gradient(circle, #fff, #e74c3c 60%, transparent);
+    background: radial-gradient(circle, #fff 0%, #ff6b3c 40%, #e74c3c 70%, transparent 100%);
+    box-shadow: 0 0 20px #e74c3c, 0 0 40px rgba(231, 76, 60, 0.5);
     transform: translate(-50%, -50%);
-    animation: projPulse 0.32s ease-out;
-}
-
-@keyframes projPulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.3);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translate(-50%, -50%) scale(2);
-        opacity: 0.2;
-    }
-}
-
-.projectile.proj-special {
-    width: 14px;
-    height: 14px;
+    animation: projPulse 0.4s ease-out;
+    z-index: 50;
+  }
+  
+  /* ─── Магия (крупнее) ─── */
+  .projectile.proj-special {
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: radial-gradient(circle, #f5d57a, #c07ad8 50%, transparent);
-    box-shadow: 0 0 14px #c07ad8, 0 0 6px #f5d57a;
+    background: radial-gradient(circle, #fff 0%, #f5d57a 30%, #c07ad8 60%, transparent 100%);
+    box-shadow: 0 0 24px #c07ad8, 0 0 48px rgba(192, 122, 216, 0.6);
     transform: translate(-50%, -50%);
-}
-
-.projectile.proj-support {
-    width: 16px;
-    height: 16px;
+    z-index: 50;
+    animation: projSpecialGlow 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes projSpecialGlow {
+    from { box-shadow: 0 0 20px #c07ad8, 0 0 40px rgba(192, 122, 216, 0.4); }
+    to   { box-shadow: 0 0 32px #c07ad8, 0 0 64px rgba(192, 122, 216, 0.8); }
+  }
+  
+  /* ─── Поддержка (волна, крупнее) ─── */
+  .projectile.proj-support {
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: radial-gradient(circle, #90d8a0, #2a6b3e 70%, transparent);
-    box-shadow: 0 0 10px #5ec37a;
+    background: radial-gradient(circle, #fff 0%, #90d8a0 40%, #5ec37a 70%, transparent 100%);
+    box-shadow: 0 0 18px #5ec37a, 0 0 36px rgba(94, 195, 122, 0.5);
     transform: translate(-50%, -50%);
-}
-
-/* ─── Вспышка при попадании ─── */
+    z-index: 50;
+  }
+  
+  
+  /* ─── Вспышки при попадании ─── */
 .impact {
     position: absolute;
     pointer-events: none;
-    z-index: 41;
+    z-index: 60;
     transform: translate(-50%, -50%);
     border-radius: 50%;
-    animation: impactFade 0.45s ease-out forwards;
-}
-
-.impact-archer {
-    width: 26px;
-    height: 26px;
-    background: radial-gradient(circle, #fff, #d4a94c 50%, transparent);
-}
-
-.impact-warrior {
-    width: 34px;
-    height: 34px;
-    background: radial-gradient(circle, #fff, #e74c3c 50%, transparent);
-}
-
-.impact-special {
-    width: 30px;
-    height: 30px;
-    background: radial-gradient(circle, #fff, #c07ad8 50%, transparent);
-}
-
-.impact-support {
-    width: 26px;
-    height: 26px;
-    background: radial-gradient(circle, #fff, #5ec37a 50%, transparent);
-}
-
-@keyframes impactFade {
+    animation: impactFade 0.55s ease-out forwards;
+  }
+  .impact-archer {
+    width: 44px; height: 44px;
+    background: radial-gradient(circle, #fff 0%, #f5d57a 40%, #d4a94c 70%, transparent 100%);
+  }
+  .impact-warrior {
+    width: 56px; height: 56px;
+    background: radial-gradient(circle, #fff 0%, #ff8a6b 30%, #e74c3c 60%, transparent 100%);
+  }
+  .impact-special {
+    width: 52px; height: 52px;
+    background: radial-gradient(circle, #fff 0%, #d0a0ff 30%, #c07ad8 60%, transparent 100%);
+  }
+  .impact-support {
+    width: 44px; height: 44px;
+    background: radial-gradient(circle, #fff 0%, #a0e8b0 30%, #5ec37a 60%, transparent 100%);
+  }
+  @keyframes impactFade {
+    0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+    60%  { transform: translate(-50%, -50%) scale(1.4); opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+  }
+  
+  /* ─── Урон полководцу — вспышка портрета ─── */
+.hero-damage-flash {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 60, 60, 0.9), transparent 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 55;
+    animation: heroFlash 0.5s ease-out forwards;
+  }
+  @keyframes heroFlash {
+    0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  }
+  
+  /* ─── Тряска ячейки — сильнее ─── */
+.cell.shake {
+    animation: cellShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+  @keyframes cellShake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-5px, -2px); }
+    40% { transform: translate(5px, 2px); }
+    60% { transform: translate(-4px, 1px); }
+    80% { transform: translate(4px, -1px); }
+  }
+  
+  /* ─── Вспышка выкладки карты — сильнее ─── */
+  .cell.place-flash {
+    animation: placeFlash 0.6s ease-out;
+  }
+  @keyframes placeFlash {
     0% {
-        transform: translate(-50%, -50%) scale(0.4);
-        opacity: 1;
+      box-shadow: 0 0 0 0 rgba(245, 213, 122, 1),
+                  0 0 0 0 rgba(245, 213, 122, 0.6);
     }
-
+    50% {
+      box-shadow: 0 0 0 12px rgba(245, 213, 122, 0.6),
+                  0 0 0 24px rgba(245, 213, 122, 0.2);
+    }
     100% {
-        transform: translate(-50%, -50%) scale(1.8);
-        opacity: 0;
+      box-shadow: 0 0 0 24px rgba(245, 213, 122, 0),
+                  0 0 0 48px rgba(245, 213, 122, 0);
     }
-}
+  }
+  
+  /* ─── Цифры — крупнее и заметнее ─── */
+  .floating-number {
+    font-family: var(--font-ui);
+    font-weight: 900;
+    font-size: 26px;
+    pointer-events: none;
+    z-index: 70;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 1), 0 0 20px currentColor, 0 3px 6px rgba(0, 0, 0, 0.95);
+    animation: floatUp 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    white-space: nowrap;
+  }
+  .floating-number.fn-damage { color: #ff6b6b; }
+  .floating-number.fn-heal   { color: #90d8a0; }
+  .floating-number.fn-general { color: #ffd57a; font-size: 32px; }
+  .floating-number.fn-info   { color: #a0c8f0; }
+  
+  @keyframes floatUp {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    15%  { opacity: 1; transform: translate(-50%, -80%) scale(1.4); }
+    30%  { transform: translate(-50%, -90%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -180%) scale(0.8); }
+  }
 
 /* ─── Тряска карты ─── */
 .cell.shake {
@@ -316,3 +369,57 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+/* ─── Крупная карта при розыгрыше ─── */
+.card-cast-anim {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 180px;
+    height: 240px;
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+    border: 3px solid var(--color-gold-bright);
+    border-radius: 8px;
+    box-shadow: 0 0 40px rgba(245, 213, 122, 0.9), 0 0 80px rgba(245, 213, 122, 0.5);
+    transform: translate(-50%, -50%) scale(0.2) rotate(-20deg);
+    opacity: 0;
+    z-index: 100;
+    pointer-events: none;
+    animation: cardCastIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+  .card-cast-anim .cc-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 6, 3, 0.95);
+    color: var(--color-gold-bright);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    padding: 6px;
+    border-radius: 0 0 5px 5px;
+  }
+  @keyframes cardCastIn {
+    0%   { transform: translate(-50%, -50%) scale(0.2) rotate(-20deg); opacity: 0; }
+    60%  { transform: translate(-50%, -50%) scale(1.15) rotate(5deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
+  }
+  .card-cast-anim.landing {
+    animation: cardCastLand 0.5s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+  @keyframes cardCastLand {
+    0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.4) rotate(15deg); opacity: 0; }
+  }
+  
+  .cell.card-landing {
+    animation: cardLand 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes cardLand {
+    0%   { transform: scale(1.4); box-shadow: 0 0 24px rgba(245, 213, 122, 0.9); }
+    100% { transform: scale(1); box-shadow: none; }
+  }

@@ -1,12 +1,5 @@
 import { CardDetailView } from './CardDetailView.js';
 
-/**
- * Панель-превью большой карты в бою. Живёт в левой колонке (там, где pseudo-hand).
- * Показывает:
- *  - выбранную карту в руке (по умолчанию)
- *  - карту, на которую наведён курсор (в руке или на поле)
- *  - псевдо-руку врага, если ничего не выбрано/не наведено
- */
 export class BattlePreviewPanel {
   constructor(root) {
     this.el = document.createElement('div');
@@ -16,22 +9,20 @@ export class BattlePreviewPanel {
         <div class="bpp-pseudo-label">Рука врага</div>
         <div class="bpp-pseudo-cards" data-pseudo-cards></div>
       </div>
-      <div class="bpp-card-view" style="display:none"></div>
+      <div class="bpp-card-view" data-card-view style="display:none"></div>
     `;
     root.appendChild(this.el);
-
     this._pseudoCardsEl = this.el.querySelector('[data-pseudo-cards]');
-    this._cardViewEl = this.el.querySelector('.bpp-card-view');
+    this._cardViewEl = this.el.querySelector('[data-card-view]');
     this._pseudoBoxEl = this.el.querySelector('.bpp-pseudo-hand');
     this._imgLoader = null;
   }
 
-  /** Передать загрузчик картинок. */
   setImageLoader(loader) {
     this._imgLoader = loader;
   }
 
-  /** Обновить псевдо-руку. */
+  /** Обновить «руку врага» — компактные рубашки. */
   setPseudoHand(count) {
     this._pseudoCardsEl.innerHTML = '';
     for (let i = 0; i < count; i++) {
@@ -41,7 +32,7 @@ export class BattlePreviewPanel {
     }
   }
 
-  /** Показать карту (полное описание). card — CardInstance или Card. */
+  /** Показать карту (полное описание). */
   showCard(card, { effectiveCost = null } = {}) {
     if (!card) { this.hideCard(); return; }
     this._cardViewEl.innerHTML = CardDetailView.html(card, {
@@ -50,12 +41,11 @@ export class BattlePreviewPanel {
     });
     CardDetailView.applyImages(this._cardViewEl, this._imgLoader);
     this._cardViewEl.style.display = '';
-    this._pseudoBoxEl.style.display = 'none';
+    // Псевдо-руку НЕ скрываем — она компактная и живёт сверху
   }
 
-  /** Скрыть карту — показать псевдо-руку. */
   hideCard() {
     this._cardViewEl.style.display = 'none';
-    this._pseudoBoxEl.style.display = '';
+    this._cardViewEl.innerHTML = '';
   }
 }
