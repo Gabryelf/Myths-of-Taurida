@@ -1,171 +1,160 @@
+/* ─── Панель генерала: компактная, внизу слева ─── */
 .general-panel {
     position: absolute;
     left: 16px;
     bottom: 16px;
-    width: 260px;
+    width: 230px;
+    padding: 10px 12px 8px;
     background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-md);
-    padding: 14px 16px;
     box-shadow: var(--shadow-md);
     font-family: var(--font-ui);
     font-size: 13px;
     color: var(--color-text);
-    display: none;
     z-index: 22;
     max-width: calc(100vw - 32px);
-}
-
-.general-panel.visible {
-    display: block;
-}
-
-.general-panel .gp-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .general-panel.visible { opacity: 1; transform: none; pointer-events: auto; }
+  
+  .general-panel.collapsed { width: auto; padding: 6px 28px 6px 6px; }
+  .general-panel.collapsed .gp-full { display: none; }
+  .general-panel:not(.collapsed) .gp-compact { display: none; }
+  
+  .gp-toggle {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 18px; height: 18px;
+    border: none; border-radius: 4px;
+    background: rgba(255,255,255,0.08);
+    color: #cfc6a8;
+    font-size: 10px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .gp-toggle:hover { background: rgba(212,169,76,0.35); }
+  
+  /* ─── Свёрнутый вид ─── */
+  .gp-compact { display: flex; align-items: center; gap: 8px; }
+  .gp-compact-bars { display: flex; flex-direction: column; gap: 3px; }
+  .gp-compact-bars .gp-bar { width: 120px; height: 8px; }
+  .gp-ava {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--color-gold);
+    background-color: #2a2418;
+    background-size: cover;
+    background-position: center top;
+    flex-shrink: 0;
+  }
+  
+  /* ─── Развёрнутый вид ─── */
+  .gp-full { display: flex; flex-direction: column; gap: 6px; }
+  .gp-header {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(212, 169, 76, 0.3);
-}
-
-.general-panel .gp-emblem {
-    width: 40px;
-    height: 40px;
+  }
+  .gp-emblem {
+    width: 38px; height: 38px;
     border-radius: 50%;
     border: 2px solid var(--color-gold);
     flex-shrink: 0;
-    box-shadow: 0 0 12px rgba(212, 169, 76, 0.5);
+    box-shadow: 0 0 12px rgba(212, 169, 76, 0.4);
     background-size: cover;
     background-position: center top;
-    background-repeat: no-repeat;
-    overflow: hidden;
-    position: relative;
-}
-
-.general-panel .gp-level {
-    font-size: 11px;
-    color: var(--color-gold);
+    background-color: #2a2418;
+  }
+  .gp-head-text { min-width: 0; }
+  .gp-name {
+    font-size: 14px;
     font-weight: 700;
-    margin-left: 4px;
+    color: var(--color-gold-bright);
+    letter-spacing: 0.04em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .general-panel .gp-xp {
-    margin-bottom: 8px;
+  .gp-level {
+    font-size: 10px; font-weight: 700;
+    color: var(--color-gold);
+    border: 1px solid rgba(212,169,76,0.35);
+    border-radius: 6px;
+    padding: 0 5px; margin-left: 4px;
   }
-  .general-panel .gp-xp-bar {
+  .gp-faction { font-size: 10px; color: #8a7a58; font-style: italic; }
+  
+  /* ─── Полосы: одинаковые, цифры по центру ─── */
+  .gp-bars { display: flex; flex-direction: column; gap: 4px; }
+  .gp-bar {
+    position: relative;
     width: 100%;
-    height: 6px;
+    height: 14px;
     background: rgba(10,6,3,0.8);
-    border: 1px solid rgba(212,169,76,0.3);
-    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 7px;
     overflow: hidden;
   }
-  .general-panel .gp-xp-fill {
+  .gp-fill { height: 100%; transition: width 0.25s ease; }
+  .gp-fill-lives { background: linear-gradient(90deg, #7a1f1f, #e74c3c); }
+  .gp-fill-move  { background: linear-gradient(90deg, #1f4a7a, #58a6ff); }
+  .gp-bar-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    white-space: nowrap;
+  }
+  
+  /* ─── XP: тонкая линия ─── */
+  .gp-xp-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(10,6,3,0.8);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .gp-xp-fill {
     height: 100%;
     background: linear-gradient(90deg, #d4a94c, #f5d57a);
     transition: width 0.4s ease;
   }
-  .general-panel .gp-xp-text {
-    font-size: 10px;
-    color: #8a7a58;
-    text-align: right;
-    margin-top: 2px;
-  }
-  .general-panel .gp-perk {
-    display: inline-block;
-    font-size: 14px;
-    margin-left: 4px;
-  }
-
-.general-panel .gp-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--color-gold-bright);
-    letter-spacing: 0.04em;
-}
-
-.general-panel .gp-faction {
-    font-size: 11px;
-    color: #8a7a58;
-    font-style: italic;
-}
-
-.general-panel .gp-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 3px 0;
-    font-size: 12px;
-}
-
-.general-panel .gp-row span:first-child {
-    color: #8a7a58;
-}
-
-.general-panel .gp-row b {
-    color: var(--color-text);
-    font-weight: 700;
-}
-
-.general-panel .gp-lives {
-    display: inline-flex;
-    gap: 3px;
-    vertical-align: middle;
-}
-
-.general-panel .gp-life {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #ff6b6b, #8b1a1a);
-    border: 1px solid var(--color-gold);
-    box-shadow: 0 0 6px rgba(217, 58, 58, 0.6);
-}
-
-.general-panel .gp-life.lost {
-    background: #1a1a1a;
-    box-shadow: none;
-    border-color: #333;
-}
-
-@media (max-width: 700px) {
-    .general-panel {
-        width: 200px;
-        padding: 10px;
-        font-size: 11px;
-    }
-}
-
-.general-panel.gp-flash-error {
+  
+  .gp-perks { display: flex; gap: 4px; }
+  .gp-perk { display: inline-flex; }
+  
+  /* ─── Флеш «не хватает очков» ─── */
+  .general-panel.gp-flash-error {
     animation: gpError 0.5s ease;
     border-color: #e74c3c;
     box-shadow: 0 0 24px rgba(231, 76, 60, 0.6);
-}
-@keyframes gpError {
-    0%, 100% { transform: translateX(0); }
+  }
+  @keyframes gpError {
+    0%, 100% { transform: none; }
     20% { transform: translateX(-4px); }
     40% { transform: translateX(4px); }
     60% { transform: translateX(-3px); }
     80% { transform: translateX(3px); }
-}
-.general-panel .gp-no-points {
+  }
+  .general-panel .gp-no-points {
     position: absolute;
-    top: -30px;
-    left: 0;
-    right: 0;
+    top: -30px; left: 0; right: 0;
     background: rgba(231, 76, 60, 0.95);
     color: #fff;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 11px; font-weight: 700;
     text-align: center;
     padding: 4px 8px;
     border-radius: 4px;
     z-index: 5;
     animation: gpNoPoints 1.6s ease forwards;
-}
-@keyframes gpNoPoints {
+  }
+  @keyframes gpNoPoints {
     0% { opacity: 0; transform: translateY(4px); }
     15% { opacity: 1; transform: translateY(0); }
     85% { opacity: 1; }
     100% { opacity: 0; }
-}
+  }
+  

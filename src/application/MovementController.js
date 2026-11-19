@@ -5,13 +5,14 @@ import { Theme } from '../infrastructure/config/ThemeConfig.js';
  * Не эмитит события напрямую — их эмитит Game после вызова.
  */
 export class MovementController {
-  constructor({ world, sceneBuilder, cameraController, input, ui, bus }) {
+  constructor({ world, sceneBuilder, cameraController, input, ui, bus, sceneSync }) {
     this.world = world;
     this.sceneBuilder = sceneBuilder;
     this.cameraController = cameraController;
     this.input = input;
     this.ui = ui;
     this.bus = bus;
+    this.sceneSync = sceneSync;
     this._moving = false;
   }
 
@@ -40,7 +41,6 @@ export class MovementController {
     }
 
     let capturedAny = false;
-
     for (let i = 0; i < path.length; i++) {
       const step = path[i];
       const tile = step.tile;
@@ -57,8 +57,10 @@ export class MovementController {
       general.spendMove(cost);
       const fromHex = general.hex;
       general.moveTo(tile.hex);
+      this.sceneBuilder.updateGeneralBars?.(this.world);   // ← новая строка
 
       const captured = this.world.captureTile(tile, factionId);
+
       if (captured) capturedAny = true;
       this.animateGeneralMove(general, fromHex, tile.hex);
 
@@ -77,14 +79,13 @@ export class MovementController {
       await this._sleep(280);
     }
 
+    // ─── Финальная синхронизация: движение не меняет ресурсы и владельцев
+    // городов, поэтому resources: false и rebuild: false ───
     this.sceneBuilder.updateGeneralPositions(this.world);
-    this.sceneBuilder.refreshBorders();
     this.world.recomputeVisibility();
-    this.sceneBuilder.updateFog(this.world);
-    this.input.setPickables(this.sceneBuilder.getPickables());
-    this.ui.quickJump?.refreshMinimap();
-    this.bus.emit('general:moved', { general });
+    this.sceneSync.run(this.world, { rebuild: false, resources: false });
 
+    this.bus.emit('general:moved', { general });
     this._moving = false;
     onComplete?.(general, capturedAny);
     return true;
@@ -106,6 +107,7 @@ export class MovementController {
         const occ = this.world.getGeneralAt(n);
         if (occ && occ.id !== general.id) continue;
         if (this.world.movement.isForeignCityTile(t, general.factionId)) continue;
+
         visited.add(n.key);
         const node = { hex: n, prev: cur, tile: t };
         if (n.key === targetTile.key) {
@@ -118,7 +120,6 @@ export class MovementController {
     }
 
     if (!goalNode) return null;
-
     const path = [];
     let node = goalNode;
     while (node && node.hex.key !== start.key) {
@@ -134,6 +135,7 @@ export class MovementController {
   animateGeneralMove(general, fromHex, toHex) {
     const visual = this.sceneBuilder._generalVisuals.get(general.id);
     if (!visual) return;
+
     const from = fromHex.toWorld(Theme.hexSize);
     const to = toHex.toWorld(Theme.hexSize);
     const dx = to.x - from.x;
@@ -143,6 +145,7 @@ export class MovementController {
     const startZ = from.z;
     const startTime = performance.now();
     const duration = 260;
+
     const tick = (now) => {
       const t = Math.min(1, (now - startTime) / duration);
       const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;

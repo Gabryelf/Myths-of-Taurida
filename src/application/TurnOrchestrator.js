@@ -202,6 +202,7 @@ export class TurnOrchestrator {
         this.sceneBuilder.refreshBorders();
         this.world.recomputeVisibility();
         this.sceneBuilder.updateFog(this.world);
+        this.sceneBuilder.updateGeneralBars?.(this.world);   // ← новая строка
         this.bus.emit('ai:step:move', { step });
       } else if (step.action === 'attack-city' || step.action === 'attack') {
         const gen = step.generalId
@@ -244,6 +245,7 @@ export class TurnOrchestrator {
     this.world.recomputeVisibility();
     this.sceneSync.run(this.world);
     this.selection.updateHireButton();
+    this.selection.autoSelectAfterAITurns();
   }
 
 }

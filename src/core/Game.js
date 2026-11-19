@@ -214,17 +214,19 @@ export class Game {
       sceneBuilder: this.sceneBuilder, cameraController: this.cameraController, ui: this.ui,
     });
 
-    this.movement = new MovementController({
-      world: this.world, sceneBuilder: this.sceneBuilder,
-      cameraController: this.cameraController,
-      input: this.input, ui: this.ui, bus: this.bus,
-    });
-
+    // sceneSync создаём ДО movement — он им пользуется
     this.sceneSync = new SceneSync({
       sceneBuilder: this.sceneBuilder,
       input: this.input,
       ui: this.ui,
       bus: this.bus,
+    });
+
+    this.movement = new MovementController({
+      world: this.world, sceneBuilder: this.sceneBuilder,
+      cameraController: this.cameraController,
+      input: this.input, ui: this.ui, bus: this.bus,
+      sceneSync: this.sceneSync,
     });
 
     this.battleOrchestrator = new BattleOrchestrator({
@@ -250,7 +252,6 @@ export class Game {
       input: this.input, sound: this.sound,
       sceneSync: this.sceneSync,
     });
-
 
     this.tileService = new TileInteractionService({
       world: this.world, bus: this.bus,
@@ -295,7 +296,6 @@ export class Game {
       if (!this.world) return;
       this.world.recomputeVisibility();
       this.sceneSync.run(this.world, { resources: false });
-      this.world.recomputeVisibility();
       if (general) {
         this.cameraController.centerOn(general.hex, Theme.hexSize);
         this.selection.selectGeneral(general);
@@ -304,6 +304,7 @@ export class Game {
 
     this._startWorld(firstFaction);
   }
+
 
   _startWorld(factionId) {
     this.world.selectPlayerFaction(factionId);

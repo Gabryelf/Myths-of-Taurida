@@ -13,6 +13,7 @@ export class SelectionController {
     this.ui = ui;
     this.selectedGeneralId = null;
     this.selectedTileKey = null;
+    this._lastSelectedId = null; // помним, кем играли последним
   }
 
   selectGeneral(general) {
@@ -22,6 +23,7 @@ export class SelectionController {
     this.selectedTileKey = null;
     this.sceneBuilder.highlight.setSelected(null);
     if (general) {
+      this._lastSelectedId = general.id;
       this.sceneBuilder.setGeneralSelected(general.id, true);
       this.cameraController.centerOn(general.hex, Theme.hexSize);
       const moves = this.world.movement.reachableForMove(general);
@@ -35,6 +37,20 @@ export class SelectionController {
       this.bus.emit('general:selected', { general: null });
     }
     this.updateHireButton();
+  }
+
+  /**
+   * После хода ИИ вернуть выделение: кто ходил последним, а если погиб —
+   * первый живой генерал игрока.
+   */
+  autoSelectAfterAITurns() {
+    if (!this.world) return;
+    const mine = this.world.generals.filter(
+      (g) => g.alive && g.factionId === this.world.playerFactionId,
+    );
+    if (mine.length === 0) return;
+    const last = mine.find((g) => g.id === this._lastSelectedId) || null;
+    this.selectGeneral(last || mine[0]);
   }
 
   selectTile(tile) {

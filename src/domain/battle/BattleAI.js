@@ -25,7 +25,11 @@ export class BattleAI {
         const b = this.battle;
         if (!b || b.finished) return;
         const side = b.turn;
-        if (side === b.playerSide) return;
+        // Guard «side === b.playerSide» удалён: он выходил из run() БЕЗ
+        // _endTurn, из-за чего бой с двумя ИИ-сторонами зависал в цикле
+        // перепланирования. Защиту «не ходить на человеческом ходу»
+        // теперь выполняет Battle.aiTurn() через turnOwnership.
+
         b._refreshTactic(side);
 
         try {

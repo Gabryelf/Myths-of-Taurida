@@ -11,6 +11,7 @@ import { HighlightService } from './HighlightService.js';
 import { Theme } from '../config/ThemeConfig.js';
 import { ModelLoader } from './ModelLoader.js';
 import { terrainModelUrls } from '../../config.js';
+import { PathVisual } from './visuals/PathVisual.js';
 
 export class SceneBuilder {
   constructor(scene) {
@@ -25,6 +26,8 @@ export class SceneBuilder {
     this._fogVisuals = new Map();
     this._borderVisual = null;
     this._haloVisual = null;
+    this._pathVisual = null;
+
 
     // ─── Единый режим линз: 'none' | 'borders' | 'halos' ───
     this._lensMode = 'none';
@@ -46,7 +49,7 @@ export class SceneBuilder {
     import('../../config.js').then(({ generalModelUrls }) => {
       const urls = generalModelUrls();
       if (urls.length) ModelLoader.preload(urls);
-    }).catch(() => {});
+    }).catch(() => { });
 
     for (const tile of world.map.all()) {
       if (!tile.isLand) continue;
@@ -118,12 +121,12 @@ export class SceneBuilder {
   _applyLensMode() {
     const bordersOn = this._lensMode === 'borders';
     const halosOn = this._lensMode === 'halos';
-  
+
     // Границы фракций — только в режиме 'borders'
     this._borderVisual?.setVisible(bordersOn);
     // Иконки ореолов — только в режиме 'halos'
     this._haloVisual?.setVisible(halosOn);
-  
+
     // ─── Кольца фракций на гексах — ТОЛЬКО в режиме 'borders' ───
     // В 'none' и 'halos' — колец нет.
     for (const v of this._tileVisuals.values()) {
@@ -135,7 +138,7 @@ export class SceneBuilder {
     if (!this._borderVisual || !this.world) return;
     this._borderVisual.refresh();
     this._haloVisual?.refresh();
-  
+
     for (const tile of this.world.map.all()) {
       if (!tile.isLand) continue;
       const v = this._tileVisuals.get(tile.key);
@@ -143,7 +146,7 @@ export class SceneBuilder {
       if (tile.factionId) v.setFactionColor(tile.factionId);
       else v.setFactionRingVisible(false);
     }
-  
+
     // ─── ВАЖНО: _applyLensMode ПОСЛЕ цикла, чтобы перекрыть setFactionColor ───
     this._applyLensMode();
   }
@@ -266,6 +269,10 @@ export class SceneBuilder {
       if (ov.mesh?.parent) ov.mesh.parent.remove(ov.mesh);
     }
     this._attackOverlays.clear();
+    if (this._pathVisual) {
+      this._pathVisual.removeFrom(this.scene);
+      this._pathVisual = null;
+    }
     this._fogVisuals.clear();
     if (this._borderVisual) {
       this._borderVisual.removeFrom(this.scene);
@@ -282,9 +289,50 @@ export class SceneBuilder {
     if (v) v.setHovered(isHovered);
   }
 
-  setCityHovered(cityId, isHovered) {
-    const v = this._cityVisuals.get(cityId);
-    if (!v) return;
-    v.group.position.y = isHovered ? 0.3 : 0;
+  /** Точки превью пути. null — скрыть. */
+  setPathPreview(pathKeys) {
+    this._ensurePathVisual();
+    this._pathVisual.setPath(pathKeys, (key) => this._hexFor(key));
   }
+
+  /** Маркер подтверждённой цели. null — скрыть. */
+  setPathMarker(targetKey) {
+    this._ensurePathVisual();
+    this._pathVisual.setMarker(targetKey, (key) => this._hexFor(key));
+  }
+
+  clearPathPreview() {
+    if (!this._pathVisual) return;
+    this._pathVisual.setPath(null, null);
+    this._pathVisual.setMarker(null, null);
+  }
+
+  /** Гекс по ключу: сначала домен (надёжно), затем визуал (fallback). */
+  _hexFor(key) {
+    const t = this.world?.map?.getByKey(key);
+    if (t?.hex && typeof t.hex.toWorld === 'function') return t.hex;
+    const v = this._tileVisuals.get(key);
+    const hex = v?.hex ?? v?.tile?.hex ?? v?.tile;
+    return hex && typeof hex.toWorld === 'function' ? hex : null;
+  }
+
+  _ensurePathVisual() {
+    if (!this._pathVisual) {
+      this._pathVisual = new PathVisual(Theme.hexSize);
+    }
+    // Идемпотентная перепривязка: если rebuild отвязал группу — вернём.
+    if (this._pathVisual.group.parent !== this.scene) {
+      this.scene.add(this._pathVisual.group);
+    }
+  }
+
+  /** Перерисовать дуги жизней/очков у всех портретов. Дёшево: только canvas. */
+  updateGeneralBars(world) {
+    for (const gen of world.generals) {
+      const v = this._generalVisuals.get(gen.id);
+      v?.updateBars?.();
+    }
+  }
+
+
 }

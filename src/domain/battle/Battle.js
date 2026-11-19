@@ -23,6 +23,12 @@ export class Battle {
     this.playerSide = playerSide;
     // ─── Кто сейчас «активный» игрок. Для hot-seat переключается ───
     this.currentHumanSide = playerSide;
+    // ─── Владение ходом: 'human' | 'ai'. Источник истины «чей сейчас ход».
+    // Пересчитывается сам при каждой смене хода (см. _endTurn)
+    // и при установке humanSides (см. сеттер ниже) ───
+    this._humanSides = null;
+    this.turnOwnership = 'human';
+
     this.maxIdleTurns = maxIdleTurns;
     this._aiInstance = null;
     this.terrain = new TerrainBattleModifier(targetTile?.terrain || 'plain');
@@ -52,6 +58,19 @@ export class Battle {
     this._checkColumnBonus();
     this._emit(BattleEvents.TURN_STARTED, { side: this.turn, turn: this.turnCount });
   }
+
+  // ─── Владение ходом ───
+  set humanSides(map) {
+    this._humanSides = map || { attacker: false, defender: false };
+    this._updateOwnership();
+  }
+  get humanSides() { return this._humanSides; }
+
+  /** Пересчитать владельца текущего хода из humanSides. */
+  _updateOwnership() {
+    this.turnOwnership = this._humanSides?.[this.turn] === true ? 'human' : 'ai';
+  }
+
 
   _makeSide(gen, deck) {
     return {
@@ -109,8 +128,12 @@ export class Battle {
   }
 
   // ─── Геттеры ───
-  get isActiveTurn() { return this.turn === this.currentHumanSide && !this.finished; }
+  // Ход «активен для человека» = текущий ход принадлежит человеческой
+  // стороне (по turnOwnership, а не по currentHumanSide — это поле
+  // теперь про перспективу UI, а не про допуск ИИ).
+  get isActiveTurn() { return this.turnOwnership === 'human' && !this.finished; }
   get isPlayerTurn() { return this.isActiveTurn; }
+
   get playerData() { return this[this.currentHumanSide]; }
   get enemyData() { return this[this._otherSide(this.currentHumanSide)]; }
   get enemySide() { return this._otherSide(this.currentHumanSide); }
@@ -175,6 +198,8 @@ export class Battle {
 
     this.turn = this._otherSide(side);
     if (this.turn === 'attacker') this.turnCount++;
+    // ─── владение ходом переключается вместе с ходом ───
+    this._updateOwnership();
     this._refreshTactic(this.turn);
     this.generalDamage[this.turn].resetTurn();
     this.columnBonus[this.turn].resetTurn();
@@ -188,12 +213,14 @@ export class Battle {
     this._emit(BattleEvents.TURN_STARTED, { side: this.turn, turn: this.turnCount });
   }
 
+
   _otherSide(side) { return side === 'attacker' ? 'defender' : 'attacker'; }
 
   aiTurn() {
     if (this.finished) return;
-    // Если сейчас ход человека — не наш ход
-    if (this.turn === this.currentHumanSide && this._humanTurn === true) return;
+    // Ход человека — ИИ не вмешивается. Раньше эта проверка была мёртвым
+    // кодом (this._humanTurn нигде не выставлялся), теперь она настоящая.
+    if (this.turnOwnership === 'human') return;
     if (this._aiInstance) {
       try { this._aiInstance.run(); } catch (e) { console.error('[aiTurn]', e); }
       return;
@@ -206,6 +233,7 @@ export class Battle {
     this._aiPlayType(side, ['archer', 'special'], 'attack');
     this._endTurn(side);
   }
+
   _aiPlayType(side, types, lane) {
     const d = this[side];
     const typeArr = Array.isArray(types) ? types : [types];

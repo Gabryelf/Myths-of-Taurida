@@ -25,7 +25,7 @@ export class GeneralVisual {
     const shiftX = size * 0.35;
     const shiftZ = size * 0.15;
 
-    // ─── Пьедестал (остаётся всегда) ───
+    // ─── Пьедестал ───
     const ped = new THREE.Mesh(
       new THREE.CylinderGeometry(size * 0.22, size * 0.26, size * 0.1, 12),
       new THREE.MeshStandardMaterial({
@@ -38,7 +38,7 @@ export class GeneralVisual {
     ped.receiveShadow = true;
     this.group.add(ped);
 
-    // ─── Цветной диск (остаётся — маркер фракции) ───
+    // ─── Цветной диск ───
     const disc = new THREE.Mesh(
       new THREE.CylinderGeometry(
         size * cfg.discRadius * 0.55,
@@ -54,10 +54,9 @@ export class GeneralVisual {
     disc.castShadow = true;
     this.group.add(disc);
 
-    // ─── 3D-модель генерала (вместо процедурного «коня») ───
     this._loadGeneralModel(general, size, shiftX, shiftZ);
 
-    // ─── Портрет-спрайт (всегда — удобно для UI) ───
+    // ─── Портрет с дугами (круглый, сверху жизни, снизу движение) ───
     this._portrait = this._createPortraitSprite(general, size, shiftX, shiftZ);
 
     // ─── Кольцо выбора ───
@@ -75,9 +74,8 @@ export class GeneralVisual {
     this.group.add(this._selRing);
 
     this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
-    this._light = new THREE.PointLight(0xf5d57a, 0, size * 4);
-    this._light.castShadow = false;             // ← не отбрасывает тени
-    this._light.decay = 0;                      // ← без затухания (дешевле)
+    this._light.castShadow = false;
+    this._light.decay = 0;
     this.group.add(this._light);
 
     this._hoverLight = new THREE.PointLight(0x58a6ff, 0, size * 3);
@@ -93,11 +91,6 @@ export class GeneralVisual {
     });
   }
 
-  /**
-   * Загрузка 3D-модели генерала с fallback.
-   * Если <N+1>.glb нет — берём player_general_1.glb.
-   * Если и его нет — процедурный генерал (конь + всадник).
-   */
   _loadGeneralModel(general, size, shiftX, shiftZ) {
     const presetIndex = this._presetIndexFor(general);
     const primaryUrl = generalModelUrl(presetIndex);
@@ -113,45 +106,38 @@ export class GeneralVisual {
         .catch((err) => {
           if (this._disposed || !this.group) return;
           if (!isFallback) {
-            // Первая попытка провалилась — пробуем дефолт
             console.warn(`[GeneralVisual] ${url} not found, using fallback ${fallbackUrl}`);
             return tryLoad(fallbackUrl, true);
           }
-          // Даже fallback не загрузился — процедурный генерал
           console.warn(`[GeneralVisual] fallback ${url} failed, using procedural`);
+          const color = Theme.faction[general.factionId] || 0xd4a94c;
           this._addProceduralRider(general, size, shiftX, shiftZ, color);
         });
     };
 
-    const color = Theme.faction[general.factionId] || 0xd4a94c;
     tryLoad(primaryUrl, false);
   }
 
   _placeGeneralModel(obj, size, shiftX, shiftZ) {
-    // Сброс
     obj.position.set(0, 0, 0);
     obj.rotation.set(0, 0, 0);
     obj.scale.set(1, 1, 1);
 
-    // 1) Оригинальный размер
     const box0 = new THREE.Box3().setFromObject(obj);
     const sizeV = new THREE.Vector3();
     box0.getSize(sizeV);
 
-    // 2) Автоскейл: высота модели ≈ size * 0.9
     const targetHeight = size * 0.9;
     const scale = sizeV.y > 0.001 ? targetHeight / sizeV.y : 1;
     obj.scale.setScalar(scale);
 
-    // 3) Центрируем по XZ и ставим на пьедестал
     const box1 = new THREE.Box3().setFromObject(obj);
     const center = new THREE.Vector3();
     box1.getCenter(center);
     obj.position.x += -center.x + shiftX;
     obj.position.z += -center.z + shiftZ;
-    obj.position.y += (size * 0.22 - box1.min.y);   // верх диска
+    obj.position.y += (size * 0.22 - box1.min.y);
 
-    // 4) Тени
     obj.traverse((c) => {
       if (!c.isMesh) return;
       c.castShadow = true;
@@ -159,7 +145,6 @@ export class GeneralVisual {
       c.userData = c.userData || {};
       c.userData.general = this.general;
       c.userData.hoverable = 'general';
-      // Нормализация материалов (как у HexVisual)
       const mats = Array.isArray(c.material) ? c.material : [c.material];
       for (const m of mats) {
         if (!m) continue;
@@ -176,10 +161,6 @@ export class GeneralVisual {
     this._modelObj = obj;
   }
 
-  /**
-   * Процедурный всадник — fallback, если ни одна .glb не загрузилась.
-   * (Копия старого кода — конь + всадник + меч.)
-   */
   _addProceduralRider(general, size, shiftX, shiftZ, color) {
     const horseColor = 0x3a2010;
     const horseBody = new THREE.Mesh(
@@ -243,26 +224,128 @@ export class GeneralVisual {
     this.group.add(swordPivot);
   }
 
+  // ═══════════════ ПОРТРЕТ С ДУГАМИ ═══════════════
+
   _createPortraitSprite(general, size, shiftX, shiftZ) {
-    const presetIndex = this._presetIndexFor(general);
-    const url = generalPortraitUrl(general.factionId, presetIndex);
-    if (!url) return null;
-    const texture = new THREE.TextureLoader().load(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = 320;
+    canvas.height = 320;
+    this._portraitCanvas = canvas;
+    this._portraitCtx = canvas.getContext('2d');
+    this._portraitImg = null;
+
+    const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     this._portraitTexture = texture;
-    const spriteMat = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-    });
-    const sprite = new THREE.Sprite(spriteMat);
-    sprite.position.set(shiftX, size * 1.15, shiftZ);
-    sprite.scale.set(size * 0.5, size * 0.5, 1);
+
+    const url = generalPortraitUrl(general.factionId, this._presetIndexFor(general));
+    if (url) {
+      const img = new Image();
+      img.onload = () => {
+        if (this._disposed) return;
+        this._portraitImg = img;
+        this._drawPortrait();
+      };
+      img.src = url;
+    }
+    this._drawPortrait();
+
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: texture, transparent: true, depthTest: false, depthWrite: false,
+    }));
+    sprite.position.set(shiftX, size * 1.75, shiftZ);
+    sprite.scale.set(size * 1.24, size * 1.24, 1);
     sprite.renderOrder = 10;
     sprite.userData = { general, hoverable: 'general' };
     this.group.add(sprite);
     return sprite;
+  }
+
+  /**
+   * Перерисовать портрет и дуги. Вызывается извне при изменении
+   * жизней/очков движения (SceneBuilder.updateGeneralBars).
+   */
+  updateBars() {
+    if (this._disposed || !this._portraitCanvas) return;
+    this._drawPortrait();
+  }
+
+  _drawPortrait() {
+    const ctx = this._portraitCtx;
+    if (!ctx) return;
+    const g = this.general;   // ← ЭТА СТРОКА ПОТЕРЯЛАСЬ — теперь на месте
+    const C = 160;            // центр
+    const R_IMG = 72;         // радиус портрета
+    const R_ARC = 110;        // радиус дуг
+    const W_ARC = 18;         // толщина дуги
+
+    ctx.clearRect(0, 0, 320, 320);
+
+    // ─── Портрет: круг с обводкой ───
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(C, C, R_IMG, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    if (this._portraitImg) {
+      const img = this._portraitImg;
+      const scale = Math.max((R_IMG * 2) / img.width, (R_IMG * 2) / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, C - w / 2, C - h * 0.62, w, h);
+    } else {
+      const color = Theme.faction[g.factionId] || 0xd4a94c;
+      ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+      ctx.fillRect(0, 0, 320, 320);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 64px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText((g.name || '?')[0] || '?', C, C);
+    }
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(C, C, R_IMG, 0, Math.PI * 2);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.stroke();
+
+    // ─── Верхняя дуга: жизни (ячейки) ───
+    this._drawArcSegments(ctx, C, C, R_ARC, W_ARC, -Math.PI, 0,
+      g.maxLives, g.lives, '#e74c3c');
+
+    // ─── Нижняя дуга: очки движения (ячейки) ───
+    this._drawArcSegments(ctx, C, C, R_ARC, W_ARC, 0, Math.PI,
+      g.maxMovePoints, g.movePoints, '#58a6ff');
+
+    if (this._portraitTexture) this._portraitTexture.needsUpdate = true;
+  }
+
+  /**
+   * Дуга из ячеек. from..to — углы в радианах (0 = вправо, y вниз):
+   * жизни: -PI..0 (верх), движение: 0..PI (низ).
+   */
+  _drawArcSegments(ctx, cx, cy, r, w, from, to, max, value, fill) {
+    if (max <= 0) return;
+    const span = to - from;
+    const gap = Math.min(0.06, (span / max) * 0.25);
+    for (let i = 0; i < max; i++) {
+      const a0 = from + (span / max) * i + gap / 2;
+      const a1 = from + (span / max) * (i + 1) - gap / 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, a0, a1);
+      ctx.lineWidth = w;
+      ctx.lineCap = 'butt';
+      ctx.strokeStyle = i < value ? fill : 'rgba(20,20,25,0.65)';
+      ctx.stroke();
+    }
+    // Тонкая подложка-ободок под дугой
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, from, to);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.stroke();
   }
 
   _presetIndexFor(general) {

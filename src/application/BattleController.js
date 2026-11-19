@@ -16,6 +16,7 @@ export class BattleController {
     });
     this.battle = battle;
     battle._aiInstance = new BattleAI(battle);
+
     if (humanSides) {
       this.humanSides = humanSides;
     } else {
@@ -25,7 +26,12 @@ export class BattleController {
         defender: battle.defenderGen?.factionId === playerFaction,
       };
     }
-    // ─── Стартовая сторона: первая человеческая, иначе attacker ───
+    // ─── Владение ходом теперь живёт в домене: Battle сам пересчитывает
+    // turnOwnership при каждой смене хода. Контроллер только сообщает,
+    // какие стороны человеческие ───
+    battle.humanSides = this.humanSides;
+
+    // ─── Стартовая сторона для UI: первая человеческая, иначе attacker ───
     if (this.humanSides.attacker) {
       this.activeSide = 'attacker';
     } else if (this.humanSides.defender) {
@@ -33,15 +39,14 @@ export class BattleController {
     } else {
       this.activeSide = 'attacker';
     }
-    // Battle.currentHumanSide = кто изначально играет.
-    // Используется Battle.isActiveTurn для проверок selectCard/playCard.
     battle.currentHumanSide = this.activeSide;
+
     this.bus.emit('battle:started', { battle });
     this._scheduleIfNeeded();
     return battle;
   }
 
-  /** Единственная точка записи хода: activeSide + (для человека) currentHumanSide. */
+  /** Единая точка записи хода на стороне контроллера. */
   _setTurn(side, isHuman) {
     this.activeSide = side;
     if (isHuman) this.battle.currentHumanSide = side;
@@ -50,7 +55,7 @@ export class BattleController {
   _scheduleIfNeeded() {
     if (!this.battle || this.battle.finished) return;
     const turn = this.battle.turn;
-    const isHuman = this.humanSides[turn];
+    const isHuman = this.humanSides[turn] === true;
     this._setTurn(turn, isHuman);
     this.bus.emit('battle:updated', { battle: this.battle });
     if (!isHuman) this._scheduleAI();
@@ -101,13 +106,14 @@ export class BattleController {
       this._aiScheduled = false;
       if (!this.battle || this.battle.finished) return;
       // Ход человека — не вмешиваемся
-      if (this.humanSides[this.battle.turn]) {
+      if (this.humanSides[this.battle.turn] === true) {
         this._scheduleIfNeeded();
         return;
       }
-      // ─── КРИТИЧНО: перед вызовом ИИ сбрасываем currentHumanSide, ───
-      // чтобы Battle.aiTurn() НЕ принял ход за «человеческий» ───
       const aiSide = this.battle.turn;
+      // currentHumanSide = сторона ИИ — на неё ориентируются UI и логика
+      // колонок во время хода ИИ. Защита от «ИИ играет на ходу человека»
+      // теперь держится на battle.turnOwnership, а не на этом поле.
       this.battle.currentHumanSide = aiSide;
       try {
         this.battle.aiTurn();
@@ -132,6 +138,7 @@ export class BattleController {
     battle._aiInstance = new BattleAI(battle);
     const oldHuman = this.humanSides;
     this.humanSides = { attacker: false, defender: false };
+    battle.humanSides = this.humanSides; // владение — ИИ с обеих сторон
     this.activeSide = null;
     battle.currentHumanSide = playerSide;
     await battle.autoPlay(null, 0);
