@@ -1,139 +1,283 @@
-/* ─── Панель генерала: компактная, внизу слева ─── */
-.general-panel {
+/* ═══════════════════════════════════════════════════════════
+   Нижняя левая панель: статы генерала + колода — ОДИН блок.
+   Ширина — по содержимому, растёт только вбок.
+   ═══════════════════════════════════════════════════════════ */
+   .general-container {
     position: absolute;
     left: 16px;
     bottom: 16px;
-    width: 230px;
-    padding: 10px 12px 8px;
+    z-index: 28;
+    height: 54px;
+    width: max-content;          /* ← размер по содержимому, без обрезания */
+    max-width: calc(100vw - 320px);
+    display: none;
+    flex-direction: row;
+    align-items: stretch;
     background: linear-gradient(160deg, rgba(28, 18, 10, 0.97), rgba(12, 8, 4, 0.95));
     border: 1px solid var(--color-gold);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    color: var(--color-text);
-    z-index: 22;
-    max-width: calc(100vw - 32px);
-    opacity: 0;
-    transform: translateY(10px);
-    pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-  .general-panel.visible { opacity: 1; transform: none; pointer-events: auto; }
-  
-  .general-panel.collapsed { width: auto; padding: 6px 28px 6px 6px; }
-  .general-panel.collapsed .gp-full { display: none; }
-  .general-panel:not(.collapsed) .gp-compact { display: none; }
-  
-  .gp-toggle {
-    position: absolute;
-    right: 4px;
-    top: 4px;
-    width: 18px; height: 18px;
-    border: none; border-radius: 4px;
-    background: rgba(255,255,255,0.08);
-    color: #cfc6a8;
-    font-size: 10px;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .gp-toggle:hover { background: rgba(212,169,76,0.35); }
-  
-  /* ─── Свёрнутый вид ─── */
-  .gp-compact { display: flex; align-items: center; gap: 8px; }
-  .gp-compact-bars { display: flex; flex-direction: column; gap: 3px; }
-  .gp-compact-bars .gp-bar { width: 120px; height: 8px; }
-  .gp-ava {
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    border: 1px solid var(--color-gold);
-    background-color: #2a2418;
-    background-size: cover;
-    background-position: center top;
-    flex-shrink: 0;
-  }
-  
-  /* ─── Развёрнутый вид ─── */
-  .gp-full { display: flex; flex-direction: column; gap: 6px; }
-  .gp-header {
-    display: flex; align-items: center; gap: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(212, 169, 76, 0.3);
-  }
-  .gp-emblem {
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    border: 2px solid var(--color-gold);
-    flex-shrink: 0;
-    box-shadow: 0 0 12px rgba(212, 169, 76, 0.4);
-    background-size: cover;
-    background-position: center top;
-    background-color: #2a2418;
-  }
-  .gp-head-text { min-width: 0; }
-  .gp-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--color-gold-bright);
-    letter-spacing: 0.04em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .gp-level {
-    font-size: 10px; font-weight: 700;
-    color: var(--color-gold);
-    border: 1px solid rgba(212,169,76,0.35);
-    border-radius: 6px;
-    padding: 0 5px; margin-left: 4px;
-  }
-  .gp-faction { font-size: 10px; color: #8a7a58; font-style: italic; }
-  
-  /* ─── Полосы: одинаковые, цифры по центру ─── */
-  .gp-bars { display: flex; flex-direction: column; gap: 4px; }
-  .gp-bar {
-    position: relative;
-    width: 100%;
-    height: 14px;
-    background: rgba(10,6,3,0.8);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 7px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8), 0 0 24px rgba(212, 169, 76, 0.15);
     overflow: hidden;
   }
-  .gp-fill { height: 100%; transition: width 0.25s ease; }
-  .gp-fill-lives { background: linear-gradient(90deg, #7a1f1f, #e74c3c); }
-  .gp-fill-move  { background: linear-gradient(90deg, #1f4a7a, #58a6ff); }
-  .gp-bar-text {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700;
-    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  
+  /* Показываем контейнер, если виден ХОТЬ ОДИН из блоков */
+  .general-container:has(.general-panel.visible),
+  .general-container:has(.deck-panel.visible) {
+    display: flex;
+  }
+  
+  /* ─── Секция статов ─── */
+  .general-panel {
+    position: relative;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    flex-shrink: 0;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    color: var(--color-text);
+  }
+  .general-panel.visible { display: flex; }
+  
+  .general-panel .gp-ava {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid var(--color-gold);
+    background-color: #2a1d0f;
+    background-size: cover;
+    background-position: center top;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(212, 169, 76, 0.4);
+  }
+  
+  .general-panel .gp-mid {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 168px;
+  }
+  
+  .general-panel .gp-name-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    height: 16px;
+  }
+  
+  .general-panel .gp-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .general-panel .gp-level {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--color-gold);
+    padding: 0 4px;
+    background: rgba(212, 169, 76, 0.15);
+    border: 1px solid rgba(212, 169, 76, 0.4);
+    border-radius: 3px;
+  }
+  
+  .general-panel .gp-perks {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 2px;
+  }
+  .general-panel .gp-perk-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #c07ad8, #5a2a6a);
+    border: 1px solid rgba(245, 213, 122, 0.5);
+    cursor: help;
+    box-shadow: 0 0 4px rgba(192, 122, 216, 0.5);
+    flex-shrink: 0;
+  }
+  
+  .general-panel .gp-bars-row {
+    display: flex;
+    gap: 5px;
+    height: 12px;
+  }
+  .general-panel .gp-bar {
+    position: relative;
+    flex: 1;
+    height: 12px;
+    background: rgba(10, 6, 3, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .general-panel .gp-fill {
+    height: 100%;
+    transition: width 0.25s ease;
+  }
+  .general-panel .gp-fill-lives { background: linear-gradient(90deg, #7a1f1f, #e74c3c); }
+  .general-panel .gp-fill-move  { background: linear-gradient(90deg, #1f4a7a, #58a6ff); }
+  .general-panel .gp-bar-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  }
+  
+  /* Разделитель между статами и колодой */
+  .general-panel::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(212, 169, 76, 0.5), transparent);
+  }
+  
+  /* ─── Секция колоды ─── */
+  .deck-panel {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 12px;
+    flex-shrink: 0;              /* ← дека не сжимается до нуля */
+    font-family: var(--font-ui);
+    color: var(--color-text);
+  }
+  .deck-panel.visible { display: flex; }
+  
+  .deck-panel .dp-chip {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--color-gold-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    background: rgba(212, 169, 76, 0.12);
+    border: 1px solid rgba(212, 169, 76, 0.35);
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .deck-panel .dp-chip b { color: #f5d57a; }
+  
+  .deck-panel .dp-empty {
+    color: #8a7a58;
+    font-style: italic;
+    font-size: 10px;
     white-space: nowrap;
   }
   
-  /* ─── XP: тонкая линия ─── */
-  .gp-xp-bar {
-    width: 100%;
-    height: 4px;
-    background: rgba(10,6,3,0.8);
-    border-radius: 2px;
+  .deck-panel .dp-grid {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100vw - 520px);
+    scrollbar-width: thin;
+  }
+  
+  .deck-panel .dp-grid::-webkit-scrollbar { height: 3px; }
+  .deck-panel .dp-grid::-webkit-scrollbar-track { background: rgba(10, 6, 3, 0.4); border-radius: 2px; }
+  .deck-panel .dp-grid::-webkit-scrollbar-thumb { background: var(--color-gold-dark); border-radius: 2px; }
+  
+  .deck-panel .dp-card {
+    position: relative;
+    width: 34px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 3px;
     overflow: hidden;
-  }
-  .gp-xp-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #d4a94c, #f5d57a);
-    transition: width 0.4s ease;
+    border: 1px solid var(--color-gold-dark);
+    background: #1a1208;
   }
   
-  .gp-perks { display: flex; gap: 4px; }
-  .gp-perk { display: inline-flex; }
+  .deck-panel .dp-art {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-color: #2a1d0f;
+  }
   
-  /* ─── Флеш «не хватает очков» ─── */
+  .deck-panel .dp-name-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 6, 3, 0.92);
+    font-size: 6px;
+    padding: 1px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--color-text);
+    z-index: 2;
+  }
+  
+  .deck-panel .dp-count {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background: radial-gradient(circle at 30% 30%, #e74c3c, #6b1410);
+    font-size: 7px;
+    font-weight: 900;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-gold-bright);
+    z-index: 3;
+  }
+  
+  .deck-panel .dp-type-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    z-index: 2;
+  }
+  .deck-panel .dp-card.type-warrior .dp-type-stripe { background: #e74c3c; }
+  .deck-panel .dp-card.type-archer  .dp-type-stripe { background: #7aa0c8; }
+  .deck-panel .dp-card.type-support .dp-type-stripe { background: #5fa87a; }
+  .deck-panel .dp-card.type-special .dp-type-stripe { background: #c07ad8; }
+  
+  /* ─── Флеш ошибки и тост ─── */
   .general-panel.gp-flash-error {
     animation: gpError 0.5s ease;
+  }
+  .general-container:has(.gp-flash-error) {
     border-color: #e74c3c;
     box-shadow: 0 0 24px rgba(231, 76, 60, 0.6);
   }
   @keyframes gpError {
-    0%, 100% { transform: none; }
+    0%, 100% { transform: translateX(0); }
     20% { transform: translateX(-4px); }
     40% { transform: translateX(4px); }
     60% { transform: translateX(-3px); }
@@ -141,14 +285,17 @@
   }
   .general-panel .gp-no-points {
     position: absolute;
-    top: -30px; left: 0; right: 0;
+    top: -30px;
+    left: 12px;
     background: rgba(231, 76, 60, 0.95);
     color: #fff;
-    font-size: 11px; font-weight: 700;
+    font-size: 11px;
+    font-weight: 700;
     text-align: center;
     padding: 4px 8px;
     border-radius: 4px;
     z-index: 5;
+    white-space: nowrap;
     animation: gpNoPoints 1.6s ease forwards;
   }
   @keyframes gpNoPoints {
@@ -156,5 +303,15 @@
     15% { opacity: 1; transform: translateY(0); }
     85% { opacity: 1; }
     100% { opacity: 0; }
+  }
+  
+  @media (max-width: 900px) {
+    .general-container { height: 48px; left: 8px; bottom: 12px; max-width: calc(100vw - 250px); }
+    .general-panel .gp-mid { width: 130px; }
+    .deck-panel .dp-card { width: 30px; height: 40px; }
+  }
+  
+  @media (max-width: 700px) {
+    .general-container { max-width: calc(100vw - 32px); }
   }
   

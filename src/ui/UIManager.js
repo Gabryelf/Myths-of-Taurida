@@ -1,7 +1,6 @@
 import { Toast } from './components/Toast.js';
 import { Tooltip } from './components/Tooltip.js';
 import { GeneralPanel } from './components/GeneralPanel.js';
-import { EndTurnButton } from './components/EndTurnButton.js';
 import { ResourceBar } from './components/ResourceBar.js';
 import { DeckPanel } from './components/DeckPanel.js';
 import { RecruitModal } from './components/RecruitModal.js';
@@ -13,6 +12,7 @@ import { MarketPanel } from './components/MarketPanel.js';
 import { FactionsPanel } from './components/FactionsPanel.js';
 import { GlossaryModal } from './components/GlossaryModal.js';
 import { QuickJump } from './components/QuickJump.js';
+import { FooterPanel } from './components/FooterPanel.js';
 import { iconImg } from '../config/icons.js';
 
 export class UIManager {
@@ -30,22 +30,31 @@ export class UIManager {
     this.onRecruit = onRecruit;
     this.onBuySettlement = null;
     this.onAttackCity = null;
-    this.onLensModeChange = null;   // (mode) => void
+    this.onLensModeChange = null;
     this.battleController = battleController;
     this.marketController = marketController;
     this._lensMode = 'none';
 
     this.toast = new Toast(toastRoot);
     this.tooltip = new Tooltip(root);
-    this.generalPanel = new GeneralPanel(root);
-    this.deckPanel = new DeckPanel(root);
     this.resourceBar = new ResourceBar(root);
     this.turnIndicator = new TurnIndicator(root);
+
+    // ─── Левый контейнер (панель генерала + карты) ───
+    this._generalContainer = document.createElement('div');
+    this._generalContainer.className = 'general-container';
+    root.appendChild(this._generalContainer);
+
+    this.generalPanel = new GeneralPanel(this._generalContainer);
+    this.deckPanel = new DeckPanel(this._generalContainer);
+
     this._buildHud();
-    this.endTurnButton = new EndTurnButton(this._hudEl, () => {
-      this.sound?.play('click');
-      onEndTurn?.();
+
+    // ─── Футер ───
+    this.footer = new FooterPanel(root, {
+      onSkipTurn: () => onEndTurn?.(),
     });
+
     this.quickJump = new QuickJump(this.root, {
       world: this.world,
       cameraController: null,
@@ -81,45 +90,56 @@ export class UIManager {
     const hud = document.createElement('div');
     hud.className = 'hud-top';
     hud.innerHTML = `
-      <div class="hud-title">ТАВРИДА · v0.2.0</div>
-      <div class="hud-right">
+      <div class="hud-center">
         <div class="resource-bar" id="resource-bar"></div>
-
-        <!-- ─── Мини-панель линз ─── -->
         <div class="lens-panel" id="lens-panel" role="radiogroup" aria-label="Линзы карты">
-          <button class="lens-btn" data-lens="none"
-                  role="radio" aria-checked="true"
-                  title="Без линз">${iconImg('ui_close', { size: 14 })}<span>Без линз</span></button>
-          <button class="lens-btn" data-lens="borders"
-                  role="radio" aria-checked="false"
-                  title="Границы фракций">${iconImg('ui_flag', { size: 14 })}<span>Границы</span></button>
-          <button class="lens-btn" data-lens="halos"
-                  role="radio" aria-checked="false"
-                  title="Ресурсные ореолы">${iconImg('halo_wheat', { size: 14 })}<span>Ореолы</span></button>
+          <button class="lens-btn" data-lens="none" role="radio" aria-checked="true" title="Без линз">
+            ${iconImg('ui_close', { size: 14 })}
+          </button>
+          <button class="lens-btn" data-lens="borders" role="radio" aria-checked="false" title="Границы фракций">
+            ${iconImg('ui_flag', { size: 14 })}
+          </button>
+          <button class="lens-btn" data-lens="halos" role="radio" aria-checked="false" title="Ресурсные ореолы">
+            ${iconImg('halo_wheat', { size: 14 })}
+          </button>
         </div>
-
-        <button class="hud-btn" id="btn-recruit" disabled>Найм</button>
-        <button class="hud-btn" id="btn-market">Рынок</button>
-        <button class="hud-btn" id="btn-factions">Фракции</button>
-        <button class="hud-btn-mute" id="btn-glossary" title="Глоссарий">?</button>
-        <button class="hud-btn-mute" id="btn-mute">🔊</button>
+      </div>
+      <div class="hud-right">
+        <button class="hud-icon-btn" id="btn-recruit" disabled>
+          ${iconImg('ui_sword', { size: 16 })}
+          <span class="hud-tooltip">Найм</span>
+        </button>
+        <button class="hud-icon-btn" id="btn-market">
+          ${iconImg('res_gold', { size: 16 })}
+          <span class="hud-tooltip">Рынок</span>
+        </button>
+        <button class="hud-icon-btn" id="btn-factions">
+          ${iconImg('ui_flag', { size: 16 })}
+          <span class="hud-tooltip">Фракции</span>
+        </button>
+        <button class="hud-icon-btn" id="btn-glossary">
+          ${iconImg('ui_help', { size: 16 })}
+          <span class="hud-tooltip">Глоссарий</span>
+        </button>
+        <button class="hud-icon-btn" id="btn-mute">
+          ${iconImg('ui_unmute', { size: 16 })}
+          <span class="hud-tooltip">Звук</span>
+        </button>
       </div>
     `;
     this.root.appendChild(hud);
     this._hudEl = hud;
     this.resourceBar.el = hud.querySelector('#resource-bar');
     this.resourceBar.refresh();
-
-    // ─── Обработчик мини-панели линз ───
+  
     const lensPanel = hud.querySelector('#lens-panel');
     lensPanel.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-lens]');
       if (!btn) return;
-      const mode = btn.getAttribute('data-lens');
-      this.setLensMode(mode);
+      this.setLensMode(btn.getAttribute('data-lens'));
       this.sound?.play('click');
     });
-
+  
     hud.querySelector('#btn-recruit').addEventListener('click', () => {
       this.sound?.play('click');
       if (this.onHire) this.onHire();
@@ -136,27 +156,62 @@ export class UIManager {
       this.sound?.play('click');
       this.glossary.open();
     });
+  
     const muteBtn = hud.querySelector('#btn-mute');
     if (this.sound?.isMuted()) {
-      muteBtn.textContent = '🔇';
+      muteBtn.querySelector('.icon')?.remove();
+      muteBtn.insertAdjacentHTML('afterbegin', iconImg('ui_mute', { size: 16 }));
       muteBtn.classList.add('muted');
     }
     muteBtn.addEventListener('click', () => {
       const muted = this.sound?.toggleMute();
-      muteBtn.textContent = muted ? '🔇' : '🔊';
+      muteBtn.querySelector('.icon')?.remove();
+      muteBtn.insertAdjacentHTML('afterbegin', iconImg(muted ? 'ui_mute' : 'ui_unmute', { size: 16 }));
       muteBtn.classList.toggle('muted', !!muted);
     });
-
+  
     this._lensPanel = lensPanel;
     this._updateLensUI();
   }
 
-  /** Установить режим линз. */
+  _bindFocusNav(hud) {
+    hud.querySelector('#btn-focus-general')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      if (this.quickJump) {
+        this.quickJump._generalIdx = 0;
+        this.quickJump._handle('general');
+      }
+    });
+    hud.querySelector('#btn-prev-general')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      this.quickJump?._handle('prev-general');
+    });
+    hud.querySelector('#btn-next-general')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      this.quickJump?._handle('next-general');
+    });
+    hud.querySelector('#btn-focus-city')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      if (this.quickJump) {
+        this.quickJump._cityIdx = 0;
+        this.quickJump._handle('city');
+      }
+    });
+    hud.querySelector('#btn-prev-city')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      this.quickJump?._handle('prev-city');
+    });
+    hud.querySelector('#btn-next-city')?.addEventListener('click', () => {
+      this.sound?.play('click');
+      this.quickJump?._handle('next-city');
+    });
+  }
+
   setLensMode(mode) {
     if (!['none', 'borders', 'halos'].includes(mode)) mode = 'none';
     this._lensMode = mode;
     this._updateLensUI();
-    this.onLensModeChange?.(mode);   // ← вызывает sceneBuilder.setLensMode
+    this.onLensModeChange?.(mode);
   }
 
   _updateLensUI() {
@@ -227,7 +282,6 @@ export class UIManager {
     this.bus.on('general:moved', () => this.generalPanel.refresh());
     this.bus.on('general:no-move-points', ({ general, needed, have }) => {
       if (!general || !needed) return;
-      // Проксируем в DOM-событие для GeneralPanel
       const ev = new CustomEvent('general:no-move-points-ui', {
         detail: { needed, have },
       });
@@ -248,12 +302,6 @@ export class UIManager {
     });
     this.bus.on('battle:finished', () => this.turnIndicator.hide());
     this.bus.on('ai:turnEnded', () => this.turnIndicator.hide());
-    // ─── Тултип гекса убран, оставлен только для ореола ───
-    this.bus.on('tile:hovered', ({ tile, screenPos }) => {
-      if (!tile) { /* ничего */ }
-    });
-
-    // ─── Тултип ореола ───
     this.bus.on('halo:hovered', ({ halo, screenPos }) => {
       if (!halo) { this.tooltip.hide(); return; }
       this.tooltip.showHalo(halo, screenPos);

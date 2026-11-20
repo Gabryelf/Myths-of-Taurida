@@ -29,10 +29,12 @@ export class DeckPanel {
     const g = this._general;
     if (!g) return;
     const cards = g.deck.cards;
-    const empty = cards.length === 0 ? `<div class="dp-empty">Колода пуста</div>` : '';
+    const empty = cards.length === 0 ? `<div class="dp-empty">пусто</div>` : '';
 
     this.el.innerHTML = `
-      <div class="dp-title">Колода · ${g.name} · ${g.deck.totalStrength}/${g.deck.capacity}</div>
+      <div class="dp-chip" title="🔰 ${g.deck.totalStrength}/${g.deck.capacity}">
+      🔰 <b>${g.deck.totalStrength}/${g.deck.capacity}</b>
+      </div>
       ${empty}
       <div class="dp-grid"></div>
     `;
@@ -42,10 +44,9 @@ export class DeckPanel {
 
     for (const c of cards) {
       const url = this._imgLoader.getUrl(c.imageKey);
-
       const cardEl = document.createElement('div');
       cardEl.className = `dp-card type-${c.type}`;
-      cardEl.title = c.name;
+      cardEl.title = `${c.name} (сила ${c.str})`;
       cardEl.innerHTML = `
         <div class="dp-art">
           <div class="dp-count">${c.str}</div>
@@ -53,10 +54,8 @@ export class DeckPanel {
         </div>
         <div class="dp-name-bottom">${c.name}</div>
       `;
-
       const art = cardEl.querySelector('.dp-art');
       if (url && art) art.style.backgroundImage = `url("${url}")`;
-
       grid.appendChild(cardEl);
     }
   }

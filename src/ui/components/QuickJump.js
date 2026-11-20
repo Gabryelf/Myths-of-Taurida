@@ -10,28 +10,33 @@ export class QuickJump {
     this._generalIdx = 0;
     this._cityIdx = 0;
     this._minimap = null;
-
     this.el = document.createElement('div');
     this.el.className = 'quick-jump';
     this.el.innerHTML = `
-      <div class="qj-buttons">
-        <button class="qj-btn" data-jump="general" title="К полководцу">
-          ${iconImg('general_life', { size: 18 })}
-        </button>
-        <button class="qj-btn qj-btn-cycle" data-jump="next-general" title="Следующий полководец">
-          ${iconImg('ui_arrow_right', { size: 14 })}
-        </button>
-        <button class="qj-btn" data-jump="city" title="К городу">
-          ${iconImg('terrain_city', { size: 18 })}
-        </button>
-        <button class="qj-btn qj-btn-cycle" data-jump="next-city" title="Следующий город">
-          ${iconImg('ui_arrow_right', { size: 14 })}
-        </button>
+      <div class="qj-minimap" id="qj-minimap">
+        <div class="qj-buttons">
+          <button class="qj-btn" data-jump="general" title="К полководцу">
+            ${iconImg('general_life', { size: 12 })}
+          </button>
+          <button class="qj-btn" data-jump="prev-general" title="Пред. полководец">
+            ${iconImg('ui_arrow_left', { size: 10 })}
+          </button>
+          <button class="qj-btn" data-jump="next-general" title="След. полководец">
+            ${iconImg('ui_arrow_right', { size: 10 })}
+          </button>
+          <button class="qj-btn" data-jump="city" title="К городу">
+            ${iconImg('terrain_city', { size: 12 })}
+          </button>
+          <button class="qj-btn" data-jump="prev-city" title="Пред. город">
+            ${iconImg('ui_arrow_left', { size: 10 })}
+          </button>
+          <button class="qj-btn" data-jump="next-city" title="След. город">
+            ${iconImg('ui_arrow_right', { size: 10 })}
+          </button>
+        </div>
       </div>
-      <div class="qj-minimap" id="qj-minimap"></div>
     `;
     root.appendChild(this.el);
-
     this.el.addEventListener('click', (e) => {
       const jump = e.target.closest?.('[data-jump]')?.getAttribute('data-jump');
       if (!jump) return;
@@ -43,7 +48,6 @@ export class QuickJump {
     if (this._minimap) return;
     const slot = this.el.querySelector('#qj-minimap');
     this._minimap = new Minimap(slot, { world, cameraController, onCenter });
-    // у MiniMap родитель — div, стилизуем
     this._minimap.el.classList.add('qj-minimap-inner');
   }
 
@@ -68,6 +72,7 @@ export class QuickJump {
     if (!hex) return;
     this.cameraController?.centerOn(hex, this.theme.hexSize);
   }
+
   _handle(action) {
     switch (action) {
       case 'general': {
@@ -75,6 +80,13 @@ export class QuickJump {
         if (!gens.length) return;
         this._generalIdx = 0;
         this._centerOnHex(gens[0].hex);
+        return;
+      }
+      case 'prev-general': {
+        const gens = this._myGenerals();
+        if (!gens.length) return;
+        this._generalIdx = (this._generalIdx - 1 + gens.length) % gens.length;
+        this._centerOnHex(gens[this._generalIdx].hex);
         return;
       }
       case 'next-general': {
@@ -89,6 +101,14 @@ export class QuickJump {
         if (!cities.length) return;
         this._cityIdx = 0;
         const tile = this.world.map.getByKey(cities[0].tileKey);
+        if (tile) this._centerOnHex(tile.hex);
+        return;
+      }
+      case 'prev-city': {
+        const cities = this._myCities();
+        if (!cities.length) return;
+        this._cityIdx = (this._cityIdx - 1 + cities.length) % cities.length;
+        const tile = this.world.map.getByKey(cities[this._cityIdx].tileKey);
         if (tile) this._centerOnHex(tile.hex);
         return;
       }

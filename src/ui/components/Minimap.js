@@ -8,11 +8,12 @@ export class Minimap {
     this.el = document.createElement('div');
     this.el.className = 'qj-minimap-inner';
     this.canvas = document.createElement('canvas');
-    this.canvas.width = 200;
-    this.canvas.height = 200;
-    this.canvas.style.pointerEvents = 'auto';    // ← гарантированно ловит клик
+    this.canvas.style.pointerEvents = 'auto';
     this.canvas.style.cursor = 'crosshair';
     this.canvas.title = 'Клик — перейти к точке';
+    this.el.style.position = 'relative';
+    this.el.style.width = '100%';
+    this.el.style.height = '100%';
     this.el.appendChild(this.canvas);
     root.appendChild(this.el);
     this.ctx = this.canvas.getContext('2d');
@@ -22,8 +23,26 @@ export class Minimap {
     this.refresh();
   }
 
+  /**
+   * Подгоняем пиксельную сетку canvas под фактический размер на экране.
+   * Это убирает «размазывание»: CSS больше не растягивает картинку.
+   */
+  _resizeToCssBox() {
+    const cw = this.canvas.clientWidth;
+    const ch = this.canvas.clientHeight;
+    if (cw <= 0 || ch <= 0) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.round(cw * dpr);
+    const H = Math.round(ch * dpr);
+    if (this.canvas.width !== W || this.canvas.height !== H) {
+      this.canvas.width = W;
+      this.canvas.height = H;
+    }
+  }
+
   refresh() {
     const ctx = this.ctx;
+    this._resizeToCssBox();
     const W = this.canvas.width;
     const H = this.canvas.height;
     ctx.clearRect(0, 0, W, H);
@@ -37,7 +56,7 @@ export class Minimap {
       if (z < minZ) minZ = z;
       if (z > maxZ) maxZ = z;
     }
-    const pad = 10;
+    const pad = 10 * (W / 220); // масштабируем отступ под фактический размер
     const sx = (W - pad * 2) / (maxX - minX || 1);
     const sy = (H - pad * 2) / (maxZ - minZ || 1);
     const scale = Math.min(sx, sy);
@@ -106,9 +125,8 @@ export class Minimap {
   _onClick(e) {
     if (!this._scale) return;
     const rect = this.canvas.getBoundingClientRect();
-    // Учитываем возможный CSS-scale
     const px = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-    const py = (e.clientY - rect.top)  * (this.canvas.height / rect.height);
+    const py = (e.clientY - rect.top) * (this.canvas.height / rect.height);
     const { offX, offZ, minX, minZ } = this._offset;
     const worldX = (px - offX) / this._scale + minX;
     const worldZ = (py - offZ) / this._scale + minZ;

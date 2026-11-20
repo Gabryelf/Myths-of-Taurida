@@ -1,0 +1,135 @@
+/* ═══════════════════════════════════════════════════════════
+   Угловой декор — PNG поверх всех элементов
+   ═══════════════════════════════════════════════════════════ */
+.corner-decor {
+    position: fixed;
+    width: 720px;
+    height: 550px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 1000;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+}
+
+.corner-decor.corner-tl {
+    top: 0;
+    left: 0;
+    background-image: url('/images/decor/corner-tl.png');
+    background-position: top left;
+}
+
+.corner-decor.corner-tr {
+    top: 0;
+    right: 0;
+    background-image: url('/images/decor/corner-tr.png');
+    background-position: top right;
+}
+
+.corner-decor.corner-bl {
+    bottom: 0;
+    left: 0;
+    background-image: url('/images/decor/corner-bl.png');
+    background-position: bottom left;
+}
+
+.corner-decor.corner-br {
+    bottom: 0;
+    right: 0;
+    background-image: url('/images/decor/corner-br.png');
+    background-position: bottom right;
+}
+
+@media (max-width: 700px) {
+    .corner-decor {
+        width: 70px;
+        height: 70px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Угловой декор — 4 SVG в фиксированных зонах.
+   z-index 900 — ниже миникарты (31), модалок (120+), HUD (30).
+   Ничего не перекрывает, живёт «под» интерфейсом.
+   ═══════════════════════════════════════════════════════════
+   .corner-decor {
+    position: fixed;
+    width: 120px;
+    height: 120px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 901;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.8));
+  }
+  
+
+  .corner-decor.corner-tl {
+    top: 0; left: 0;
+    background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>\
+  <defs><linearGradient id='g1' x1='0' y1='0' x2='1' y2='1'>\
+  <stop offset='0' stop-color='%23f5d57a'/><stop offset='1' stop-color='%23a07c3a'/>\
+  </linearGradient></defs>\
+  <path d='M0 0 L80 0 L80 6 L20 6 Q14 6 14 12 L14 80 L6 80 Q0 80 0 74 Z' fill='url(%23g1)' opacity='0.9'/>\
+  <path d='M0 0 L50 0 M0 0 L0 50' stroke='%23f5d57a' stroke-width='2'/>\
+  <circle cx='20' cy='20' r='4' fill='%23f5d57a' opacity='0.8'/>\
+  <circle cx='35' cy='10' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  <circle cx='10' cy='35' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  </svg>");
+  }
+  
+
+  .corner-decor.corner-tr {
+    top: 0; right: 0;
+    background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>\
+  <defs><linearGradient id='g2' x1='1' y1='0' x2='0' y2='1'>\
+  <stop offset='0' stop-color='%23f5d57a'/><stop offset='1' stop-color='%23a07c3a'/>\
+  </linearGradient></defs>\
+  <path d='M120 0 L40 0 L40 6 L100 6 Q106 6 106 12 L106 80 L114 80 Q120 80 120 74 Z' fill='url(%23g2)' opacity='0.9'/>\
+  <path d='M120 0 L70 0 M120 0 L120 50' stroke='%23f5d57a' stroke-width='2'/>\
+  <circle cx='100' cy='20' r='4' fill='%23f5d57a' opacity='0.8'/>\
+  <circle cx='85' cy='10' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  <circle cx='110' cy='35' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  </svg>");
+  }
+  
+
+  .corner-decor.corner-bl {
+    bottom: 0; left: 0;
+    background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>\
+  <defs><linearGradient id='g3' x1='0' y1='1' x2='1' y2='0'>\
+  <stop offset='0' stop-color='%23f5d57a'/><stop offset='1' stop-color='%23a07c3a'/>\
+  </linearGradient></defs>\
+  <path d='M0 120 L80 120 L80 114 L20 114 Q14 114 14 108 L14 40 L6 40 Q0 40 0 46 Z' fill='url(%23g3)' opacity='0.9'/>\
+  <path d='M0 120 L50 120 M0 120 L0 70' stroke='%23f5d57a' stroke-width='2'/>\
+  <circle cx='20' cy='100' r='4' fill='%23f5d57a' opacity='0.8'/>\
+  <circle cx='35' cy='110' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  <circle cx='10' cy='85' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  </svg>");
+  }
+  
+
+  .corner-decor.corner-br {
+    bottom: 0; right: 0;
+    background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'>\
+  <defs><linearGradient id='g4' x1='1' y1='1' x2='0' y2='0'>\
+  <stop offset='0' stop-color='%23f5d57a'/><stop offset='1' stop-color='%23a07c3a'/>\
+  </linearGradient></defs>\
+  <path d='M120 120 L40 120 L40 114 L100 114 Q106 114 106 108 L106 40 L114 40 Q120 40 120 46 Z' fill='url(%23g4)' opacity='0.9'/>\
+  <path d='M120 120 L70 120 M120 120 L120 70' stroke='%23f5d57a' stroke-width='2'/>\
+  <circle cx='100' cy='100' r='4' fill='%23f5d57a' opacity='0.8'/>\
+  <circle cx='85' cy='110' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  <circle cx='110' cy='85' r='2' fill='%23f5d57a' opacity='0.6'/>\
+  </svg>");
+  }
+  
+  @media (max-width: 900px) {
+    .corner-decor { width: 90px; height: 90px; }
+  }
+  @media (max-width: 700px) {
+    .corner-decor { width: 70px; height: 70px; }
+  }*/
